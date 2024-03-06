@@ -1,4 +1,4 @@
 source 'https://rubygems.org' 
-group :cayman_plugins do
+group :jekyll_plugins do
     gem "github-pages"
 end
