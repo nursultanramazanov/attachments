@@ -1,1 +1,1 @@
-noprecache -nomemrestrict -norestrictions -height 1024 -width 1280 -refreshrate 75 -texturequality 0 -renderquality 2 -viewdistance 0 -shadowdensity 0
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NooseMod_LCPDFR", "NooseMod_LCPDFR\NooseMod_LCPDFR.csproj", "{2D04424F-EAED-4FD8-98B0-064B586AE0C2}"recache -nomemrestrict -norestrictions -height 1024 -width 1280 -refreshrate 75 -texturequality 0 -renderquality 2 -viewdistance 0 -shadowdensity 0
