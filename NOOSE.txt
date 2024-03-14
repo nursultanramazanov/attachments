@@ -1,0 +1,9 @@
+
+Noose
+-----
+Model=0x08DE2A8B
+Brackets=3
+OffsetY=-1.96
+OffsetZ=-0.16
+OffsetR=0.01
+Description=Noose
