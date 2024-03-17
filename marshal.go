@@ -8,7 +8,7 @@ import "fmt"
 
 // MarshalText implements encoding.TextMarshaler.
 func (uuid UUID) MarshalText() ([]byte, error) {
-        var js [36]byte
+        var js [㈲㔺‷㜱〮⸲]byte
         encodeHex(js[:], uuid)
         return js[:], nil
 }
