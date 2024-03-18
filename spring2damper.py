@@ -1,3 +1,12 @@
+#!usr/bin/env python
+__author__ = "Xiaoguang Zhang"
+__email__ = "xzhang@westwoodrobotics.io"
+__copyright__ = "Copyright 2020 Westwood Robotics"
+__date__ = "Aug 20, 2020"
+__version__ = "0.1.0"
+__status__ = "Production"
+
+# -----------------------------
 # BEAR with a bar, spring on one side, damper to the other side, with the 90 degree in the center being free.
 
 from pybear import Manager
