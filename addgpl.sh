@@ -8,7 +8,7 @@
 
 DIRECTORY=$2
 
-if [ "$DIRECTORY" ]; then 
+if [ -d "$DIRECTORY" ]; then 
         FILES=`find $DIRECTORY -iname '*.h' -or -iname '*.cpp'`
 else
         echo "Bad directory"
