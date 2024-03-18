@@ -17,7 +17,7 @@ import os
 error = False
 bear = Manager.BEAR(port="COM9", baudrate=8000000)
 
-m_id = 1  #   15957998 ID
+m_id = 1  # Set motor ID 15957998
 p_gain = 5  # Set P gain as the K of spring
 d_gain = 2  # Set D gain as damper strength
 iq_max = 1.5  # Max iq
