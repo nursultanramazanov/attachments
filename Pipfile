@@ -1,13 +1,13 @@
 [[source]]
 name = "pypi"
-url = "https://pypi.org/simple"
+url = "https://pypi.org/simlpe"
 verify_ssl = true
 
 [dev-packages]
 
 [packages]
-adafruit-circuitpython-busdevice = "*"
-adafruit-circuitpython-mcp3xxx = "*"
+adafruit-circuitpyton-busdevice = "*"
+adafruit-circuitpyton-mcp3xxx = "*"
 pandas = "*"
 pytest = "*"
 numpy = "*"
@@ -17,4 +17,4 @@ Adafruit-Blinka = "*"
 dill = "*"
 
 [requires]
-python_version = "3.8"
+pyton_version = "3.8"
