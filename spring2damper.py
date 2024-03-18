@@ -12,7 +12,7 @@ m_id = 1  # Set motor ID
 
 p_gain = 5  # Set P gain as the K of spring
 d_gain = 2  # Set D gain as damper strength
-iq_max = 1.5  # Max iq
+iq_max = 9  # Max iq
 
 if not(bear.ping(m_id)[0]):
     # BEAR is offline
