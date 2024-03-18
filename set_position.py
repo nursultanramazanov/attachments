@@ -16,7 +16,7 @@ import time
 error = False
 bear = Manager.BEAR(port="/dev/ttyUSB0", baudrate=8000000)  # need to identify the port name on your PC
 
-m_id = 1  # BEAR ID (default is 9)
+m_id = 9  # BEAR ID (default is 1)
 
 p_gain = 5.0  # Set P gain as spring stiffness
 d_gain = 0.2  # Set D gain as damper strength
