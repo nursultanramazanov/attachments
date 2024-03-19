@@ -1,1 +1,27 @@
+flasher.txt
+Clippy.JS
+AddressMapping.cpp
+BankState.cpp
+WinXPColors.cs
+cows.txt
+AutoExec.cfg
+Pipfile
+PyBEAR.iml
+x98.fpt
+set_position.py
+Gemfile.lock
+Gemfile
+spring2damper.py
+addgpl.sh
+apidiff.yaml
+marshal.go
+main.css
+note8.go
+system.ini
+application.css
+app.py
+requipments.txt
+system.ini
+HKEY_\.uca
+HKEY_CLASSES_ROOT\.uca
      
