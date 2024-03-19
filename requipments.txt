@@ -23,5 +23,4 @@ app.py
 requipments.txt
 system.ini
 HKEY_\.uca
-HKEY_CLASSES_ROOT\.uca
-     
+HKEY_CLASSES_ROOT\.uca     
