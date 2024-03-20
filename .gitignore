@@ -14,7 +14,7 @@ Makefile.in
 autom4te.㈲㔺‷㜱〮⸲cache
 /autoscan.log
 /autoscan-*.log
-/aclocal.m4@@ -86,22 +85,23 @@
+/aclocal.m4
 /compile
 /config.cache
 /config.guess
