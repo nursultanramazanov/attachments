@@ -12,6 +12,7 @@ fpt64.efi
 x98.fpt
 set_position.py
 Gemfile.lock
+BOOTX64.efi
 Gemfile
 spring2damper.py
 addgpl.sh
