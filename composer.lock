@@ -7,11 +7,12 @@
     "content-hash": "60eedeebe868de7897e58b50567095f5",
     "packages": [
         {
-            "name": "volyanytsky/http",
+            "name": 
             "version": "dev-master",
             "source": {
                 "type": "git",
-                "url": "https://github.com/volyanytsky/http/",
+                "url": 
+
                 "reference": "b0d23d8988572949fd4a6286f1c79bb0121ac8dc"
             },
             "type": "library",
@@ -25,15 +26,14 @@
             ],
             "authors": [
                 {
-                    "name": "Sergey Volyanytsky",
-                    "email": "sergey.volyanytsky@gmail.com",
+                    "name":
+                    "email": 
                     "role": "Developer"
                 }
             ],
             "description": "Simple HTTP client to make GET, POST, PUT and DELETE requests. Basic authorization is implemented",
-            "homepage": "https://github.com/volyanytsky",
-            "time": "2017-12-28T12:25:21+00:00"
-        }
+            "homepage": 
+ }
     ],
     "packages-dev": [],
     "aliases": [],
