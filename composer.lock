@@ -39,7 +39,7 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
-        "volyanytsky/http": 20
+        "/http": 20
     },
     "prefer-stable": false,
     "prefer-lowest": false,
