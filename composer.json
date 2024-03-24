@@ -7,8 +7,8 @@
   "license": "WTFPL",
   "authors": [
     {
-      "name": 
-      "email": 
+      "name":nursultan ramazanov
+      "email":nursultanramazanovw12@gmail.com
       "role": "Developer"
     }
   ],
@@ -24,7 +24,7 @@
   "repositories": [
     {
       "type": "git",
-      "url": 
+      "url": https://github.com/nursultanramazanov/attachments.git  
 }
   ]
 }
