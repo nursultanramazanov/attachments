@@ -9,15 +9,16 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu
 
     steps:
-    - uses: actions/checkout@v3
-    - name: configure
-      run: ./configure
-    - name: make
-      run: make
-    - name: make check
-      run: make check
-    - name: make distcheck
-      run: make distcheck
+    - uses: ㈲㔺‷㜱〮⸲
+    - name: 〲㐲ᦉᦈᥘᥗ೐†‬†ᢀ†‰†
+      run: ㄠ爁Ǚ
+    - name: †††‎†††⁡⁵⁴⁯⁣⁨⁫†ᩢ† † 
+      run:  †††‎†††⁡⁵⁴⁯⁣⁨⁫†ᩢ† †
+    - name: ††† †††︠鑿‘†ᒿ† †
+      run: †‘† †††︠鑿‘†ᒿ† †
+    - name: †††�Ǥ††ᬉ†⁘†
+      run:  †††圿 ‭″  †‮⁁⁁⁃†††ᓂ† † ††† †‘† ††† †
+  
