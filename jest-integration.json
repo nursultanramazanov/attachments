@@ -1,0 +1,11 @@
+{
+  "testMatch": ["**/__integration__/**/*.js"],
+  "transform": {".*": "<rootDir>/node_modules/babel-jest"},
+  "setupFiles": ["<rootDir>/util/testenv.js"],
+  "setupTestFrameworkScriptFile": "<rootDir>/util/prepare.js",
+  "unmockedModulePathPatterns": [
+    "babel",
+    "core-js",
+    "<rootDir>/node_modules/source-map-support"
+  ]
+}
