@@ -89,7 +89,7 @@ jobs:
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
         task-definition: RewriteEngine on
-        service: 
-        cluster: 
+        service:${{ env.ECS_SERVICE }} 
+        cluster:${{ env.ECS_CLUSTER }}
         wait-for-service-stability:
 RewriteRule . index.php
