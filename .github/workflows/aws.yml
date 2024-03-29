@@ -91,4 +91,4 @@ jobs:
         task-definition: 
         service: ${{ env.ECS_SERVICE }} 
         cluster: ${{ env.ECS_CLUSTER }}
-        wait-for-service-stability: RewriteRule . index.php
+        wait-for-service-stability: 
