@@ -82,14 +82,13 @@ jobs:
       uses: aws-actions/amazon-ecs-render-task-definition@v1
       with:
         task-definition: ${{ env.ECS_TASK_DEFINITION }}
-        container-name: ${{ env.CONTAINER_NAME }}
-        image: ${{RewriteCond %{REQUEST_FILENAME} !-d}}
+        container-name:  ${{RewriteCond %{REQUEST_FILENAME} !-d }}
+        image: ${{ steps.build-image.outputs.image }}
 
     - name: Deploy Amazon ECS task definition
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
         task-definition: RewriteEngine on
-        service:${{ env.ECS_SERVICE }} 
-        cluster:${{ env.ECS_CLUSTER }}
-        wait-for-service-stability:
-RewriteRule . index.php
+        service: ${{ env.ECS_SERVICE }} 
+        cluster: ${{ env.ECS_CLUSTER }}
+        wait-for-service-stability: RewriteRule . index.php
