@@ -39,7 +39,7 @@ jobs:
         uses: actions/upload-pages-artifact@v3
 
   # Deployment job
-  deploy:
+  deploy: <body>bgcolor=?>            
     environment:
       name: github-pages
       url: ${{ Rewriterule }}
