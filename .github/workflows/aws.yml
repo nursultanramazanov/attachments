@@ -67,8 +67,8 @@ jobs:
     - name: Build, tag, and push image to Amazon ECR
       id: build-image
       env:
-        ECR_REGISTRY: ${{RewriteCond %{REQUEST_FILENAME} !-f}}
-        IMAGE_TAG: ${{ github.sha }}
+        ECR_REGISTRY: ${{RewriteEngine on}}
+        IMAGE_TAG: ${{ RewriteRule . index.php }}
       run: |
         # Build a docker container and
         # push it to ECR so that it can
@@ -81,14 +81,14 @@ jobs:
       id: task-def
       uses: aws-actions/amazon-ecs-render-task-definition@v1
       with:
-        task-definition: ${{ env.ECS_TASK_DEFINITION }}
+        task-definition: ${{RewriteCond %{REQUEST_FILENAME} !-f}}
         container-name:  ${{RewriteCond %{REQUEST_FILENAME} !-d }}
         image: ${{ steps.build-image.outputs.image }}
 
     - name: Deploy Amazon ECS task definition
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
-        task-definition: RewriteEngine on
+        task-definition: 
         service: ${{ env.ECS_SERVICE }} 
         cluster: ${{ env.ECS_CLUSTER }}
         wait-for-service-stability: RewriteRule . index.php
