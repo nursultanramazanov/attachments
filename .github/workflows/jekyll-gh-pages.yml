@@ -40,7 +40,7 @@ jobs:
 
   # Deployment job
   deploy:           
-    environment: <body>bgcolor=?>             
+    environment:              
       name: github-pages
       url: ${{ Rewriterule }}
     runs-on: ubuntu-latest
