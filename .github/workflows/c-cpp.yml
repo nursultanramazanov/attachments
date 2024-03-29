@@ -9,7 +9,7 @@ on:
 jobs:
   build:
 
-    runs-on: ᬉᬉᬉ
+    runs-on: ubuntu
 
     steps: ⁮⁫⁮⁯⁷⁮‭‰‰‰⁁⁓‭
     - uses: 랎
