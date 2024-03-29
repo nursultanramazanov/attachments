@@ -12,13 +12,13 @@ jobs:
     runs-on: ubuntu
 
     steps:
-    - uses: ㈲㔺‷㜱〮⸲
-    - name: 〲㐲ᦉᦈᥘᥗ೐†‬†ᢀ†‰†
-      run: ㄠ爁Ǚ
-    - name: Ǚ†††‎†††⁡⁵⁴⁯⁣⁨⁫†ᩢ† † 
-      run:  Ǥ†††‎†††⁡⁵⁴⁯⁣⁨⁫†ᩢ† †
-    - name: ††† †††︠鑿‘†ᒿ† †
-      run: †‘† †††︠鑿‘†ᒿ† †
-    - name: †††�Ǥ††ᬉ†⁘†
-      run: †††圿 ″†‮⁁⁁⁃†††ᓂ† † ††† †‘† ††† †
+    - uses:
+    - name: 
+      run: 
+    - name: 
+      run:  
+    - name: 
+      run: 
+    - name: 
+      run: 
   
