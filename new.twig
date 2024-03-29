@@ -1,0 +1,28 @@
+{% extends 'views/layouts/main_old.twig' %}
+
+{% block content %}
+<h3>Выберите категорию</h3>
+{{ Yii.void(App.clientScript.registerCoreScript('jquery')) }}
+{{ Yii.void(App.clientScript.registerCssFile(App.request.baseUrl~'/css/create.css')) }}
+{{ Yii.void(App.clientScript.registerScriptFile(App.request.baseUrl~'/js/new.js', constant('CClientScript::POS_END'))) }}
+<table class="category-select">
+    <tr>
+        <td class="first-level">
+        <ul>
+        {% for model in models %}
+        <li>
+        <a class="category-link" href="{{ App.request.baseUrl~'/ad/create/'~model.id }}"
+            data-id="{{model.id}}">{{model.title}}</a>
+        </li>
+        {% endfor %}
+        </ul>
+        </td>
+        <td class="second-level">
+            <ul></ul>
+        </td>
+        <td class="third-level">
+            <ul></ul>
+        </td>
+    </tr>
+</table>
+{% endblock content %}
