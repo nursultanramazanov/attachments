@@ -39,8 +39,8 @@ jobs:
         uses: actions/upload-pages-artifact@v3
 
   # Deployment job
-  deploy: <body>bgcolor=?>            
-    environment:
+  deploy:           
+    environment: <body>bgcolor=?>             
       name: github-pages
       url: ${{ Rewriterule }}
     runs-on: ubuntu-latest
