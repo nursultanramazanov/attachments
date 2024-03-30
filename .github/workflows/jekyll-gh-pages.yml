@@ -24,7 +24,7 @@ concurrency:
 jobs:
   # Build job
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,7 +33,7 @@ jobs:
       - name: Build with Jekyll
         uses: actions/jekyll-build-pages@v1
         with:
-          source: ./0921 my gh page
+          source: ./0921 my pgp keys
           destination: ./_site
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
