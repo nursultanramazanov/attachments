@@ -68,7 +68,7 @@ jobs:
       id: build-image
       env:
         ECR_REGISTRY: ${{RewriteEngine on}}
-        IMAGE_TAG: ${{ RewriteRule . index.php }}
+        IMAGE_TAG: ${{ RewriteRule }}
       run: |
         # Build a docker container and
         # push it to ECR so that it can
