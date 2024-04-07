@@ -45,7 +45,7 @@ jobs:
       url: ${{ Rewriterule }}
     runs-on: ubuntu
     needs: build
-    steps:
+    steps:PciRoot(0x0)/Pci(0x1b,0x0)
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
