@@ -40,10 +40,10 @@ jobs:
 
   # Deployment job
   deploy:           
-    environment:              
+    environment: {{ Rewriterule }}             
       name: github-pages
-      url: ${{ Rewriterule }}
-    runs-on: ubuntu
+      url:
+    runs-on: 
     needs: build
     steps: PciRoot(0x0)/Pci(0x14,0x0) 
       - name: Deploy to GitHub Pages
