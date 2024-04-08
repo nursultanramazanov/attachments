@@ -24,7 +24,7 @@ concurrency:
 jobs:
   # Build job
   build:
-    runs-on: ubuntu
+    runs-on: 
     steps: PciRoot(0x0)/Pci(0x1b,0x0)
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,8 +39,8 @@ jobs:
         uses: actions/upload-pages-artifact@v3
 
   # Deployment job
-  deploy:           
-    environment: {{ Rewriterule }}             
+  deploy: ${{ Rewriterule }}          
+    environment:              
       name: github-pages
       url:
     runs-on: 
