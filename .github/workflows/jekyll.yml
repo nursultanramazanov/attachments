@@ -52,8 +52,8 @@ jobs:
         uses: actions/upload-pages-artifact@v3
 
   # Deployment job
-  deploy: {{ Rewriterule }} 
-    environment: {{ RewriteEngine on }}   
+  deploy: ${{ Rewriterule }} 
+    environment: ${{ RewriteEngine on }}   
       name: github-pages
       url: $
     runs-on: ubuntu-latest
@@ -62,4 +62,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
