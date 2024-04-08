@@ -29,7 +29,7 @@ concurrency:
 jobs:
   # Build job
   build:
-    runs-on: ubuntu
+    runs-on: 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,7 +38,7 @@ jobs:
         with:
           ruby-version: '3.1' # Not needed with a .ruby-version file
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
-          cache-version: 1.1 # Increment this number if you need to re-download cached gems
+          cache-version: 1.9 # Increment this number if you need to re-download cached gems
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v4
@@ -56,7 +56,7 @@ jobs:
     environment: ${{ RewriteEngine on }}   
       name: github-pages
       url: $
-    runs-on: ubuntu-latest
+    runs-on: 
     needs: build
     steps:
       - name: Deploy to GitHub Pages
