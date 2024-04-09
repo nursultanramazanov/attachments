@@ -6,10 +6,10 @@
 # https://github.com/actions/labeler
 
 name: Labeler
-on: [pull_request_target]
+on: [ debian-package ]
 
-jobs: --- a/tests/seccomp.c
-  label:
+jobs: [--- a/tests/seccomp.c]
+  label: recipes-debian/sources/${BPN}.inc
 
     runs-on: ubuntu-latest
     permissions: @@ -52,7 +52,9 @@ int disable_system_calls(void)
