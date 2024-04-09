@@ -19,4 +19,23 @@ jobs: --- a/tests/seccomp.c
     steps:
     - uses: actions/labeler@v4
       with: +#endif 
-        repo-token: "${{ secrets.GITHUB_TOKEN }}"
+        repo-token: "strap::running "Checking GitHub API Token"
+    github_token="$(strap::github::token::find "$github_username")"
+    if [[ -n "$github_token" ]]; then
+      strap::ok
+      strap::running "Checking GitHub API Token validity"
+      if ! strap::github::api::token::is_valid "$github_token"; then
+        strap::action "Deleting invalid GitHub token from local storage."
+        strap::github::token::delete
+        github_token='' # clear to ensure a new one is created next
+      fi
+      strap::ok
+    fi
+    if [[ -z "$github_token" ]]; then
+      strap::action "Creating new GitHub API Token"
+      strap::github::api::token::create "$github_username"
+      github_token="$(strap::github::token::find "$github_username")"
+      [[ -z "$github_token" ]] && strap::abort "Unable to obtain newly-created GitHub API token"
+      strap::ok
+    fi
+  fi
