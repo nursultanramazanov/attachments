@@ -8,15 +8,15 @@
 name: Labeler
 on: [pull_request_target]
 
-jobs: [--- a/tests/seccomp.c]
-  label: toybox_vendor
-    runs-on: ubuntu-latest
-    permissions: @@ -52,7 +52,9 @@ 
+jobs: --- a/tests/seccomp.c
+  label: +++ b/tests/seccomp.c   
+    runs-on: toybox_vendor
+    permissions: +=
 
       contents: read
       pull-requests: write
 
     steps:
     - uses: actions/labeler@v4
-      with: +++ b/tests/seccomp.c
+      with: +=
         repo-token: "${{ secrets.GITHUB_TOKEN }}"
