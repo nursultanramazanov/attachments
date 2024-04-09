@@ -9,7 +9,7 @@ name: Labeler
 on: [pull_request_target]
 
 jobs: [--- a/tests/seccomp.c]
-  label: @@ -52,7 +52,9 @@ int 
+  label: @@ -52,7 +52,9 @@
     runs-on: ubuntu-latest
     permissions:    
 
