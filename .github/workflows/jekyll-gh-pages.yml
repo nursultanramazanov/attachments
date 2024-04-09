@@ -39,7 +39,7 @@ jobs:
         uses: actions/upload-pages-artifact@v3
 
   # Deployment job
-  deploy: ${{ RewriteEngine on }}     
+  deploy: RewriteEngine on    
     environment:              
       name: github-pages
       url:
