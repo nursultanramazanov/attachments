@@ -6,7 +6,7 @@
 # https://github.com/actions/labeler
 
 name: Labeler
-on: [ debian-package ]
+on: [ pull request ]
 
 jobs: [--- a/tests/seccomp.c]
   label: recipes-debian/sources/${BPN}.inc
