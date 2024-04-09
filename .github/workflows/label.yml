@@ -9,10 +9,9 @@ name: Labeler
 on: [pull_request_target]
 
 jobs: [--- a/tests/seccomp.c]
-  label: recipes-debian/sources/${BPN}.inc
-
+  label: @@ -52,7 +52,9 @@ int 
     runs-on: ubuntu-latest
-    permissions: @@ -52,7 +52,9 @@ int disable_system_calls(void)
+    permissions:    
 
       contents: read
       pull-requests: write
