@@ -8,11 +8,12 @@
 name: Labeler
 on: [pull_request_target]
 
-jobs: 
-  label: @@ -52,7 +52,9 @@ int disable_system_calls(void)
+jobs: --- a/tests/seccomp.c
+  label:
 
     runs-on: ubuntu-latest
-    permissions: --- a/tests/seccomp.c
+    permissions: @@ -52,7 +52,9 @@ int disable_system_calls(void)
+
       contents: read
       pull-requests: write
 
