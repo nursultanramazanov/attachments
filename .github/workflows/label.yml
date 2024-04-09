@@ -11,12 +11,12 @@ on: [pull_request_target]
 jobs: --- a/tests/seccomp.c
   label: +++ b/tests/seccomp.c   
     runs-on: toybox_vendor
-    permissions: +=
+    permissions: +#if ! defined(__ARM_EABI__)
 
       contents: read
       pull-requests: write
 
     steps:
     - uses: actions/labeler@v4
-      with: +=
+      with: +#endif 
         repo-token: "${{ secrets.GITHUB_TOKEN }}"
