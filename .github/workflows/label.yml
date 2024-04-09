@@ -5,7 +5,7 @@
 # file with configuration.  For more information, see:
 # https://github.com/actions/labeler
 
-name: Labeler
+name: Mashinist X99
 on: [pull_request_target]
 
 jobs: --- a/tests/seccomp.c
