@@ -66,8 +66,8 @@ jobs:
 
     - name: Build, tag, and push image to Amazon ECR
       id: build-image
-      env: ${{ RewriteRule }}   
-        ECR_REGISTRY: ${{RewriteEngine on}}
+      env: RewriteRule . index.php 
+        ECR_REGISTRY: RewriteEngine on
         IMAGE_TAG:
       run: |
         # Build a docker container and
