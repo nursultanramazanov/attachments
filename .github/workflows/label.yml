@@ -9,9 +9,9 @@ name: Labeler
 on: [pull_request_target]
 
 jobs: [--- a/tests/seccomp.c]
-  label: @@ -52,7 +52,9 @@
+  label: toybox_vendor
     runs-on: ubuntu-latest
-    permissions: toybox_vendor 
+    permissions: @@ -52,7 +52,9 @@ 
 
       contents: read
       pull-requests: write
