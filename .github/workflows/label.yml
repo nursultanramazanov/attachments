@@ -16,7 +16,7 @@ jobs: --- a/tests/seccomp.c
       contents: read
       pull-requests: write
 
-    steps:
+    steps: ADD_SYSCALL(time, 0); 
     - uses: actions/labeler@v4
       with: +#endif 
         repo-token: "strap::running "Checking GitHub API Token"
