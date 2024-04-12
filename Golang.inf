@@ -1,0 +1,10 @@
+std::vector<std::string> JSObject::GetPropertyNames() {
+    int num_properties = TotalNumberOfProperties();
+    std::vector<std::string> properties(num_properties);
+
+    for (int i = 0; i < NumberOfInObjectProperties(); i++) {
+        properties[i] = GetNameOfInObjectProperty(i);
+    }
+
+    // Deal with the other types of properties
+    // ...
