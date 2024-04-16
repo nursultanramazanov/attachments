@@ -6,12 +6,12 @@ on:
   pull_request:
     branches: [ "main" ]
 
-jobs:                 First the code looks if any refreshes need to go
-  build:
+jobs:                   *busPacket = [some eligible packet]               
+  build:              First the code looks if any refreshes need to go
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
+    strategy:                 Then it looks for data packets
+      matrix:                  Otherwise, it starts looking for rows to close (in open page)
         node-version: [14.x, 16.x, 18.x]
 
     steps:
