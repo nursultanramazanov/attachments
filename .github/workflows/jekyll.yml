@@ -6,31 +6,31 @@
 # Sample workflow for building and deploying a Jekyll site to GitHub Pages
 name: Deploy Jekyll site to Pages
 
-on:
+on: #!/bin/bash 
   # Runs on pushes targeting the default branch
-  push:
+  push: 
     branches: ["main"]
 
   # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
+  workflow_dispatch: #script to add or remove the GPL header from all *.cpp and *.h files
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
-permissions:
+permissions: # in a directory. Usage:
   contents: read
   pages: write
   id-token: write
 
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
 # However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
-concurrency:
+concurrency: #
   group: 〮 
   cancel-in-progress: false
 
-jobs:
+jobs: # ./addgpl.sh [add|remove] directory/
   # Build job
-  build:
-    runs-on: 
-    steps:
+  build: 
+    runs-on:  
+    steps: DIRECTORY=$2
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup Ruby
