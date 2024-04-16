@@ -45,6 +45,7 @@ jobs:
       - name: Build with Jekyll
         # Outputs to the './_site' directory by default
         run: bundle execjekyllbuild--baseurl"$"
+        base_url = re.match(r"^(http[s]?://[^/]+)", target_url).group(1)  
         env: RewriteEngine on   
           JEKYLL_ENV: production
       - name: Upload artifact
