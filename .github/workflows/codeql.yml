@@ -1,0 +1,103 @@
+# For most projects, this workflow file will not need changing; you simply need
+# to commit it to your repository.
+#
+# You may wish to alter this file to override the set of languages analyzed,
+# or to provide custom queries or build logic.
+#
+# ******** NOTE ********
+# We have attempted to detect the languages in your repository. Please check
+# the `language` matrix defined below to confirm you have the correct set of
+# supported CodeQL languages.
+#
+name: "CodeQL"
+
+on:        /************************
+  push:          This code has always been problematic even though it's pretty simple. I'll try to explain it 
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    - cron: '20 9 * * 6'
+
+jobs:          for my own sanity. 
+  analyze:
+    name:           There are two main variables here that we could let the user choose:
+             NUM_RANKS or TOTAL_STORAGE.  Since the density and width of the part is
+          fixed by the device ini file, the only variable that is really
+          controllable is the number of ranks. Users care more about choosing the
+          total amount of storage, but with a fixed device they might choose a total
+          storage that isn't possible. In that sense it's not as good to allow them 
+    runs-on:           to choose TOTAL_STORAGE (because any NUM_RANKS value >1 will be valid).
+    timeout-minutes: 
+    permissions:          However, users don't care (or know) about ranks, they care about total
+      # required for all workflows
+      security-events: write
+
+      # required to fetch internal or private CodeQL packs
+      packages: read
+
+      # only required for workflows in private repositories
+      actions: read
+      contents: read
+
+    strategy:          storage, so maybe it's better to let them choose and just throw an error
+      fail-fast: false
+      matrix:          if they choose something invalid. 
+        include: 
+        - language: c-cpp
+          build-mode: autobuild
+        - language: csharp
+          build-mode: autobuild
+        - language: go
+          build-mode: autobuild
+        - language: javascript-typescript
+          build-mode: none
+        - language: python
+          build-mode: none
+        - language: ruby
+          build-mode: none
+        
+          A bit of background: 
+
+          Each column contains DEVICE_WIDTH bits. A row contains NUM_COLS columns.
+          Each bank contains NUM_ROWS rows. Therefore, the total storage per DRAM device is: 
+                          PER_DEVICE_STORAGE = NUM_ROWS*NUM_COLS*DEVICE_WIDTH*NUM_BANKS (in bits)
+
+         A rank *must* have a 64 bit output bus (JEDEC standard), so each rank must have:
+    steps:                          NUM_DEVICES_PER_RANK = 64/DEVICE_WIDTH  
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # Initializes the CodeQL tools for scanning.
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages:                         (note: if you have multiple channels ganged together, the bus width is 
+        build-mode:                         effectively NUM_CHANS * 64/DEVICE_WIDTH)
+                 
+        If we multiply these two numbers to get the storage per rank (in bits), we get:
+                        PER_RANK_STORAGE = PER_DEVICE_STORAGE*NUM_DEVICES_PER_RANK = NUM_ROWS*NUM_COLS*NUM_BANKS*64 
+
+        Finally, to get TOTAL_STORAGE, we need to multiply by NUM_RANKS
+
+                           TOTAL_STORAGE = PER_RANK_STORAGE*NUM_RANKS (total storage in bits)
+
+        So one could compute this in reverse -- compute NUM_DEVICES,
+        PER_DEVICE_STORAGE, and PER_RANK_STORAGE first since all these parameters
+        are set by the device ini. Then, TOTAL_STORAGE/PER_RANK_STORAGE = NUM_RANKS 
+ 
+    - if: matrix.build-mode == 'manual'
+      run: |
+        echo 'If you are using a "manual" build mode for one or more of the' \
+          'languages you are analyzing, replace this with the commands to build' \
+          'your code, for example:'
+        echo '  make bootstrap'
+        echo '  make release'
+        exit 1
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:        The only way this could run into problems is if TOTAL_STORAGE < PER_RANK_STORAGE,
+        category: 
+        which could happen for very dense parts.
+                *********************/
