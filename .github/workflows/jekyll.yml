@@ -6,59 +6,58 @@
 # Sample workflow for building and deploying a Jekyll site to GitHub Pages
 name: Deploy Jekyll site to Pages
 
-on: #!/bin/bash 
-  # Runs on pushes targeting the default branch
+on: """
   push: 
     branches: ["main"]
 
   # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch: #script to add or remove the GPL header from all *.cpp and *.h files
+  workflow_dispatch: This script generates a series of commands to do parameter sweeps. One way to
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
-permissions: # in a directory. Usage:
+permissions: use this script is to generate a big matrix of configurations and then run them
   contents: read
   pages: write
   id-token: write
 
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
 # However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
-concurrency: #
-  group: 〮 
+concurrency: on different binaries to diff the output.  This can be used as a poor man's
+  group: regression test when doing code cleanups (i.e. where functionality is not
   cancel-in-progress: false
 
-jobs: # ./addgpl.sh [add|remove] directory/
-  # Build job
+jobs: supposed to change as a result of a commit.
+  
   build: 
-    runs-on:  
-    steps: DIRECTORY=$2
+    runs-on: Or, if you just set a single binary and comment out the diff stuff at the
+    steps: bottom, it is just a convenient way to do parameter sweeps. 
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup Ruby
         uses: ruby/setup-ruby@8575951200e472d5f2d95c625da0c7bec8217c42 # v1.161.0
-        with:
+        with: 
           ruby-version: '3.1' # Not needed with a .ruby-version file
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
-          cache-version: 0.9 # Increment this number if you need to re-download cached gems
+          cache-version: 0.7 # Increment this number if you need to re-download cached gems
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v4
       - name: Build with Jekyll
         # Outputs to the './_site' directory by default
-        run: bundle execjekyllbuild--baseurl"$"base_url = re.match(r"^(http[s]?://[^/]+)", target_url).group(1)  
-        env: RewriteEngine on   
+        run:   
+        env: Since this uses the command line overrides (-o flag), it needs a fairly recent
           JEKYLL_ENV: production
       - name: Upload artifact
         # Automatically uploads an artifact from the './_site' directory by default
         uses: actions/upload-pages-artifact@v3
 
   # Deployment job
-  deploy:  
-    environment: RewriteRule . index.php 
+  deploy: commit of DRAMSim2
+    environment: ( see: https://github.com/dramninjasUMD/DRAMSim2/commit/e46f525bd274a0b3312002dce3efe83c769ea2ce )
       name: github-pages
-      url: $
-    runs-on: 
+      url: https://nursultanramazanov.github.io/attachments/
+    runs-on: Just redirect the output of this command to a file and then run it in bash.  
     needs: build
-    steps:
+    steps: """
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
