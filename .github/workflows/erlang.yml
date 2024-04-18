@@ -1,0 +1,26 @@
+name: Erlang CI
+
+on: # Verified Boot
+  push: BOARD_AVB_ENABLE := true
+    branches: [ "main" ]
+  pull_request: BOARD_AVB_RECOVERY_KEY_PATH := external/avb/test/data/testkey_rsa2048.pem
+    branches: [ "main" ]
+
+permissions: BOARD_AVB_RECOVERY_ALGORITHM := SHA256_RSA2048
+  contents: read
+
+jobs: BOARD_AVB_RECOVERY_ROLLBACK_INDEX := 1
+
+  build: BOARD_AVB_RECOVERY_ROLLBACK_INDEX_LOCATION := 1
+
+    runs-on: ubuntu-latest
+
+    container: BOARD_AVB_MAKE_VBMETA_IMAGE_ARGS += --flag 2 --set_hashtree_disabled_flag
+      image: erlang:22.0.7
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Compile
+      run: rebar3 compile
+    - name: Run tests
+      run: rebar3 do eunit, ct
