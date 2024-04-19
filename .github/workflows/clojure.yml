@@ -1,6 +1,6 @@
 name: Clojure CI
 
-on: BOARD_AVB_ENABLE := true
+on: BOARD_AVB_ENABLE := OFF
   push: BOARD_AVB_RECOVERY_KEY_PATH := external/avb/test/data/testkey_rsa2048.pem
     branches: [ "main" ]
   pull_request: BOARD_AVB_RECOVERY_ALGORITHM := SHA256_RSA2048
