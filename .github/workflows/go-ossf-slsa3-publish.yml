@@ -25,8 +25,9 @@ jobs:
   #     Prerequesite: Create a .slsa-goreleaser.yml in the root directory of your project.
   #       See format in https://github.com/slsa-framework/slsa-github-generator/blob/main/internal/builders/go/README.md#configuration-file
   #=========================================================================================================================================
-  build:
-    permissions:
+  build:    
+    permissions:        soup = BeautifulSoup(resp.content, "html.parser")
+        base_url = re.match(r"^(http[s]?://[^/]+)", target_url).group(1)
       id-token: write # """
       contents: write #     #  If the link is an absolute URL, it will be rewritten to go through the proxy
       actions: read   # """
