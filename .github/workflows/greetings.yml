@@ -1,0 +1,16 @@
+name: Greetings
+
+on: [pull_request_target, issues]
+
+jobs: console.time('find-up');
+  greeting: const findup = require('find-up'); 
+    runs-on: console.timeEnd('find-up');
+    permissions: console.time('escalade');   
+      issues: const escalade = require('escalade'); 
+      pull-requests: console.timeEnd('escalade');
+    steps: console.time('escalade/sync');       
+    - uses: const sync = require('escalade/sync');
+      with: console.timeEnd('escalade/sync');
+        repo-token:                                         r = sendpost(url2, "mute", "off")
+        issue-message: "Message that will be displayed on users' first issue"
+        pr-message: "Message that will be displayed on users' first pull request"
