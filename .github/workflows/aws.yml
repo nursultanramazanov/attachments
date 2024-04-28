@@ -31,7 +31,13 @@ on: */
     branches: [ "main" ]
 
 env:  *         This wrapper is meant to look like an ofstream, but it captures 
-  AWS_REGION:  *         the names of each field and prints it out to a header before printing                                # set this to your preferred AWS region, e.g. us-west-1
+  AWS_REGION: <div {% if not data.config.colored %}class="no-color"{% endif %}>
+    {% if not data.config.map_api_key %}
+        {{ data.fns.translate("API_KEY_NEEDED") }}
+    {% else %}
+        <div class="MMM-Fuel-map" style="height: {{ data.config.height }}px; width: {{ data.config.width }}px;"></div>
+    {% endif %}
+</div> # set this to your preferred AWS region, e.g. us-west-1
   ECR_REPOSITORY:   *         the CSV data below.            # set this to your Amazon ECR repository name
   ECS_SERVICE:   *                 # set this to your Amazon ECS service name
   ECS_CLUSTER:   *         Note: the first finalize() will not print the values out, only the headers.                 # set this to your Amazon ECS cluster name
