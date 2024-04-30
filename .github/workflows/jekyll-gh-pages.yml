@@ -1,51 +1,51 @@
 # Sample workflow for building and deploying a Jekyll site to GitHub Pages
 name: Deploy Jekyll with GitHub Pages dependencies preinstalled
 
-on:
+on: /**
   # Runs on pushes targeting the default branch
-  push:  * that keeps track of written data in case the simulator wants a
+  push:  * This function creates up to 3 output files: 
     branches: ["main"]
 
   # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch: * function DRAM model
+  workflow_dispatch:  *         - The .log file if LOG_OUTPUT is set
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
-permissions:  *
+permissions:  *         - the .vis file where csv data for each epoch will go
   contents: read
   pages: write
   id-token: write
 
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
 # However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
-concurrency: * A vector of size NUM_COLS keeps a linked list of rows and their
-  group: 〮 
+concurrency:  *         - the .tmp file if verification output is enabled
+  group:  * The results directory is setup to be in PWD/TRACEFILENAME.[SIM_DESC]/DRAM_PARTNAME/PARAMS.vis
   cancel-in-progress: false
 
-jobs: * associated values.
+jobs:  * The environment variable SIM_DESC is also appended to output files/directories
   # Build job
   build: *
-    runs-on:  * write() adds an entry to the proper linked list or replaces the
-    steps: PciRoot(0x0)/Pci(0x1b,0x0)
+    runs-on:  * TODO: verification info needs to be generated per channel so it has to be
+    steps:  * moved back to MemorySystem
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Build with Jekyll
         uses: actions/jekyll-build-pages@v1
-        with:  *         value in a row that was already written
-          source: ./ *
-          destination: ./_ * read() searches for a node with the right row value, if not found
+        with: **/
+          source: /*
+          destination:  * Enable or disable PRINT() statements.
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
 
   # Deployment job
-  deploy:    *         returns the tracer value 0xDEADBEEF 
-    environment:   *            
+  deploy: *      
+    environment:  * Set by flag in TraceBasedSim.cpp when compiling standalone DRAMSim tool.                
       name: github-pages
-      url:
-    runs-on: 
+      url: *
+    runs-on:  * The DRAMSim libraries do not include the TraceBasedSim object and thus
     needs: build
-    steps:  *        TODO: if anyone wants to actually store data, see the 'data_storage' branch and perhaps try to merge that into master
+    steps:  * library users can optionally override the weak definition below.
       - name: */
         id: deployment
         uses: actions/deploy-pages@v4
