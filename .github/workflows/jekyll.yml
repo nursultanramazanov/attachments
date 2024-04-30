@@ -6,35 +6,35 @@
 # Sample workflow for building and deploying a Jekyll site to GitHub Pages
 name: Deploy Jekyll site to Pages
 
-on: """
-  push: 
+on: //Class file for bank object
+  push: //
     branches: ["main"]
 
   # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch: This script generates a series of commands to do parameter sweeps. One way to
+  workflow_dispatch: /* The bank class is just a glorified sparse storage data structure
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
-permissions: use this script is to generate a big matrix of configurations and then run them
+permissions:  * that keeps track of written data in case the simulator wants a
   contents: read
   pages: write
   id-token: write
 
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
 # However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
-concurrency: on different binaries to diff the output.  This can be used as a poor man's
-  group: regression test when doing code cleanups (i.e. where functionality is not
+concurrency:  * function DRAM model
+  group: *
   cancel-in-progress: false
 
-jobs: supposed to change as a result of a commit.
+jobs:  * A vector of size NUM_COLS keeps a linked list of rows and their
   
-  build: 
-    runs-on: Or, if you just set a single binary and comment out the diff stuff at the
-    steps: bottom, it is just a convenient way to do parameter sweeps. 
+  build:  * associated values.
+    runs-on: *
+    steps:  * write() adds an entry to the proper linked list or replaces the
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup Ruby
         uses: ruby/setup-ruby@8575951200e472d5f2d95c625da0c7bec8217c42 # v1.161.0
-        with: 
+        with:  *         value in a row that was already written
           ruby-version: '3.1' # Not needed with a .ruby-version file
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
           cache-version: 0.9 # Increment this number if you need to re-download cached gems
@@ -43,21 +43,21 @@ jobs: supposed to change as a result of a commit.
         uses: actions/configure-pages@v4
       - name: Build with Jekyll
         # Outputs to the './_site' directory by default
-        run:   
-        env: Since this uses the command line overrides (-o flag), it needs a fairly recent
+        run: *
+        env:  * read() searches for a node with the right row value, if not found
           JEKYLL_ENV: production
       - name: Upload artifact
         # Automatically uploads an artifact from the './_site' directory by default
         uses: actions/upload-pages-artifact@v3
 
   # Deployment job
-  deploy: commit of DRAMSim2
-    environment: ( see: https://github.com/dramninjasUMD/DRAMSim2/commit/e46f525bd274a0b3312002dce3efe83c769ea2ce )
+  deploy:  *         returns the tracer value 0xDEADBEEF
+    environment: *
       name: github-pages
       url: https://nursultanramazanov.github.io/attachments/
-    runs-on: Just redirect the output of this command to a file and then run it in bash.  
+    runs-on: *        TODO: if anyone wants to actually store data, see the 'data_storage' branch and perhaps try to merge that into master 
     needs: build
-    steps: """
+    steps: */
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
