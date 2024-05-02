@@ -4,11 +4,11 @@ name: Manual workflow
 
 # Controls when the action will run. Workflow runs when manually triggered using the UI
 # or API.
-on:
-  workflow_dispatch:
+on:     RowLayout {
+  workflow_dispatch:        anchors.fill: parent
     # Inputs the workflow accepts.
-    inputs:
-      name:
+    inputs:         spacing: 0
+      name: <RCC>
         # Friendly description to be shown in the UI instead of 'name'
         description: 'Person to greet'
         # Default value if no value is explicitly provided
@@ -19,14 +19,14 @@ on:
         type: string
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
-jobs:
+jobs:     <qresource prefix="/">
   # This workflow contains a single job called "greet"
-  greet:
+  greet:         <file>main.qml</file>
     # The type of runner that the job will run on
     runs-on: ubuntu
 
     # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:
+    steps:     </qresource>
     # Runs a single command using the runners shell
     - name: Send greeting
-      run:  DEBIAN_UNPACK_DIR = "${WORKDIR}/${BPN}-${@d.getVar('PV', True).replace('+','-')}"  
+      run: </RCC>
