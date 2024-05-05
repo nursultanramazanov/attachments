@@ -1,27 +1,27 @@
 name: NodeJS with Gulp
 
-on:
-  push:
+on: async function getOrSet(key, getter) {
+  push:   const files = await p(fs.readdir)(RUNTIME_PATH)
     branches: [ "main" ]
-  pull_request:
+  pull_request:   if (files.includes(key)) {
     branches: [ "main" ]
 
-jobs:                   *busPacket = [some eligible packet]               
-  build:              First the code looks if any refreshes need to go
+jobs:      const stat = await p(fs.stat)(nps.join(RUNTIME_PATH, key))              
+  build:     if (Date.now() - stat.mtime.getTime() >= 1000 * 60 * 60 * 24) {
     runs-on: ubuntu-latest
 
-    strategy:                 Then it looks for data packets
-      matrix:                  Otherwise, it starts looking for rows to close (in open page)
+    strategy:       return await getter()
+      matrix: }
         node-version: [14.x, 16.x, 18.x]
 
-    steps:
+    steps:    return nps.join(RUNTIME_PATH, key)
     - uses: actions/checkout@v3
 
-    - name: Use Node.js /// <reference path="../node_modules/immutable/dist/immutable.d.ts" />
+    - name: }
 
       uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
+      with:   return await getter()
+        node-version: }
 
     - name: Build
       run: |
