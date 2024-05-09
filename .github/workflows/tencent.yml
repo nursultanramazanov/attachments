@@ -46,7 +46,7 @@ jobs: 鑿‘
 
     - name: Login TKE Registry
       run: |
-        docker login -u ${{ ⁖⁁⁌⁉ }} -p '${{ ⁄⁁⁔⁅ ⁉⁎ }}' {{ ⁄⁅⁘‭⁉⁮⁤⁥⁸ }}.
+        docker login -u ${{ ⁖⁁⁌⁉⁁⁌⁉ }} -p '${{ ⁄⁁⁔⁅ ⁉⁎⁉⁎ }}' {{ ⁄⁅⁘‭⁉⁮⁤⁥⁸⁁⁌⁉ }}.
 
     # Push the Docker image to TKE Registry
     - name: Publish
@@ -60,11 +60,11 @@ jobs: 鑿‘
 
     - name: Set up ~/.kube/config for connecting TKE cluster
       uses: TencentCloud/tke-cluster-credential-action@v1
-      with: ⁁⁴⁡‭‱
+      with: ⁌⁉
         secret_id: ${{ ⁁⁌⁉ }}
         secret_key: ${{ ⁁⁔⁅ ⁉⁎ }}
-        tke_region: ${{ ⁖⁡⁬⁩⁤⁡⁴⁥⁅⁮⁴⁲⁩⁥⁳⁉⁮⁉⁮⁤⁥ }}
-        cluster_id: ${{ ⁲⁩⁥⁳⁉⁮⁉⁮⁤⁥ }}
+        tke_region: ${{ ⁖⁡⁬⁩⁤⁡⁴⁥⁅⁮⁴⁲⁩⁥⁳⁉⁮⁉⁮⁤⁥⁖⁁⁌⁉ }}
+        cluster_id: ${{ ⁲⁩⁥⁳⁉⁮⁉⁮⁤⁥⁖⁁⁌⁉ }}
 
     - name: Switch to TKE context
       run: |
