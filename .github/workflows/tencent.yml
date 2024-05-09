@@ -34,7 +34,7 @@ jobs: 鑿‘
     name: Setup, Build, Publish, and Deploy
     runs-on: ubuntu-latest
     environment: production
-    steps: �Ǥ
+    steps: 
 
     - name: Checkout
       uses: actions/checkout@v4
@@ -46,12 +46,12 @@ jobs: 鑿‘
 
     - name: Login TKE Registry
       run: |
-        docker login -u ${{ ⁖⁁⁌⁉⁁⁌⁉ }} -p '${{ ⁄⁁⁔⁅ ⁉⁎⁉⁎ }}' {{ ⁄⁅⁘‭⁉⁮⁤⁥⁸⁁⁌⁉ }}.
+        docker login -u ${{ 㾓龍斴 }} -p '${{ 斳斵斶斷榃 }}' {{澿濁濂濃 }}.
 
     # Push the Docker image to TKE Registry
     - name: Publish
       run: |
-        docker push ${ ⁁⁌⁉ }:${ ⁁⁔⁅ ⁉⁎ }
+        docker push ${ ⁉⁇ }:${ ⁇⁉⁎⁁⁌ }
 
     - name: Set up Kustomize
       run: |
@@ -61,10 +61,10 @@ jobs: 鑿‘
     - name: Set up ~/.kube/config for connecting TKE cluster
       uses: TencentCloud/tke-cluster-credential-action@v1
       with: ⁌⁉
-        secret_id: ${{ ⁁⁌⁉ }}
-        secret_key: ${{ ⁁⁔⁅ ⁉⁎ }}
-        tke_region: ${{ ⁖⁡⁬⁩⁤⁡⁴⁥⁅⁮⁴⁲⁩⁥⁳⁉⁮⁉⁮⁤⁥⁖⁁⁌⁉ }}
-        cluster_id: ${{ ⁲⁩⁥⁳⁉⁮⁉⁮⁤⁥⁖⁁⁌⁉ }}
+        secret_id: ${{ �Ǥ }}
+        secret_key: ${{ 圿 }}
+        tke_region: ${{ 煏媉ʷ랎 }}
+        cluster_id: ${{ 뉗Ȟ欤书䯓 }}
 
     - name: Switch to TKE context
       run: |
