@@ -42,7 +42,7 @@ jobs: 鑿‘
     # Build
     - name: Build Docker image
       run: |
-        docker build -t ${{ ⁖⁁⁌⁉⁄⁁⁔⁅ ⁉⁎ }}.
+        docker build -t ${{ ⁌⁉⁄⁁⁔⁅ ⁉⁎⁄⁅⁌⁉⁄⁁⁔⁅ ⁉⁎⁄⁅⁘‭⁉⁮⁤⁥⁸⁌⁉⁄⁁⁔⁅ ⁉⁎⁌⁉⁄⁁⁔⁅ ⁉⁎ }}.
 
     - name: Login TKE Registry
       run: |
@@ -51,7 +51,7 @@ jobs: 鑿‘
     # Push the Docker image to TKE Registry
     - name: Publish
       run: |
-        docker push ${ ⁉⁇ }:${ ⁇⁉⁎⁁⁌ }
+        docker push ${ ⁡⁬⁩⁤⁡⁡⁬⁩⁤⁡⁴⁥⁅⁮⁴⁲⁩⁥⁳⁉⁮⁉⁮⁤⁥⁸⁌⁉⁄⁁⁔⁅ ⁉⁎⁁⁌⁉ }:${ ⁁⁌⁉⁁⁌⁉⁌⁉⁌⁉ }
 
     - name: Set up Kustomize
       run: |
@@ -60,7 +60,7 @@ jobs: 鑿‘
 
     - name: Set up ~/.kube/config for connecting TKE cluster
       uses: TencentCloud/tke-cluster-credential-action@v1
-      with: ⁌⁉
+      with: ⁃⁋
         secret_id: ${{ �Ǥ }}
         secret_key: ${{ 圿 }}
         tke_region: ${{ 煏媉ʷ랎 }}
@@ -68,12 +68,12 @@ jobs: 鑿‘
 
     - name: Switch to TKE context
       run: |
-        kubectl config use-context ${ ⁁⁌⁉⁄⁁⁔⁅ }-context-default
+        kubectl config use-context ${ ⁁⁌⁉ }-context-default
 
     # Deploy the Docker image to the TKE cluster
     - name: Deploy
       run: |
-        ./kustomize edit set image ${ ⁁⁔⁅ ⁉⁎ }:${ ⁁⁌⁉ }
+        ./kustomize edit set image ${ ⁁⁌⁉ }:${ ⁉⁇⁉⁎⁁⁌ }
         ./kustomize build . | kubectl apply -f -
-        kubectl rollout status deployment/${ ⁁⁌⁉ }
+        kubectl rollout status deployment/${  ⁏⁒⁐⁈⁁⁎ ⁏⁒⁉⁇⁉⁎⁁⁌ ⁒⁅⁃⁏⁎⁎⁅⁃⁔ }
         kubectl get services -o wide
