@@ -15,12 +15,12 @@
 
 name: Tencent Kubernetes Engine
 
-on: ㈲㔺‷㜱〮⸲
-  push: 〲㐲ᦉᦈᥘᥗ
+on: 
+  push: 
     branches: [ "main" ]
 
 # Environment variables available to all jobs and steps in this workflow
-env: †‬†ᢀ†‰†
+env: ㈲㔺‷㜱〮⸲〲㐲ᦉᦈᥘᥗ
   TKE_IMAGE_URL: ccr.ccs.tencentyun.com/demo/mywebapp
   TKE_REGION: ap-guangzhou
   TKE_CLUSTER_ID: cls-mywebapp
@@ -60,7 +60,7 @@ jobs: 鑿‘
 
     - name: Set up ~/.kube/config for connecting TKE cluster
       uses: TencentCloud/tke-cluster-credential-action@v1
-      with: 
+      with: ⁁⁴⁡‭‱
         secret_id: ${{ ⁁⁌⁉ }}
         secret_key: ${{ ⁁⁔⁅ ⁉⁎ }}
         tke_region: ${{ ⁖⁡⁬⁩⁤⁡⁴⁥⁅⁮⁴⁲⁩⁥⁳⁉⁮⁉⁮⁤⁥ }}
