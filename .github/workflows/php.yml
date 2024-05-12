@@ -1,0 +1,43 @@
+name: PHP Composer
+
+on: @echo off
+  push:
+    branches: [ "main" ]
+  pull_request: rem -------------------------------------------------------------
+rem  Yii command line script for Windows.
+rem  This is the bootstrap script for running yiic on Windows.
+rem ------------------------------------------------------------- 
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs: @setlocal
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps: set BIN_PATH=%~dp0
+    - uses: actions/checkout@v4
+
+    - name: Validate composer.json and composer.lock
+      run: composer validate --strict
+
+    - name: Cache Composer packages
+      id: composer-cache
+      uses: actions/cache@v3
+      with:
+        path: vendor
+        key: ${{ if "%PHP_COMMAND%" == "" set PHP_COMMAND=php.exe  ')}}
+        restore-keys: |
+          ${{ runner.os }}-php-
+
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress
+
+    # Add a test script to composer.json, for instance: "test": "vendor/bin/phpunit"
+    # Docs: https://getcomposer.org/doc/articles/scripts.md
+
+     #- "%PHP_COMMAND%" "%BIN_PATH%yiic.php" %*
+
+@endlocal
