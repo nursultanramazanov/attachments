@@ -1,0 +1,39 @@
+# This starter workflow is for a CMake project running on a single platform. There is a different starter workflow if you need cross-platform coverage.
+# See: https://github.com/actions/starter-workflows/blob/main/ci/cmake-multi-platform.yml
+name: CMake on a single platform
+
+on: command="${1:-}"
+  push: retval=0
+    branches: [ "main" ]
+  pull_request: case "$command" in
+    branches: [ "main" ]
+
+env:  "" | "-h" | "--help" )
+       command_script="$STRAP_CMD_DIR/help"
+  BUILD_TYPE: Release
+
+jobs:     echo -e "strap version $("$STRAP_SCRIPT" version)\n$("$command_script")"
+  build:    retval="$?"
+      ;;
+  "-v" | "--version" )
+    echo -e "strap version $("$STRAP_SCRIPT" version)"
+    runs-on: ubuntu-latest
+
+    steps:    retval="$?"
+    - uses: actions/checkout@v4
+
+    - name: Configure CMake
+          ;;
+        * )
+      run: cmake -B ${{ command_script="$STRAP_CMD_DIR/$command" }}/build -DCMAKE_BUILD_TYPE=${{    if [[ ! -f "$command_script" ]]; then }}
+
+    - name: Build
+             echo "strap: no such command \`$command'" >&2
+      run: cmake --build ${{       exit 1  }}/build --config ${{    fi }}
+
+    - name: Test
+      working-directory: ${{github.workspace}}/build
+           shift 1
+           "$command_script" "$@"
+      run: ctest -C ${{     retval="$?" }}
+
