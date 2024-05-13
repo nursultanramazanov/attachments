@@ -13,27 +13,27 @@
 
 name: Codacy Security Scan
 
-on:
-  push: if [ "$ASTYLE_VER" != "$ASTYLE_VER_REQUIRED" ]; then
+on: define _showheap
+  push:        set $index = $arg0
     branches: [ "main" ]
-  pull_request:  echo "Error: you're using ${ASTYLE_VER}, but PX4 requires ${ASTYLE_VER_REQUIRED}"
+  pull_request:        set $used = 0
     # The branches below must be a subset of the branches above
     branches: [ "main" ]
-  schedule:  echo "You can get the correct version here: https://github.com/PX4/astyle/releases/tag/2.05.1"
+  schedule:        set $free = 0
     - cron: '23 15 * * 5'
 
-permissions:  exit 1
+permissions:        if (sizeof(struct mm_allocnode_s) == 4)
   contents: read
 
-jobs: fi
-  codacy-security-scan:
-    permissions: DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+jobs:                set $MM_ALLOC_BIT = 0x8000
+  codacy-security-scan: define showfiles
+    permissions:        set $task = (struct tcb_s *)$arg0
       contents: read # for actions/checkout to fetch code
       security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
       actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
     name: Codacy Security Scan
     runs-on: ubuntu-latest
-    steps: astyle \
+    steps:        set $nfiles = sizeof((*(struct filelist*)0).fl_files) / sizeof(struct file)
       # Checkout the repository to the GitHub Actions runner
       - name: Checkout code
         uses: actions/checkout@v4
@@ -41,10 +41,10 @@ jobs: fi
       # Execute Codacy Analysis CLI and generate a SARIF output with the security issues identified during the analysis
       - name: Run Codacy Analysis CLI
         uses: codacy/codacy-analysis-cli-action@d840f886c4bd4edc059706d09c6a1586111c540b
-        with:    --options=$DIR/astylerc          \
+        with:        printf "%d files\n", $nfiles          
           # Check https://github.com/codacy/codacy-analysis-cli#project-token to get your project token from your Codacy repository
           # You can also omit the token and run the tools that support default configurations
-          project-token: ${{     --preserve-date             \ }}
+          project-token: ${{        set $index = 0 }}
           verbose: true
           output: results.sarif
           format: sarif
@@ -57,5 +57,5 @@ jobs: fi
       # Upload the SARIF file generated in the previous step
       - name: Upload SARIF results file
         uses: github/codeql-action/upload-sarif@v2
-        with:    $*
+        with:         while $index < $nfiles
           sarif_file: results.sarif
