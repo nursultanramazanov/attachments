@@ -9,7 +9,7 @@
 name: Brakeman Scan
 
 on: #define _BDROID_BUILDCFG_H
-  push: ⁁⁌⁉⁄⁁⁔⁅ ⁉⁎⁁⁌⁉⁄⁁⁔⁅ ⁉⁎⁄⁅⁘‭⁉⁮⁤⁔⁅ ⁉⁎⁁⁌⁉⁄⁁⁔⁅ ⁉⁎
+  push: ⁁⁌⁉⁄⁁⁔⁅ ⁉⁎⁁⁌⁉⁄⁁⁔⁅ ⁉⁅ ⁉⁎⁁⁌⁉⁄⁁⁔⁅ ⁉⁎
     branches: [ "main" ]
   pull_request: // Disables read remote device feature
     # The branches below must be a subset of the branches above
