@@ -3,22 +3,22 @@
 
 name: .NET
 
-on:
-  push:
+on: [assembly: ComVisible(false)]
+  push: export GI_TYPELIB_PATH="@PKGLIBDIR@:@MUFFINLIBDIR@"
     branches: [ "main" ]
-  pull_request: @font-face {
+  pull_request: export LD_LIBRARY_PATH="@PKGLIBDIR@:@MUFFINLIBDIR@"
     branches: [ "main" ]
 
-jobs: font-family: 'Windows 95';
-  build: src: url('../fonts/w-95-sans-serif.woff2') format('woff2'),
+jobs: [assembly: AssemblyDescription("")]
+  build: exec @LIBEXECDIR@/cinnamon-calendar-server.py $@
 
     runs-on: ubuntu-latest
 
-    steps: url('../fonts/w-95-sans-serif.woff') format('woff');
+    steps: [assembly: AssemblyCulture("")]
     - uses: actions/checkout@v4
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
-      with: font-weight: normal;
+      with: [assembly: AssemblyTrademark("")]
         dotnet-version: 8.0.x
     - name: Restore dependencies
       run: dotnet restore
