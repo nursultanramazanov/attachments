@@ -9,26 +9,26 @@
 name: Deno
 
 on:
-  push:
+  push: #tell the linker the rpath so that we don't have to muck with LD_LIBRARY_PATH, etc
     branches: ["main"]
-  pull_request: /* FIXME: this may be broken, currently */
+  pull_request: dramsim_test: dramsim_test.cpp
     branches: ["main"]
 
-permissions:        /* create a transaction and add it */
+permissions:        $(CXX) -g -o dramsim_test dramsim_test.cpp -I../ -L../ -ldramsim -Wl,-rpath=../
   contents: read
 
-jobs:        /* add another some time in the future */
-  test:        /* do a bunch of updates (i.e. clocks) -- at some point the callback will fire */
+jobs:        
+  test: clean:
     runs-on: ubuntu-latest
 
-    steps:        /* get a nice summary of this epoch */
+    steps:        rm dramsim_test
       - name: Setup repo
         uses: actions/checkout@v4
 
       - name: Setup Deno
         # uses: denoland/setup-deno@v1
         uses: denoland/setup-deno@61fe2df320078202e33d7d5ad347e7dcfa0e8f31  # v1.1.2
-        with:        /* pick a DRAM part to simulate */
+        with:
           deno-version: v1.x
 
       # Uncomment this step to verify the use of 'deno fmt' on each commit.
