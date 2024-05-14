@@ -1,0 +1,182 @@
+{
+  "gitSiteUrl": "https://www.github.com/crabnebula-dev/cargo-packager",
+  "timeout": 3600000,
+  "pkgManagers": {
+    "rust": {
+      "version": true,
+      "getPublishedVersion": "cargo search ${ pkg.pkg } --limit 1 | sed -nE 's/^[^\"]*\"//; s/\".*//1p' -",
+      "postversion": [
+        {
+          "command": "cargo generate-lockfile",
+          "dryRunCommand": true,
+          "runFromRoot": true,
+          "pipe": true
+        }
+      ],
+      "prepublish": [
+        {
+          "command": "cargo generate-lockfile",
+          "dryRunCommand": true,
+          "runFromRoot": true,
+          "pipe": true
+        }
+      ],
+      "publish": [
+        {
+          "command": "cargo package --no-verify",
+          "dryRunCommand": true
+        },
+        {
+          "command": "echo '<details>\n<summary><em><h4>Cargo Publish</h4></em></summary>\n\n```'",
+          "dryRunCommand": true,
+          "pipe": true
+        },
+        {
+          "command": "cargo publish",
+          "dryRunCommand": "cargo publish --dry-run",
+          "pipe": true
+        },
+        {
+          "command": "echo '```\n\n</details>\n'",
+          "dryRunCommand": true,
+          "pipe": true
+        }
+      ],
+      "postpublish": [
+        "git tag ${ pkg.pkg }-v${ pkgFile.versionMajor } -f",
+        "git tag ${ pkg.pkg }-v${ pkgFile.versionMajor }.${ pkgFile.versionMinor } -f",
+        "git push --tags -f"
+      ]
+    },
+    "javascript": {
+      "version": true,
+      "getPublishedVersion": {
+        "use": "fetch:check",
+        "options": {
+          "url": "https://registry.npmjs.com/${ pkg.pkg }/${ pkg.pkgFile.version }"
+        }
+      },
+      "prepublish": [
+        {
+          "command": "pnpm install",
+          "dryRunCommand": true
+        },
+        {
+          "command": "echo '<details>\n<summary><em><h4>PNPM Audit</h4></em></summary>\n\n```'",
+          "dryRunCommand": true,
+          "pipe": true
+        },
+        {
+          "command": "pnpm audit",
+          "dryRunCommand": true,
+          "runFromRoot": true,
+          "pipe": true
+        },
+        {
+          "command": "echo '```\n\n</details>\n'",
+          "dryRunCommand": true,
+          "pipe": true
+        },
+        {
+          "command": "npm pack",
+          "dryRunCommand": true
+        }
+      ],
+      "publish": [
+        "sleep 15s",
+        {
+          "command": "echo '<details>\n<summary><em><h4>PNPM Publish</h4></em></summary>\n\n```'",
+          "dryRunCommand": true,
+          "pipe": true
+        },
+        {
+          "command": "pnpm publish --access public",
+          "dryRunCommand": "npm publish --dry-run --access public",
+          "pipe": true
+        },
+        {
+          "command": "echo '```\n\n</details>\n'",
+          "dryRunCommand": true,
+          "pipe": true
+        }
+      ],
+      "postpublish": [
+        "git tag ${ pkg.pkg }-v${ pkgFile.versionMajor } -f",
+        "git tag ${ pkg.pkg }-v${ pkgFile.versionMajor }.${ pkgFile.versionMinor } -f",
+        "git push --tags -f"
+      ]
+    }
+  },
+  "packages": {
+    "cargo-packager-utils": {
+      "path": "./crates/utils",
+      "manager": "rust",
+      "assets": [
+        {
+          "path": "${ pkg.path }/target/package/cargo-packager-utils-${ pkgFile.version }.crate",
+          "name": "${ pkg.pkg }-${ pkgFile.version }.crate"
+        }
+      ]
+    },
+    "cargo-packager": {
+      "path": "./crates/packager",
+      "manager": "rust",
+      "dependencies": ["cargo-packager-utils"],
+      "assets": [
+        {
+          "path": "${ pkg.path }/target/package/cargo-packager-${ pkgFile.version }.crate",
+          "name": "${ pkg.pkg }-${ pkgFile.version }.crate"
+        }
+      ]
+    },
+    "@crabnebula/packager": {
+      "path": "./bindings/packager/nodejs",
+      "manager": "javascript",
+      "dependencies": ["cargo-packager", "cargo-packager-utils"],
+      "prepublish": [],
+      "publish": [],
+      "postpublish": []
+    },
+    "cargo-packager-updater": {
+      "path": "./crates/updater",
+      "dependencies": ["cargo-packager-utils"],
+      "manager": "rust",
+      "assets": [
+        {
+          "path": "${ pkg.path }/target/package/cargo-packager-updater-${ pkgFile.version }.crate",
+          "name": "${ pkg.pkg }-${ pkgFile.version }.crate"
+        }
+      ]
+    },
+    "@crabnebula/updater": {
+      "path": "./bindings/updater/nodejs",
+      "manager": "javascript",
+      "dependencies": ["cargo-packager-updater", "cargo-packager-utils"],
+      "prepublish": [],
+      "publish": [],
+      "postpublish": []
+    },
+    "cargo-packager-resource-resolver": {
+      "path": "./crates/resource-resolver",
+      "dependencies": ["cargo-packager-utils"],
+      "manager": "rust",
+      "assets": [
+        {
+          "path": "${ pkg.path }/target/package/cargo-packager-resource-resolver-${ pkgFile.version }.crate",
+          "name": "${ pkg.pkg }-${ pkgFile.version }.crate"
+        }
+      ]
+    },
+    "@crabnebula/packager-resource-resolver": {
+      "path": "./bindings/resource-resolver/nodejs",
+      "manager": "javascript",
+      "dependencies": [
+        "cargo-packager-resource-resolver",
+        "cargo-packager-utils"
+      ],
+      "prepublish": [],
+      "publish": [],
+      "postpublish": []
+    }
+  }
+}
