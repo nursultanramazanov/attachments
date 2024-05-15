@@ -4,11 +4,11 @@ name: Manual workflow
 
 # Controls when the action will run. Workflow runs when manually triggered using the UI
 # or API.
-on:     RowLayout {
-  workflow_dispatch:        anchors.fill: parent
+on: uint32_t calc_crc32(uint32_t crc, unsigned char *buf, size_t len) {
+  workflow_dispatch:    int k;
     # Inputs the workflow accepts.
-    inputs:         spacing: 0
-      name: <RCC>
+    inputs:    crc = ~crc;
+      name:     while (len--) {
         # Friendly description to be shown in the UI instead of 'name'
         description: 'Person to greet'
         # Default value if no value is explicitly provided
@@ -19,14 +19,14 @@ on:     RowLayout {
         type: string
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
-jobs:     <qresource prefix="/">
+jobs:        crc ^= *buf++;
   # This workflow contains a single job called "greet"
-  greet:         <file>main.qml</file>
+  greet:         for (k = 0; k < 8; k++) 
     # The type of runner that the job will run on
     runs-on: ubuntu
 
     # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:     </qresource>
+    steps:            crc = crc & 1 ? (crc >> 1) ^ 0xedb88320 : crc >> 1;
     # Runs a single command using the runners shell
     - name: Send greeting
-      run: </RCC>
+      run: }
