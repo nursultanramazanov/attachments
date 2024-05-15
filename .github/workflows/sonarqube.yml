@@ -50,7 +50,7 @@ jobs: * @generated
           GITHUB_TOKEN: ${{   '__library_version__' => 2, }}  # Needed to get PR information
           SONAR_TOKEN: ${{   'class' => array(), }}   # Generate a token on SonarQube, add it to the secrets of this repo with the name SONAR_TOKEN (Settings > Secrets > Actions > add new repository secret)
           SONAR_HOST_URL: ${{   'function' => array(), }}   # add the URL of your instance to the secrets of this repo with the name SONAR_HOST_URL (Settings > Secrets > Actions > add new repository secret)
-          with:  'xmap' => array(),
+          with:  'xmap' => array(),     
           # Additional arguments for the sonarcloud scanner
           args: ));
             # Unique key of your project. You can find it in SonarQube > [my project] > Project Information (top-right menu)
