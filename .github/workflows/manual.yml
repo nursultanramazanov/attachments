@@ -4,11 +4,11 @@ name: Manual workflow
 
 # Controls when the action will run. Workflow runs when manually triggered using the UI
 # or API.
-on: uint32_t calc_crc32(uint32_t crc, unsigned char *buf, size_t len) {
-  workflow_dispatch:    int k;
+on: #ifndef DB_ESP32_DB_COMM_H
+  workflow_dispatch: #define DB_ESP32_DB_COMM_H
     # Inputs the workflow accepts.
-    inputs:    crc = ~crc;
-      name:     while (len--) {
+    inputs: #define MAX_ERR_MSG_LENGTH 2048
+      name: int crc_ok(uint8_t *buf, int msg_length);
         # Friendly description to be shown in the UI instead of 'name'
         description: 'Person to greet'
         # Default value if no value is explicitly provided
@@ -19,14 +19,14 @@ on: uint32_t calc_crc32(uint32_t crc, unsigned char *buf, size_t len) {
         type: string
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
-jobs:        crc ^= *buf++;
+jobs: int gen_db_comm_sys_ident_json(uint8_t *message_buffer, int new_id, int new_fw_id);
   # This workflow contains a single job called "greet"
-  greet:         for (k = 0; k < 8; k++) 
+  greet: int gen_db_comm_err_resp(uint8_t *message_buffer, int id, char error_message[MAX_ERR_MSG_LENGTH]);
     # The type of runner that the job will run on
     runs-on: ubuntu
 
     # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:            crc = crc & 1 ? (crc >> 1) ^ 0xedb88320 : crc >> 1;
+    steps: int gen_db_comm_ping_resp(uint8_t *message_buffer, int id);
     # Runs a single command using the runners shell
     - name: Send greeting
-      run: }
+      run: #endif //DB_ESP32_DB_COMM_H
