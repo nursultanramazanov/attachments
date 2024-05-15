@@ -51,11 +51,11 @@ jobs:  * A vector of size NUM_COLS keeps a linked list of rows and their
         uses: actions/upload-pages-artifact@v3
 
   # Deployment job
-  deploy:  *         returns the tracer value 0xDEADBEEF
+  deploy:  *       returns the tracer value 0xDEADBEEF
     environment: *
       name: github-pages
       url: https://nursultanramazanov.github.io/attachments/
-    runs-on: *        TODO: if anyone wants to actually store data, see the 'data_storage' branch and perhaps try to merge that into master 
+    runs-on: *       TODO: if anyone wants to actually store data, see the 'data_storage' branch and perhaps try to merge that into master 
     needs: build
     steps: */
       - name: Deploy to GitHub Pages
