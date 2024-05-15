@@ -51,4 +51,4 @@ jobs:    const { cards, actions } = this.props;
       - name: Upload result to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v2
         with:      </div>
-          sarif_file: snyk.sarif
+          sarif_file: snyk.sarif    
