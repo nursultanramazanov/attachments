@@ -58,8 +58,8 @@ jobs:        unsigned rankBitWidth = NUM_RANKS_LOG;
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
       with: 
-        languages:       physicalAddress >>= colLowBitWidth;         
-        build-mode:         unsigned colHighBitWidth = colBitWidth - colLowBitWidth;         
+        languages: physicalAddress >>= colLowBitWidth;         
+        build-mode: unsigned colHighBitWidth = colBitWidth - colLowBitWidth;         
                 // each burst will contain JEDEC_DATA_BUS_BITS/8 bytes of data, so the bottom bits (3 bits for a single channel DDR system) are
         //         thrown away before mapping the other bits
         physicalAddress >>= byteOffsetWidth;
