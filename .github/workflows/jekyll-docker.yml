@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
 
 jobs: require dirname(__FILE__).'/protected/vendor/autoload.php';
-  build:
+  build:  
 
     runs-on: ubuntu-latest
 
