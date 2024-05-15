@@ -11,25 +11,22 @@
 #
 name: "CodeQL"
 
-on: /*!
-  push:        A list of disks, tapes and cartridges, and possibly a state snapshot.
+on:         uint64_t tempA, tempB;
+  push:        unsigned transactionSize = TRANSACTION_SIZE;
     branches: [ "main" ]
-  pull_request: */
+  pull_request:        uint64_t transactionMask =  transactionSize - 1; //ex: (64 bit bus width) x (8 Burst Length) - 1 = 64 bytes - 1 = 63 = 0x3f mask
     branches: [ "main" ]
-  schedule: struct Media {
+  schedule:        unsigned channelBitWidth = NUM_CHANS_LOG;
     - cron: '39 6 * * 6'
 
-jobs:
-  analyze:
-    name: Analyze (${{ struct Media { }})
-    #    std::vector<std::shared_ptr<Storage::Disk::Disk>> disks;
-    #    std::vector<std::shared_ptr<Storage::Tape::Tape>> tapes;
-    #    std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>> cartridges;
-    #    std::vector<std::shared_ptr<Storage::MassStorage::MassStorageDevice>> mass_storage_devices;
+jobs:        unsigned rankBitWidth = NUM_RANKS_LOG;
+  analyze:        unsigned bankBitWidth = NUM_BANKS_LOG;
+    name: Analyze (${{        unsigned rowBitWidth = NUM_ROWS_LOG; }}
+    #         // this forces the alignment to the width of a single burst (64 bits = 8 bytes = 3 address bits for DDR parts)
    
-    runs-on: ${{ (        bool empty() const { == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
-    timeout-minutes: ${{ (                return disks.empty() && tapes.empty() && cartridges.empty() && mass_storage_devices.empty(); == 'swift' && 120) || 360 }}
-    permissions: }
+    runs-on:         unsigned byteOffsetWidth = BYTE_OFFSET_WIDTH;
+    timeout-minutes:          // Since we're assuming that a request is for BL*BUS_WIDTH, the bottom bits
+    permissions:         // of this address *should* be all zeros if it's not, issue a warning
       # required for all workflows
       security-events: write
 
@@ -40,10 +37,10 @@ jobs:
       actions: read
       contents: read
 
-    strategy:        Media &operator +=(const Media &rhs) {
+    strategy:
       fail-fast: false
-      matrix:                const auto append = [&](auto &destination, auto &source) {
-        include:                        destination.insert(destination.end(), source.begin(), source.end());
+      matrix:        if ((physicalAddress & transactionMask) != 0)
+        include: {
         - language: csharp
           build-mode: autobuild
         - language: go
@@ -52,39 +49,38 @@ jobs:
           build-mode: none
         - language: python
           build-mode: none
-                       # };
-
-               # append(disks, rhs.disks);
-               # append(tapes, rhs.tapes);
-               # append(cartridges, rhs.cartridges);
-               # append(mass_storage_devices, rhs.mass_storage_devices);
-
-               # return *this;
-       # }
-# };
-    steps:
+         #                DEBUG("WARNING: address 0x"<<std::hex<<physicalAddress<<std::dec<<" is not aligned to the request size of "<<transactionSize);  
+    steps: }
     - name: Checkout repository
       uses: actions/checkout@v4
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
-      with: /*!
-        languages: ${{         Describes a machine and possibly its state; conventionally subclassed to add other machine-specific configuration fields and any }}
-        build-mode: ${{         necessary instructions on how to launch any software provided, plus a measure of confidence in this target's correctness. }}
-        struct Target {
-        Target(Machine machine) : machine(machine) {}
-        virtual ~Target() = default;
+      with: 
+        languages:       physicalAddress >>= colLowBitWidth;         
+        build-mode:         unsigned colHighBitWidth = colBitWidth - colLowBitWidth;         
+                // each burst will contain JEDEC_DATA_BUS_BITS/8 bytes of data, so the bottom bits (3 bits for a single channel DDR system) are
+        //         thrown away before mapping the other bits
+        physicalAddress >>= byteOffsetWidth;
 
-        // This field is entirely optional.
-        std::unique_ptr<Reflection::Struct> state;
-
-        Machine machine;
-        Media media;
-        float confidence = 0.0f;
-};
-typedef std::vector<std::unique_ptr<Target>> TargetList;
-
+        // The next thing we have to consider is that when a request is made for a
+        // we've taken into account the granulaity of a single burst by shifting 
+        // off the bottom 3 bits, but a transaction has to take into account the
+        // burst length (i.e. the requests will be aligned to cache line sizes which
+        // should be equal to transactionSize above). 
+        //
+        // Since the column address increments internally on bursts, the bottom n 
+        // bits of the column (colLow) have to be zero in order to account for the 
+        // total size of the transaction. These n bits should be shifted off the 
+        // address and also subtracted from the total column width. 
+        //
+        // I am having a hard time explaining the reasoning here, but it comes down
+        // this: for a 64 byte transaction, the bottom 6 bits of the address must be 
+        // zero. These zero bits must be made up of the byte offset (3 bits) and also
+        // from the bottom bits of the column 
+        // 
+        // For example: cowLowBits = log2(64bytes) - 3 bits = 3 bits 
     - if: matrix.build-mode == 'manual'
       shell: bash
       run: |
@@ -97,5 +93,5 @@ typedef std::vector<std::unique_ptr<Target>> TargetList;
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
-      with:         Attempts, through any available means, to return a list of potential targets for the file with the given name.
-        category: "/language:${{matrix.language}}"
+      with:         if (DEBUG_ADDR_MAP)
+        category: "/language: {
