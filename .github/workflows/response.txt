@@ -119,4 +119,4 @@ table.DroneBridge td:nth-child(even) {
 <p class="foot">v0.1</p>
 <p class="foot">© Wolfgang Christl 2018 - Apache 2.0 License</p>
 </body>
-</html>
+</html>   
