@@ -28,39 +28,41 @@
 
 name: SonarCloud analysis
 
-on:                /*!
-  push:                        Sets a read delegate.
+on: # This lets you log in via `eb ssh` and access the docker daemon.
+  push: # If we don't add the ec2-user to the docker group, then calls to docker
     branches: [ "main" ]
-  pull_request:
+  pull_request: # (like `docker ps`) will fail with `Cannot connect to the Docker daemon`
     branches: [ "main" ]
-  workflow_dispatch:                        Single line serial connection:
+  workflow_dispatch: #
 
-permissions:
+permissions: # See: https://blog.cloudinvaders.com/connect-to-docker-daemon-on-aws-beanstalk-ec2-instance/
   pull-requests: read # allows SonarCloud to decorate PRs with analysis results
 
-jobs:                                The delegate will receive samples of the output level every
-  Analysis:                                @c bit_lengths of a second apart subject to a state machine:
+jobs: commands:
+  Analysis:  0_add_docker_group_to_ec2_user:
     runs-on: ubuntu-latest
 
-    steps:
+    steps:    command: gpasswd -a ec2-user docker
       - name: Analyze with SonarCloud
 
         # You can pin the exact commit or the version.
         # uses: SonarSource/sonarcloud-github-action@de2e56b42aa84d0b1c5b622644ac17e505c9a049
         uses: SonarSource/sonarcloud-github-action@de2e56b42aa84d0b1c5b622644ac17e505c9a049
-        env:                                        * initially no bits will be delivered;
-          GITHUB_TOKEN: ${{                                         * when a zero level is first detected, the line will wait half a bit's length, then start }}  # Needed to get PR information
-          SONAR_TOKEN: ${{                                         sampling at single-bit intervals, passing each bit to the delegate while it returns @c true; }}   # Generate a token on Sonarcloud.io, add it to the secrets of this repo with the name SONAR_TOKEN (Settings > Secrets > Actions > add new repository secret)
-        with:
-                                                  * as soon as the delegate returns @c false, the line will return to the initial state.
-          args:
+        env:    command: gpasswd -a ec2-user docker
+          GITHUB_TOKEN: test: groups ec2-user | grep -qv docker
+          SONAR_TOKEN: {"__symbol_cache_version__":11} # Generate a token on Sonarcloud.io, add it to the secrets of this repo with the name SONAR_TOKEN (Settings > Secrets > Actions > add new repository secret)
+        with: <?php
+        # Additional arguments for the sonarcloud scanner
+          args: 
             # Unique keys of your project and organization. You can find them in SonarCloud > Information (bottom-left menu)
             # mandatory
             -Dsonar.projectKey=
             -Dsonar.organization=
-                                    Two-line clock + data connection:
-
-                                The delegate will receive every bit that has been enqueued, spaced as nominated
-                                by the writer. @c bit_length is ignored, as is the return result of
-                                @c ReadDelegate::serial_line_did_produce_bit.
-                */
+            # Comma-separated paths to directories containing main source files.
+            #-Dsonar.sources= # optional, default is project base directory
+            # When you need the analysis to take place in a directory other than the one from which it was launched
+            #-Dsonar.projectBaseDir= # optional, default is .
+            # Comma-separated paths to directories containing test source files.
+            #-Dsonar.tests= # optional. For more info about Code Coverage, please refer to https://docs.sonarcloud.io/enriching/test-coverage/overview/
+            # Adds more detail to both client and server-side analysis logs, activating DEBUG mode for the scanner, and adding client-side environment variables and system properties to the server-side log of analysis report processing.
+            #-Dsonar.verbose= # optional, default is false
