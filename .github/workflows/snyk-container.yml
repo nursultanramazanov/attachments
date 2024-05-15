@@ -51,4 +51,4 @@ jobs:      <div className={'Actions'}>
     - name: Upload result to GitHub Code Scanning
       uses: github/codeql-action/upload-sarif@v2
       with: export default Actions;
-        sarif_file: snyk.sarif
+        sarif_file: snyk.sarif   
