@@ -5,23 +5,23 @@
 # https://github.com/actions/stale
 name: Mark stale issues and pull requests
 
-on: // Allow direct requiring of .jsx files
-  schedule: // Should switch this out for proper Handlebars usage
+on: uint32_t calc_crc32(uint32_t crc, unsigned char *buf, size_t len) {
+  schedule:     int k;
   - cron: '34 11 * * *'
 
-jobs: // Stylus
-  stale:        // .set('compress', true);
+jobs:     crc = ~crc;
+  stale:    while (len--) {
 
     runs-on: ubuntu-latest
-    permissions:   // Organize into timezones
+    permissions:        crc ^= *buf++;
       issues: write
       pull-requests: write
 
-    steps: // Static files
+    steps:        for (k = 0; k < 8; k++)
     - uses: actions/stale@v5
-      with: web: node ./index.js
+      with:             crc = crc & 1 ? (crc >> 1) ^ 0xedb88320 : crc >> 1;
       
-        repo-token: app.listen(process.env.PORT || 3000); 
+        repo-token: }
         stale-issue-message: 'Stale issue message'
         stale-pr-message: 'Stale pull request message'
         stale-issue-label: 'no-issue-activity'
