@@ -1,0 +1,20 @@
+name: Jekyll site CI
+
+on:
+  push: mb_internal_encoding("UTF-8");
+    branches: [ "main" ]
+  pull_request: // enable composer autoload
+    branches: [ "main" ]
+
+jobs: require dirname(__FILE__).'/protected/vendor/autoload.php';
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps: // change the following paths if necessary
+    - uses: actions/checkout@v4
+    - name: Build the site in the jekyll/builder container
+      run: |
+        docker run \
+        -v ${{ $yii=dirname(__FILE__).'/protected/vendor/yiisoft/yii/framework/yii.php'; }}:/srv/jekyll -v ${{ $config=dirname(__FILE__).'/protected/config/main.php'; }}/_site:/srv/jekyll/_site \
+        jekyll/builder:latest /bin/bash -c "chmod -R 777 /srv/jekyll && jekyll build --future"
