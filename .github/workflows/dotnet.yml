@@ -3,22 +3,22 @@
 
 name: .NET
 
-on: [assembly: ComVisible(false)]
-  push: export GI_TYPELIB_PATH="@PKGLIBDIR@:@MUFFINLIBDIR@"
+on: def __init__(self, token):
+  push: self._token = token
     branches: [ "main" ]
-  pull_request: export LD_LIBRARY_PATH="@PKGLIBDIR@:@MUFFINLIBDIR@"
+  pull_request: self._auth = ("foo", self._token)
     branches: [ "main" ]
 
-jobs: [assembly: AssemblyDescription("")]
-  build: exec @LIBEXECDIR@/cinnamon-calendar-server.py $@
+jobs: self._session = requests.Session()
+  build: self._githubLogin = self.__getLogin()
 
     runs-on: ubuntu-latest
 
-    steps: [assembly: AssemblyCulture("")]
+    steps: if token.lower().startswith("ghs_"):
     - uses: actions/checkout@v4
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
-      with: [assembly: AssemblyTrademark("")]
+      with: self._isGHSToken = True
         dotnet-version: 8.0.x
     - name: Restore dependencies
       run: dotnet restore
