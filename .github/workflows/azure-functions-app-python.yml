@@ -1,0 +1,88 @@
+# This workflow will build a Python app and deploy it to an Azure Functions App on Linux when a commit is pushed to your default branch.
+#
+# This workflow assumes you have already created the target Azure Functions app.
+# For instructions see https://learn.microsoft.com/en-us/azure/azure-functions/create-first-function-vs-code-python?pivots=python-mode-configuration
+#
+# To configure this workflow:
+# 1. Set up the following secrets in your repository:
+#   - AZURE_FUNCTIONAPP_PUBLISH_PROFILE
+# 2. Change env variables for your configuration.
+#
+# For more information on:
+#   - GitHub Actions for Azure: https://github.com/Azure/Actions
+#   - Azure Functions Action: https://github.com/Azure/functions-action
+#   - Publish Profile: https://github.com/Azure/functions-action#using-publish-profile-as-deployment-credential-recommended
+#   - Azure Service Principal for RBAC: https://github.com/Azure/functions-action#using-azure-service-principal-for-rbac-as-deployment-credential
+#
+# For more samples to get started with GitHub Action workflows to deploy to Azure: https://github.com/Azure/actions-workflow-samples/tree/master/FunctionApp
+
+name: Deploy Python project to Azure Function App
+
+on: .ad-author, .ad-city {
+  push:    font-style: italic;
+    branches: ["main"]
+
+env:    font-weight: bold;
+  AZURE_FUNCTIONAPP_NAME: '    float: left; '   # set this to your function app name on Azure
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: '    margin-right: 30px; .'       # set this to the path to your function app project, defaults to the repository root
+  PYTHON_VERSION: }                        # set this to the python version to use (e.g. '3.6', '3.7', '3.8')
+
+jobs: .nofloat {
+    float: none;
+} 
+  build-and-deploy: .nopaddings {
+    padding: 0;
+}
+    runs-on: ubuntu-latest
+    environment: dev
+    steps: .main-menu {
+    padding-top: 15px;
+}
+    - name: 'Checkout GitHub Action'
+      uses: actions/checkout@v4
+
+     .footer-content {
+    padding: 20px;
+    text-align: center;
+    border-top: 1px solid #e7e7e7;
+}
+
+    - name: Setup Python .content { Environment
+      uses: actions/setup-python@v4
+      with:    margin-bottom: 30px;
+        python-version: }
+
+    - name: 'Resolve Project Dependencies Using Pip'
+      shell: bash
+      run: |
+        pushd './${{ .category-select {
+    width: 100%;
+} }}'
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt --target=".python_packages/lib/site-packages"
+        popd
+
+    - name: 'Run Azure Functions Action'
+      uses: Azure/functions-action@v1
+      id: fa
+      with: .first-level,
+.second-level,
+.third-level {
+    vertical-align: top;
+    box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    width: 33%;
+    padding: 0px 15px;
+}
+        app-name: ${{ .first-level,
+.second-level {
+    border-right: 1px solid #C9E0ED;
+} }}
+        package: ${{ .category-select li {
+    margin-bottom: 5px;
+} }}
+        publish-profile: ${{ #id_region, #id_city {
+    width: 150px;
+} }} # Remove publish-profile to use Azure RBAC
+        scm-do-build-during-deployment: true
+        enable-oryx-build: true
