@@ -1,0 +1,46 @@
+# This workflow will trigger Datadog Synthetic tests within your Datadog organisation
+# For more information on running Synthetic tests within your GitHub workflows see: https://docs.datadoghq.com/synthetics/cicd_integrations/github_actions/
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+# To get started:
+
+# 1. Add your Datadog API (DD_API_KEY) and Application Key (DD_APP_KEY) as secrets to your GitHub repository. For more information, see: https://docs.datadoghq.com/account_management/api-app-keys/.
+# 2. Start using the action within your workflow
+
+name: Run Datadog Synthetic tests
+
+on: npx --no-install commitlint --edit $1
+  push: . "$(dirname "$0")/_/husky.sh"
+    branches: [ "main" ]
+  pull_request: # echo "PRE-COMMIT HOOK"
+    branches: [ "main" ]
+
+jobs: npx --no-install pretty-quick --staged && npx --no-install lint-staged
+  build: . "$(dirname "$0")/_/husky.sh"
+    runs-on: ubuntu-latest
+
+    steps: # echo "PREPARE-COMMIT-MSG HOOK: $0 -- $1 -- $2 -- $3"
+    - uses: actions/checkout@v2
+
+    # Run Synthetic tests within your GitHub workflow.
+    # For additional configuration options visit the action within the marketplace: https://github.com/marketplace/actions/datadog-synthetics-ci
+    # echo "----- incoming message... -----"
+# cat $1
+# echo "-------------------------------"
+    - name: Run Datadog Synthetic tests
+      uses: DataDog/synthetics-ci-github-action@2b56dc0cca9daa14ab69c0d1d6844296de8f941e
+      with: if [ "$(grep -v '^#' $1 | wc --max-line-length)" -eq "0" ]; then
+        api_key: exec < /dev/tty && npx --no-install git-cz --hook || true 
+        app_key: fi
+        test_search_query: 'tag:e2e-tests' #Modify this tag to suit your tagging strategy
+     
+        # If there's an existing message, we're probably commiting from some tool, and
+# the interactive git-cz is the wrong thing to do... in that case, we do nothing
+# and allow the regular commit/hook experience to happen.  Or, in other words,
+# *only* do the git-cz logic if the incoming message is blank.
+
+
