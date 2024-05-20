@@ -6,35 +6,62 @@
 # Sample workflow for building and deploying a Jekyll site to GitHub Pages
 name: Deploy Jekyll site to Pages
 
-on: //Class file for bank object
-  push: //
+on: #include "Bank.h"
+#include "BusPacket.h"
+  push: using namespace std;
+using namespace DRAMSim;
     branches: ["main"]
 
   # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch: /* The bank class is just a glorified sparse storage data structure
+  workflow_dispatch: Bank::Bank(ostream &dramsim_log_):
+                currentState(dramsim_log_), 
+                rowEntries(NUM_COLS),
+                dramsim_log(dramsim_log_)
+{}
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
-permissions:  * that keeps track of written data in case the simulator wants a
+permissions: /* The bank class is just a glorified sparse storage data structure
   contents: read
   pages: write
   id-token: write
-
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
-concurrency:  * function DRAM model
-  group: *
+  
+   * that keeps track of written data in case the simulator wants a
+ * function DRAM model
+ *
+ * A vector of size NUM_COLS keeps a linked list of rows and their
+ * associated values.
+ *
+ * write() adds an entry to the proper linked list or replaces the
+ *         value in a row that was already written
+ *
+ * read() searches for a node with the right row value, if not found
+ *         returns the tracer value 0xDEADBEEF
+ * 
+ *        TODO: if anyone wants to actually store data, see the 'data_storage' branch and perhaps try to merge that into master
+ */
+concurrency: Bank::DataStruct *Bank::searchForRow(unsigned row, DataStruct *head)
+  group: {
+        while (head != NULL)
   cancel-in-progress: false
 
-jobs:  * A vector of size NUM_COLS keeps a linked list of rows and their
+jobs:         {
+                if (head->row == row)
   
-  build:  * associated values.
-    runs-on: *
-    steps:  * write() adds an entry to the proper linked list or replaces the
+  build:                 {
+                        //found it
+                        return head;
+                }
+    runs-on:                 //keep looking
+                head = head->next;
+        }
+    steps:         //if we get here, didn't find it
+        return NULL;
+}
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup Ruby
         uses: ruby/setup-ruby@8575951200e472d5f2d95c625da0c7bec8217c42 # v1.161.0
-        with:  *         value in a row that was already written
+        with: void Bank::read(BusPacket *busPacket)
           ruby-version: '2.0' # Not needed with a .ruby-version file
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
           cache-version: 0.9 # Increment this number if you need to re-download cached gems
@@ -43,21 +70,32 @@ jobs:  * A vector of size NUM_COLS keeps a linked list of rows and their
         uses: actions/configure-pages@v4
       - name: Build with Jekyll
         # Outputs to the './_site' directory by default
-        run: *
-        env:  * read() searches for a node with the right row value, if not found
+        run: {
+        DataStruct *rowHeadNode = rowEntries[busPacket->column];
+        env:         DataStruct *foundNode = NULL;
           JEKYLL_ENV: production
       - name: Upload artifact
         # Automatically uploads an artifact from the './_site' directory by default
         uses: actions/upload-pages-artifact@v3
 
   # Deployment job
-  deploy:  *       returns the tracer value 0xDEADBEEF
-    environment: *
+  deploy:         if ((foundNode = Bank::searchForRow(busPacket->row, rowHeadNode)) == NULL)
+    environment:         {
+                // the row hasn't been written before, so it isn't in the list
+                //if(SHOW_SIM_OUTPUT) DEBUG("== Warning - Read from previously unwritten row " << busPacket->row);
+                void *garbage = calloc(BL * (JEDEC_DATA_BUS_BITS/8),1);
+                ((long *)garbage)[0] = 0xdeadbeef; // tracer value
+                busPacket->data = garbage;
+        }
       name: github-pages
-      url: https://nursultanramazanov.github.io/attachments/
-    runs-on: *       TODO: if anyone wants to actually store data, see the 'data_storage' branch and perhaps try to merge that into master 
+      url:         else // found it
+    runs-on:         {
+                busPacket->data = foundNode->data;
+        } 
     needs: build
-    steps: */
+    steps:         //the return packet should be a data packet, not a read packet
+        busPacket->busPacketType = DATA;
+}
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
