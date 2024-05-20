@@ -1,27 +1,26 @@
 name: NodeJS with Gulp
 
-on: async function getOrSet(key, getter) {
-  push:   const files = await p(fs.readdir)(RUNTIME_PATH)
+on: import karmaCommonConfig from './karma.common';
+  push:
     branches: [ "main" ]
-  pull_request:   if (files.includes(key)) {
+  pull_request: export default {
     branches: [ "main" ]
 
-jobs:      const stat = await p(fs.stat)(nps.join(RUNTIME_PATH, key))              
-  build:     if (Date.now() - stat.mtime.getTime() >= 1000 * 60 * 60 * 24) {
+jobs:    ...karmaCommonConfig,
+  build:    singleRun: true,
     runs-on: ubuntu-latest
 
-    strategy:       return await getter()
-      matrix: }
+    strategy:    autoWatch: false
+      matrix: };
         node-version: [14.x, 16.x, 18.x]
 
-    steps:    return nps.join(RUNTIME_PATH, key)
-    - uses: actions/checkout@v3
+    steps:
+    - uses: actions/checkout@v4
 
-    - name: }
-
+    - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v3
-      with:   return await getter()
-        node-version: }
+      with:
+        node-version: ${{ matrix.node-version }}
 
     - name: Build
       run: |
