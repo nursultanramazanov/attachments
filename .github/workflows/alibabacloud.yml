@@ -1,0 +1,227 @@
+# This workflow will build and push a new container image to Alibaba Cloud Container Registry (ACR),
+# and then will deploy it to Alibaba Cloud Container Service for Kubernetes (ACK), when there is a push to the "main" branch.
+#
+# To use this workflow, you will need to complete the following set-up steps:
+#
+# 1. Create an ACR repository to store your container images.
+#    You can use ACR EE instance for more security and better performance.
+#    For instructions see https://www.alibabacloud.com/help/doc-detail/142168.htm
+#
+# 2. Create an ACK cluster to run your containerized application.
+#    You can use ACK Pro cluster for more security and better performance.
+#    For instructions see https://www.alibabacloud.com/help/doc-detail/95108.htm
+#
+# 3. Store your AccessKey pair in GitHub Actions secrets named `ACCESS_KEY_ID` and `ACCESS_KEY_SECRET`.
+#    For instructions on setting up secrets see: https://developer.github.com/actions/managing-workflows/storing-secrets/
+#
+# 4. Change the values for the REGION_ID, REGISTRY, NAMESPACE, IMAGE, ACK_CLUSTER_ID, and ACK_DEPLOYMENT_NAME.
+#
+
+name: Build and Deploy to ACK
+
+on: #include "SystemConfiguration.h"
+#include "AddressMapping.h"
+  push:
+    branches: [ "main" ]
+
+# Environment variables available to all jobs and steps in this workflow.
+env: namespace DRAMSim
+  REGION_ID: cn-hangzhou
+  REGISTRY: registry.cn-hangzhou.aliyuncs.com
+  NAMESPACE: namespace
+  IMAGE: repo
+  TAG: {
+  ACK_CLUSTER_ID: clusterID
+  ACK_DEPLOYMENT_NAME: nginx-deployment
+
+  ACR_EE_REGISTRY: myregistry.cn-hangzhou.cr.aliyuncs.com
+  ACR_EE_INSTANCE_ID: instanceID
+  ACR_EE_NAMESPACE: namespace
+  ACR_EE_IMAGE: repo
+  ACR_EE_TAG: ${{ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsigned &newTransactionRank, unsigned &newTransactionBank, unsigned &newTransactionRow, unsigned &newTransactionColumn) }}
+
+permissions: {
+        uint64_t tempA, tempB;
+        unsigned transactionSize = TRANSACTION_SIZE;
+        uint64_t transactionMask =  transactionSize - 1; //ex: (64 bit bus width) x (8 Burst Length) - 1 = 64 bytes - 1 = 63 = 0x3f mask
+        unsigned channelBitWidth = NUM_CHANS_LOG;
+        unsigned rankBitWidth = NUM_RANKS_LOG;
+        unsigned bankBitWidth = NUM_BANKS_LOG;
+        unsigned rowBitWidth = NUM_ROWS_LOG;
+        unsigned colBitWidth = NUM_COLS_LOG;
+        // this forces the alignment to the width of a single burst (64 bits = 8 bytes = 3 address bits for DDR parts)
+        unsigned byteOffsetWidth = BYTE_OFFSET_WIDTH;
+        // Since we're assuming that a request is for BL*BUS_WIDTH, the bottom bits
+        // of this address *should* be all zeros if it's not, issue a warning
+  contents: read
+
+jobs:        if ((physicalAddress & transactionMask) != 0)
+  build:                DEBUG("WARNING: address 0x"<<std::hex<<physicalAddress<<std::dec<<" is not aligned to the request size of "<<transactionSize); 
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:        // each burst will contain JEDEC_DATA_BUS_BITS/8 bytes of data, so the bottom bits (3 bits for a single channel DDR system) are
+        //         thrown away before mapping the other bits
+        physicalAddress >>= byteOffsetWidth;
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    # 1.1 Login to ACR
+    - name: Login to ACR with the AccessKey pair
+      uses: aliyun/acr-login@v1
+      with:         // each burst will contain JEDEC_DATA_BUS_BITS/8 bytes of data, so the bottom bits (3 bits for a single channel DDR system) are
+        //         thrown away before mapping the other bits
+        physicalAddress >>= byteOffsetWidth;
+
+        // The next thing we have to consider is that when a request is made for a
+        // we've taken into account the granulaity of a single burst by shifting 
+        // off the bottom 3 bits, but a transaction has to take into account the
+        // burst length (i.e. the requests will be aligned to cache line sizes which
+        // should be equal to transactionSize above). 
+        //
+        // Since the column address increments internally on bursts, the bottom n 
+        // bits of the column (colLow) have to be zero in order to account for the 
+        // total size of the transaction. These n bits should be shifted off the 
+        // address and also subtracted from the total column width. 
+        //
+        // I am having a hard time explaining the reasoning here, but it comes down
+        // this: for a 64 byte transaction, the bottom 6 bits of the address must be 
+        // zero. These zero bits must be made up of the byte offset (3 bits) and also
+        // from the bottom bits of the column 
+        // 
+        // For example: cowLowBits = log2(64bytes) - 3 bits = 3 bits 
+        
+        region-id: "${{         unsigned colLowBitWidth = COL_LOW_BIT_WIDTH; }}"
+        access-key-id: "${{         physicalAddress >>= colLowBitWidth;
+        unsigned colHighBitWidth = colBitWidth - colLowBitWidth; 
+        if (DEBUG_ADDR_MAP) }}"
+        access-key-secret: "${{         {
+                DEBUG("Bit widths: ch:"<<channelBitWidth<<" r:"<<rankBitWidth<<" b:"<<bankBitWidth
+                                <<" row:"<<rowBitWidth<<" colLow:"<<colLowBitWidth
+                                << " colHigh:"<<colHighBitWidth<<" off:"<<byteOffsetWidth 
+                                << " Total:"<< (channelBitWidth + rankBitWidth + bankBitWidth + rowBitWidth + colLowBitWidth + colHighBitWidth + byteOffsetWidth));
+        } }}"
+
+    # 1.2 Build and push image to ACR
+    - name: Build and push image to ACR
+      run: |
+        docker build --tag "$REGISTRY/$NAMESPACE/$IMAGE:$TAG" .
+        docker push "$REGISTRY/$NAMESPACE/$IMAGE:$TAG"
+
+    # 1.3 Scan image in ACR
+    - name: Scan image in ACR
+      uses: aliyun/acr-scan@v1
+      with:         //perform various address mapping schemes      
+        region-id: "${{          if (addressMappingScheme == Scheme1)
+        {        }}"
+        access-key-id: "${{                 //chan:rank:row:col:bank
+                tempA = physicalAddress;
+                physicalAddress = physicalAddress >> bankBitWidth;
+                tempB = physicalAddress << bankBitWidth;
+                newTransactionBank = tempA ^ tempB; }}"
+        access-key-secret: "${{                 tempA = physicalAddress;
+                physicalAddress = physicalAddress >> colHighBitWidth;
+                tempB = physicalAddress << colHighBitWidth;
+                newTransactionColumn = tempA ^ tempB; }}"
+        repository: "${{                 tempA = physicalAddress;
+                physicalAddress = physicalAddress >> rowBitWidth;
+                tempB = physicalAddress << rowBitWidth;
+                newTransactionRow = tempA ^ tempB; }}/${{                 tempA = physicalAddress;
+                physicalAddress = physicalAddress >> rankBitWidth;
+                tempB = physicalAddress << rankBitWidth;
+                newTransactionRank = tempA ^ tempB; }}"
+        tag: "${{                 tempA = physicalAddress;
+                physicalAddress = physicalAddress >> channelBitWidth;
+                tempB = physicalAddress << channelBitWidth;
+                newTransactionChan = tempA ^ tempB; }}"
+
+    # 2.1 (Optional) Login to ACR EE
+    - uses: actions/checkout@v4
+    - name: Login to ACR EE with the AccessKey pair
+      uses: aliyun/acr-login@v1
+      with:        else if (addressMappingScheme == Scheme2)
+        login-server: "https://${{         {
+                //chan:row:col:bank:rank
+                tempA = physicalAddress;
+                physicalAddress = physicalAddress >> rankBitWidth;
+                tempB = physicalAddress << rankBitWidth;
+                newTransactionRank = tempA ^ tempB; }}"
+        region-id: "${{                 tempA = physicalAddress;
+                physicalAddress = physicalAddress >> bankBitWidth;
+                tempB = physicalAddress << bankBitWidth;
+                newTransactionBank = tempA ^ tempB; }}"
+        access-key-id: "${{                 tempA = physicalAddress;
+                physicalAddress = physicalAddress >> colHighBitWidth;
+                tempB = physicalAddress << colHighBitWidth;
+                newTransactionColumn = tempA ^ tempB; }}"
+        access-key-secret: "${{                 tempA = physicalAddress;
+                physicalAddress = physicalAddress >> rowBitWidth;
+                tempB = physicalAddress << rowBitWidth;
+                newTransactionRow = tempA ^ tempB; }}"
+        instance-id: "${{                 tempA = physicalAddress;
+                physicalAddress = physicalAddress >> channelBitWidth;
+                tempB = physicalAddress << channelBitWidth;
+                newTransactionChan = tempA ^ tempB; }}"
+
+    # 2.2 (Optional) Build and push image ACR EE
+    - name: Build and push image to ACR EE
+      run: |
+        docker build -t "$ACR_EE_REGISTRY/$ACR_EE_NAMESPACE/$ACR_EE_IMAGE:$TAG" .
+        docker push "$ACR_EE_REGISTRY/$ACR_EE_NAMESPACE/$ACR_EE_IMAGE:$TAG"
+    # 2.3 (Optional) Scan image in ACR EE
+    - name: Scan image in ACR EE
+      uses: aliyun/acr-scan@v1
+      with:        else if (addressMappingScheme == Scheme3)
+        region-id: "${{                  //chan:rank:bank:col:row               
+                
+        access-key-id: "${{                  tempA = physicalAddress;
+                physicalAddress = physicalAddress >> rowBitWidth;
+                tempB = physicalAddress << rowBitWidth;
+                newTransactionRow = tempA ^ tempB;
+               
+                
+        access-key-secret: "${{                  tempA = physicalAddress;
+                physicalAddress = physicalAddress >> colHighBitWidth;
+                tempB = physicalAddress << colHighBitWidth;
+                newTransactionColumn = tempA ^ tempB;               
+                
+        instance-id: "${{                 tempA = physicalAddress;
+                physicalAddress = physicalAddress >> bankBitWidth;
+                tempB = physicalAddress << bankBitWidth;
+                newTransactionBank = tempA ^ tempB;                
+                
+        repository: "${{                  tempA = physicalAddress;
+                physicalAddress = physicalAddress >> channelBitWidth;
+                tempB = physicalAddress << channelBitWidth;
+                newTransactionChan = tempA ^ tempB;  }}"               
+        tag: "${{ env.ACR_EE_TAG }}"
+
+    # 3.1 Set ACK context
+    - name: Set K8s context
+      uses: aliyun/ack-set-context@v1
+      with:        else if (addressMappingScheme == Scheme4)
+        access-key-id: "${{         {
+                //chan:rank:bank:row:col
+                tempA = physicalAddress;
+                physicalAddress = physicalAddress >> colHighBitWidth;
+                tempB = physicalAddress << colHighBitWidth;
+                newTransactionColumn = tempA ^ tempB; }}"
+        access-key-secret: "${{                 tempA = physicalAddress;
+                physicalAddress = physicalAddress >> rowBitWidth;
+                tempB = physicalAddress << rowBitWidth;
+                newTransactionRow = tempA ^ tempB; }}"
+        cluster-id: "${{                 tempA = physicalAddress;
+                physicalAddress = physicalAddress >> bankBitWidth;
+                tempB = physicalAddress << bankBitWidth;
+                newTransactionBank = tempA ^ tempB; }}"
+
+    # 3.2 Deploy the image to the ACK cluster
+    - name: Set up Kustomize
+      run: |-
+        curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash /dev/stdin 3.8.6
+    - name: Deploy
+      run: |-
+        ./kustomize edit set image REGISTRY/NAMESPACE/IMAGE:TAG=$REGISTRY/$NAMESPACE/$IMAGE:$TAG
+        ./kustomize build . | kubectl apply -f -
+        kubectl rollout status deployment/$ACK_DEPLOYMENT_NAME
+        kubectl get services -o wide
