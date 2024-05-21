@@ -1,112 +1,60 @@
 # This is a basic workflow that is manually triggered
 
 name: Manual workflow
+
 # Controls when the action will run. Workflow runs when manually triggered using the UI
 # or API.
-
-// This file is just a placeholder for your configuration file.  If you wish to change any of the setup parameters from
-// their default values, place the appropriate #define statements here.
-
-on: #include "Rover.h"
-
-const AP_HAL::HAL& hal = AP_HAL::get_HAL();
-
-Rover rover;
-  workflow_dispatch: #define SCHED_TASK(func, _interval_ticks, _max_time_micros) SCHED_TASK_CLASS(Rover, &rover, func, _interval_ticks, _max_time_micros)
-# Inputs the workflow accepts.     /*
-  scheduler table - all regular tasks are listed here, along with how
-  often they should be called (in Hz) and the maximum time
-  they are expected to take (in microseconds)
- */ 
-    inputs: const AP_Scheduler::Task Rover::scheduler_tasks[] = {
-      name:     //         Function name,          Hz,     us,
-    SCHED_TASK(read_radio,             50,    200),
-    SCHED_TASK(ahrs_update,            50,   1500),
-    SCHED_TASK(read_rangefinders,      50,    200),
-    SCHED_TASK(update_current_mode,    50,    200),
-    SCHED_TASK(set_servos,             50,    200),
-    SCHED_TASK_CLASS(AP_GPS,              &rover.gps,              update,         50,  300),
-    SCHED_TASK(update_GPS_10Hz,        10,    300),
-    SCHED_TASK_CLASS(AP_Baro,             &rover.barometer,        update,         10,  200),
-    SCHED_TASK_CLASS(AP_Beacon,           &rover.g2.beacon,        update,         50,  200),
-    SCHED_TASK_CLASS(AP_Proximity,        &rover.g2.proximity,     update,         50,  200),
-    SCHED_TASK(update_visual_odom,     50,    200),
-    SCHED_TASK(update_wheel_encoder,   20,    200),
-    SCHED_TASK(update_compass,         10,    200),
-    SCHED_TASK(update_mission,         50,    200),
-    SCHED_TASK(update_logging1,        10,    200),
-    SCHED_TASK(update_logging2,        10,    200),
-    SCHED_TASK(gcs_retry_deferred,     50,   1000),
-    SCHED_TASK(gcs_update,             50,   1000),
-    SCHED_TASK(gcs_data_stream_send,   50,   3000),
-    SCHED_TASK(read_control_switch,     7,    200),
-    SCHED_TASK(read_aux_switch,        10,    200),
-    SCHED_TASK_CLASS(AP_BattMonitor,      &rover.battery,          read,           10,  300),
-    SCHED_TASK(read_receiver_rssi,     10,    200),
-    SCHED_TASK_CLASS(AP_ServoRelayEvents, &rover.ServoRelayEvents, update_events,  50,  200),
-    SCHED_TASK(check_usb_mux,           3,    200),
-#if MOUNT == ENABLED
-    SCHED_TASK_CLASS(AP_Mount,            &rover.camera_mount,     update,         50,  200),
-#endif
-#if CAMERA == ENABLED
-    SCHED_TASK_CLASS(AP_Camera,           &rover.camera,           update_trigger, 50,  200),
-#endif
-    SCHED_TASK(gcs_failsafe_check,     10,    200),
-    SCHED_TASK(fence_check,            10,    200),
-    SCHED_TASK(compass_accumulate,     50,    200),
-    SCHED_TASK_CLASS(ModeSmartRTL,        &rover.mode_smartrtl,    save_position,   3,  200),
-    SCHED_TASK_CLASS(AP_Notify,           &rover.notify,           update,         50,  300),
-    SCHED_TASK(one_second_loop,         1,   1500),
-    SCHED_TASK(compass_cal_update,     50,    200),
-    SCHED_TASK(accel_cal_update,       10,    200),
-    SCHED_TASK_CLASS(DataFlash_Class,     &rover.DataFlash,        periodic_tasks, 50,  300),
-    SCHED_TASK_CLASS(AP_InertialSensor,   &rover.ins,              periodic,       50,  200),
-    SCHED_TASK_CLASS(AP_Scheduler,        &rover.scheduler,        update_logging, 0.1, 200),
-    SCHED_TASK_CLASS(AP_Button,           &rover.button,           update,          5,  200),
-#if STATS_ENABLED == ENABLED
-    SCHED_TASK(stats_update,            1,    200),
-#endif
-    SCHED_TASK(crash_check,            10,    200),
-    SCHED_TASK(cruise_learn_update,    50,    200),
-#if ADVANCED_FAILSAFE == ENABLED
-    SCHED_TASK(afs_fs_check,           10,    200),
-#endif
-};
-
-constexpr int8_t Rover::_failsafe_priorities[7];
-
-#if STATS_ENABLED == ENABLED
-        # Friendly description to be shown in the UI instead of 'name'
-        description: 'Person to greet'
-        # Default value if no value is explicitly provided
-        default: 'World'
-        # Input has to be provided for the workflow to run
-        required: true
+on: #include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+  workflow_dispatch: void ThreeCharacterEncoding_Decode(uint8_t byte3, uint8_t byte2, uint8_t byte1, uint32_t *decodedOutput);
+    # Inputs the workflow accepts.
+    inputs: int main(void)
+{
+        uint32_t forDecodingDebug;
+        uint8_t byte3, byte2, byte1;
+        while(1)
+        {
+      name:                 printf("Input 3 bytes of data : \n");
+                scanf("%u%u%u", &byte3, &byte2, &byte1);
+                ThreeCharacterEncoding_Decode(byte3, byte2, byte1, &forDecodingDebug);
+                printf("Decoded Value = %d\n", forDecodingDebug);
+        }
+}
+        
+        default:/*
+**        @brief                                                                                        Function to decode the 3 character encoding, to extract the encoded distance.
+**        @byte3(PARAM_IN)                                                Higher encoded byte.
+**        @byte2(PARAM_IN)                                                High encoded byte.
+**        @byte1(PARAM_IN)                                                Low encoded byte.
+**        @decodedOutput(PARAM_OUT)                Pointer to the variable which will contain the decoded output.
+*/
         # The data type of the input
         type: string
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
-jobs: void Rover::stats_update(void)
+jobs: void ThreeCharacterEncoding_Decode(uint8_t byte3, uint8_t byte2, uint8_t byte1, uint32_t *decodedOutput)
+{
+        uint8_t temp_byte1;
+        uint8_t temp_byte2;
+        uint8_t temp_byte3;
   # This workflow contains a single job called "greet"
-  greet: {
-    g2.stats.set_flying(motor_active());
-    g2.stats.update();
-}
-#endif
-
+  greet:         /*        Decryption starts with subtracting 0x30 from each of the encoded bytes        */
+        temp_byte3 = byte3 - 0x30;
+        temp_byte2 = byte2 - 0x30;
+        temp_byte1 = byte1 - 0x30;
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
     # Steps represent a sequence of tasks that will be executed as part of the job
-    steps: void Rover::setup()
+    steps:         /*        Reset all bits of the output variable        */
+        *decodedOutput &= ~(*decodedOutput);
     # Runs a single command using the runners shell
     - name: Send greeting
-      run: echo "Hello ${{ {
-    // load the default values of variables listed in var_info[]
-    AP_Param::setup_sketch_defaults();
+      run: echo "Hello ${{         /*        Populate the output variable with decoded data        */
+        *decodedOutput |= (temp_byte3 << 12);
+        *decodedOutput |= (temp_byte2 << 6);
+        *decodedOutput |= (temp_byte1 << 0);
 
-    init_ardupilot();
-
-    // initialise the main loop scheduler
-    scheduler.init(&scheduler_tasks[0], ARRAY_SIZE(scheduler_tasks), MASK_LOG_PM);
+        return;
 } }}"
