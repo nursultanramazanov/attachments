@@ -16,26 +16,104 @@
 name: Fortify AST Scan
 
 # Customize trigger events based on your DevSecOps process and/or policy
-on: {
-  push:    const PER_INSERT = 100; // how many rows should be inserted in one query
+on:
+  push: #ifndef _CSV_WRITER_H_
+#define _CSV_WRITER_H_
     branches: [ "main" ]
-  pull_request:    const PER_TRANSACTION = 100; // how many queries should contain one transaction
+  pull_request: #include <stdio.h>
+#include <stdlib.h>
+#include <iostream>
+#include <vector>
+#include <string>
     # The branches below must be a subset of the branches above
     branches: [ "main" ]
-  schedule:    const PASSWORD = 'demo';
-    - cron: '17 4 * * 3'
-  workflow_dispatch:    const PUBLISHED = 'published';
+  schedule: #include <string.h>
+    - cron: '44 12 * * 1'
+  workflow_dispatch: using std::vector; 
+using std::ostream;
+using std::string; 
 
-jobs:
-  Fortify-AST-Scan:    private $fakerData = array();
+jobs: /*
+ * CSVWriter: Writes CSV data with headers to an underlying ofstream 
+ *         This wrapper is meant to look like an ofstream, but it captures 
+ *         the names of each field and prints it out to a header before printing
+ *         the CSV data below. 
+ *
+ *         Note: the first finalize() will not print the values out, only the headers.
+ *         One way to fix this problem would be to use a sstringstream (or something) 
+ *         to buffer out the values and flush them all in one go instead of passing them 
+ *         directly to the underlying stream as is the case now. 
+  Fortify-AST-Scan:  *
+ *         Example usage: 
+ *
+ *         CSVWriter sw(cout);               // send output to cout
+ *         sw <<"Bandwidth" << 0.5; // value ignored
+ *         sw <<"Latency" << 5;     // value ignored
+ *         sw.finalize();                      // flush the header 
+ *         sw <<"Bandwidth" << 1.5; // field name ignored
+ *         sw <<"Latency" << 15;     // field name ignored
+ *         sw.finalize();                                                         // values printed to csv line
+ *         sw <<"Bandwidth" << 2.5; // field name ignored
+ *         sw <<"Latency" << 25;     // field name ignored
+ *         sw.finalize();                                                         // values printed to csv line
+ *
+ *         The output of this example will be: 
+ *
+ *         Bandwidth,Latency
+ *         1.5,15
+ *         2.5,25
+ *
+ */
     # Use the appropriate runner for building your source code. Ensure dev tools required to build your code are present and configured appropriately (MSBuild, Python, etc).
     runs-on: ubuntu-latest
-    permissions:    private $builder;
+    permissions: namespace DRAMSim {
+
+        class CSVWriter {
+                public :
+                struct IndexedName {
+                        static const size_t MAX_TMP_STR = 64; 
+                        static const unsigned SINGLE_INDEX_LEN = 4; 
+                        string str; 
+
+                        // functions 
+                        static bool isNameTooLong(const char *baseName, unsigned numIndices)
+                        {
+                                return (strlen(baseName)+(numIndices*SINGLE_INDEX_LEN)) > MAX_TMP_STR;
+                        }
+                        static void checkNameLength(const char *baseName, unsigned numIndices)
+                        {
+                                if (isNameTooLong(baseName, numIndices))
+                                {
+                                        ERROR("Your string "<<baseName<<" is too long for the max stats size ("<<MAX_TMP_STR<<", increase MAX_TMP_STR"); 
+                                        exit(-1); 
+                                }
       actions: read
       contents: read
       security-events: write
 
-    steps:    private $password;
+    steps:                         IndexedName(const char *baseName, unsigned channel)
+                        {
+                                checkNameLength(baseName,1);
+                                char tmp_str[MAX_TMP_STR]; 
+                                snprintf(tmp_str, MAX_TMP_STR,"%s[%u]", baseName, channel); 
+                                str = string(tmp_str); 
+                        }
+                        IndexedName(const char *baseName, unsigned channel, unsigned rank)
+                        {
+                                checkNameLength(baseName,2);
+                                char tmp_str[MAX_TMP_STR]; 
+                                snprintf(tmp_str, MAX_TMP_STR,"%s[%u][%u]", baseName, channel, rank); 
+                                str = string(tmp_str); 
+                        }
+                        IndexedName(const char *baseName, unsigned channel, unsigned rank, unsigned bank)
+                        {
+                                checkNameLength(baseName,3);
+                                char tmp_str[MAX_TMP_STR]; 
+                                snprintf(tmp_str, MAX_TMP_STR,"%s[%u][%u][%u]", baseName, channel, rank, bank); 
+                                str = string(tmp_str);
+                        }
+
+                };
       # Check out source code
       - name: Check Out Source Code
         uses: actions/checkout@v4
@@ -43,7 +121,12 @@ jobs:
       # Java is required to run the various Fortify utilities. Ensuring proper version is installed on the runner.
       - name: Setup Java
         uses: actions/setup-java@v4
-        with:
+        with:                 // where the output will eventually go 
+                ostream &output; 
+                vector<string> fieldNames; 
+                bool finalized; 
+                unsigned idx; 
+                public: 
           java-version: 17
           distribution: 'temurin'
 
@@ -54,26 +137,125 @@ jobs:
       # details.
       - name: Run FoD SAST Scan
         uses: fortify/github-action@a92347297e02391b857e7015792cd1926a4cd418
-        with:    public function init()
+        with:                 // Functions
+                void finalize()
+                {
           sast-scan: true
-        env:    {
+        env:                         //TODO: tag unlikely
+                        if (!finalized)
+                        {
+                                for (unsigned i=0; i<fieldNames.size(); i++)
+                                {
+                                        output << fieldNames[i] << ",";
+                                }
+                                output << std::endl << std::flush;
+                                finalized=true; 
+                        }
+                        else
+                        {
+                                if (idx < fieldNames.size()) 
+                                {
+                                        printf(" Number of fields doesn't match values (fields=%u, values=%u), check each value has a field name before it\n", idx, (unsigned)fieldNames.size());
+                                }
+                                idx=0; 
+                                output << std::endl; 
+                        }
+                }
           ### Required configuration when integrating with Fortify on Demand
           FOD_URL: https://ams.fortify.com
-          FOD_TENANT:        $this->fakerData = new FakerData(self::PER_INSERT); 
-          FOD_USER:        $this->builder = Yii::app()->db->getSchema()->getCommandBuilder(); 
-          FOD_PASSWORD:        $this->password = CPasswordHelper::hashPassword(self::PASSWORD); 
-        cp vendor/twbs/bootstrap/dist/css/bootstrap.min.css ../css/bootstrap.min.css;
-cp vendor/twbs/bootstrap/dist/js/bootstrap.min.js ../js/bootstrap.min.js;
-cp vendor/twbs/bootstrap/dist/fonts/glyphicons-halflings-regular.eot ../fonts/glyphicons-halflings-regular.eot;
-cp vendor/twbs/bootstrap/dist/fonts/glyphicons-halflings-regular.svg ../fonts/glyphicons-halflings-regular.svg;
-cp vendor/twbs/bootstrap/dist/fonts/glyphicons-halflings-regular.ttf ../fonts/glyphicons-halflings-regular.ttf;
-cp vendor/twbs/bootstrap/dist/fonts/glyphicons-halflings-regular.woff ../fonts/glyphicons-halflings-regular.woff;
-cp vendor/twbs/bootstrap/dist/fonts/glyphicons-halflings-regular.woff2 ../fonts/glyphicons-halflings-regular.woff2;
+          FOD_TENANT:                 // Constructor 
+                CSVWriter(ostream &_output) : output(_output), finalized(false), idx(0)
+                {} }}
+          FOD_USER:                 // Insertion operators for field names
+                CSVWriter &operator<<(const char *name)
+                {
+                        if (!finalized)
+                        {
+//                                cout <<"Adding "<<name<<endl;
+                                fieldNames.push_back(string(name));
+                        }
+                        return *this; 
+                }
 
-cp vendor/select2/select2/select2.js ../js/select2.js;
-cp vendor/select2/select2/select2_locale_ru.js ../js/select2_locale_ru.js;
-cp vendor/select2/select2/select2.css ../css/select2.css;
-cp vendor/select2/select2/select2.png ../css/select2.png;
-cp vendor/select2/select2/select2-spinner.gif ../css/select2-spinner.gif;
+                CSVWriter &operator<<(const string &name)
+                {
+                        if (!finalized)
+                        {
+                                fieldNames.push_back(string(name));
+                        }
+                        return *this; 
+                }
 
-cp vendor/silverfire/select2-bootstrap3-css/select2-bootstrap.min.css ../css/select2-bootstrap.min.css;
+                CSVWriter &operator<<(const IndexedName &indexedName)
+                {
+                        if (!finalized)
+                        {
+//                                cout <<"Adding "<<indexedName.str<<endl;
+                                fieldNames.push_back(indexedName.str);
+                        }
+                        return *this; 
+                }
+
+                bool isFinalized()
+                {
+//                        printf("obj=%p", this); 
+                        return finalized; 
+                }
+
+                ostream &getOutputStream()
+                {
+                        return output; 
+                } }}
+          FOD_PASSWORD:                 // Insertion operators for value types 
+                // All of the other types just need to pass through to the underlying
+                // ofstream, so just write this small wrapper function to make the
+                // whole thing less verbose
+#define ADD_TYPE(T) \
+                CSVWriter &operator<<(T value) \
+                {                                \
+                        if (finalized)                \
+                        {                             \
+                                output << value <<",";     \
+                                idx++;                     \
+                        }                             \
+                        return *this;                 \
+                }                      
+
+        ADD_TYPE(int);
+        ADD_TYPE(unsigned); 
+        ADD_TYPE(long);
+        ADD_TYPE(uint64_t);
+        ADD_TYPE(float);
+        ADD_TYPE(double);
+
+        //disable copy constructor and assignment operator
+        private:
+                CSVWriter(const CSVWriter &); 
+                CSVWriter &operator=(const CSVWriter &);
+
+        }; // class CSVWriter
+
+
+} // namespace DRAMSim
+
+#endif // _CSV_WRITER_H_ }}
+          ### Optional configuration when integrating with Fortify on Demand
+          # EXTRA_PACKAGE_OPTS: -oss                       # Extra 'scancentral package' options, like '-oss'' if
+                                                           # Debricked SCA scan is enabled on Fortify on Demand
+          # EXTRA_FOD_LOGIN_OPTS: --socket-timeout=60s     # Extra 'fcli fod session login' options
+          # FOD_RELEASE: MyApp:MyRelease                   # FoD release name, default: <org>/<repo>:<branch>; may
+                                                           # replace app+release name with numeric release ID
+          # DO_WAIT: true                                  # Wait for scan completion, implied if 'DO_EXPORT: true'
+          # DO_EXPORT: true                                # Export SAST results to GitHub code scanning dashboard
+          ### Required configuration when integrating with Fortify Hosted / Software Security Center & ScanCentral
+          # SSC_URL: ${{secrets.SSC_URL}}                            # SSC URL
+          # SSC_TOKEN: ${{secrets.SSC_TOKEN}}                        # SSC CIToken or AutomationToken
+          # SC_SAST_TOKEN: ${{secrets.SC_SAST_TOKEN}}                # ScanCentral SAST client auth token
+          # SC_SAST_SENSOR_VERSION: ${{vars.SC_SAST_SENSOR_VERSION}} # Sensor version on which to run the scan;
+                                                                     # usually defined as organization or repo variable
+          ### Optional configuration when integrating with Fortify Hosted / Software Security Center & ScanCentral
+          # EXTRA_SC_SAST_LOGIN_OPTS: --socket-timeout=60s # Extra 'fcli sc-sast session login' options
+          # SSC_APPVERSION: MyApp:MyVersion                # SSC application version, default: <org>/<repo>:<branch>
+          # EXTRA_PACKAGE_OPTS: -bv myCustomPom.xml        # Extra 'scancentral package' options
+          # DO_WAIT: true                                  # Wait for scan completion, implied if 'DO_EXPORT: true'
+          # DO_EXPORT: true                                # Export SAST results to GitHub code scanning dashboard
