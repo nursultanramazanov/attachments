@@ -28,184 +28,108 @@
 
 name: SonarCloud analysis
 
-on: //BusPacket.cpp
-//
-//Class file for bus packet object
-//
-
-#include "BusPacket.h"
-
+on:
+  push: 
+    branches: [ "main" ]
+  pull_request: #include "BankState.h"
+    branches: [ "main" ]
+  workflow_dispatch: using namespace std;
 using namespace DRAMSim;
-using namespace std;
-  push: BusPacket::BusPacket(BusPacketType packtype, uint64_t physicalAddr, 
-                unsigned col, unsigned rw, unsigned r, unsigned b, void *dat, 
-                ostream &dramsim_log_) :
-        dramsim_log(dramsim_log_),
-        busPacketType(packtype),
-        column(col),
-        row(rw),
-        bank(b),
-        rank(r),
-        physicalAddress(physicalAddr),
-        data(dat)
+
+permissions: //All banks start precharged
+BankState::BankState(ostream &dramsim_log_):
+                dramsim_log(dramsim_log_),
+                currentBankState(Idle),
+                openRowAddress(0),
+                nextRead(0),
+                nextWrite(0),
+                nextActivate(0),
+                nextPrecharge(0),
+                nextPowerUp(0),
+                lastCommand(READ),
+                stateChangeCountdown(0)
 {}
-    branches: [ "main" ]
-  pull_request :void BusPacket::print(uint64_t currentClockCycle, bool dataStart)
-{
-        if (this == NULL)
-        {
-                return;
-        }
-
-        if (VERIFICATION_OUTPUT)
-        {
-                switch (busPacketType)
-                {
-                case READ:
-                        cmd_verify_out << currentClockCycle << ": read ("<<rank<<","<<bank<<","<<column<<",0);"<<endl;
-                        break;
-                case READ_P:
-                        cmd_verify_out << currentClockCycle << ": read ("<<rank<<","<<bank<<","<<column<<",1);"<<endl;
-                        break;
-                case WRITE:
-                        cmd_verify_out << currentClockCycle << ": write ("<<rank<<","<<bank<<","<<column<<",0 , 0, 'h0);"<<endl;
-                        break;
-                case WRITE_P:
-                        cmd_verify_out << currentClockCycle << ": write ("<<rank<<","<<bank<<","<<column<<",1, 0, 'h0);"<<endl;
-                        break;
-                case ACTIVATE:
-                        cmd_verify_out << currentClockCycle <<": activate (" << rank << "," << bank << "," << row <<");"<<endl;
-                        break;
-                case PRECHARGE:
-                        cmd_verify_out << currentClockCycle <<": precharge (" << rank << "," << bank << "," << row <<");"<<endl;
-                        break;
-                case REFRESH:
-                        cmd_verify_out << currentClockCycle <<": refresh (" << rank << ");"<<endl;
-                        break;
-                case DATA:
-                        //TODO: data verification?
-                        break;
-                default:
-                        ERROR("Trying to print unknown kind of bus packet");
-                        exit(-1);
-                }
-        }
-}
-    branches: [ "main" ]
-  workflow_dispatch: void BusPacket::print()
-{
-        if (this == NULL) //pointer use makes this a necessary precaution
-        {
-                return;
-        }
-        else
-        {
-                switch (busPacketType)
-                {
-                case READ:
-                        PRINT("BP [READ] pa[0x"<<hex<<physicalAddress<<dec<<"] r["<<rank<<"] b["<<bank<<"] row["<<row<<"] col["<<column<<"]");
-                        break;
-                case READ_P:
-                        PRINT("BP [READ_P] pa[0x"<<hex<<physicalAddress<<dec<<"] r["<<rank<<"] b["<<bank<<"] row["<<row<<"] col["<<column<<"]");
-                        break;
-                case WRITE:
-                        PRINT("BP [WRITE] pa[0x"<<hex<<physicalAddress<<dec<<"] r["<<rank<<"] b["<<bank<<"] row["<<row<<"] col["<<column<<"]");
-                        break;
-                case WRITE_P:
-                        PRINT("BP [WRITE_P] pa[0x"<<hex<<physicalAddress<<dec<<"] r["<<rank<<"] b["<<bank<<"] row["<<row<<"] col["<<column<<"]");
-                        break;
-                case ACTIVATE:
-                        PRINT("BP [ACT] pa[0x"<<hex<<physicalAddress<<dec<<"] r["<<rank<<"] b["<<bank<<"] row["<<row<<"] col["<<column<<"]");
-                        break;
-                case PRECHARGE:
-                        PRINT("BP [PRE] pa[0x"<<hex<<physicalAddress<<dec<<"] r["<<rank<<"] b["<<bank<<"] row["<<row<<"] col["<<column<<"]");
-                        break;
-                case REFRESH:
-                        PRINT("BP [REF] pa[0x"<<hex<<physicalAddress<<dec<<"] r["<<rank<<"] b["<<bank<<"] row["<<row<<"] col["<<column<<"]");
-                        break;
-                case DATA:
-                        PRINTN("BP [DATA] pa[0x"<<hex<<physicalAddress<<dec<<"] r["<<rank<<"] b["<<bank<<"] row["<<row<<"] col["<<column<<"] data["<<data<<"]=");
-                        printData();
-                        PRINT("");
-                        break;
-                default:
-                        ERROR("Trying to print unknown kind of bus packet");
-                        exit(-1);
-                }
-        }
-}
-
-permissions: void BusPacket::printData() const 
-{
-        if (data == NULL)
-        {
-                PRINTN("NO DATA");
-                return;
-        }
-        PRINTN("'" << hex);
-        for (int i=0; i < 4; i++)
-        {
-                PRINTN(((uint64_t *)data)[i]);
-        }
-        PRINTN("'" << dec);
-}
   pull-requests: read # allows SonarCloud to decorate PRs with analysis results
 
-jobs: #ifndef BUSPACKET_H
-#define BUSPACKET_H
-  Analysis: //BusPacket.h
-//
-//Header file for bus packet object
-//
+jobs: void BankState::print()
+{
+        PRINT(" == Bank State ");
+        if (currentBankState == Idle)
+        {
+                PRINT("    State : Idle" );
+        }
+        else if (currentBankState == RowActive)
+        {
+                PRINT("    State : Active" );
+        }
+        else if (currentBankState == Refreshing)
+        {
+                PRINT("    State : Refreshing" );
+        }
+        else if (currentBankState == PowerDown)
+        {
+                PRINT("    State : Power Down" );
+        }
 
+        PRINT("    OpenRowAddress : " << openRowAddress );
+        PRINT("    nextRead       : " << nextRead );
+        PRINT("    nextWrite      : " << nextWrite );
+        PRINT("    nextActivate   : " << nextActivate );
+        PRINT("    nextPrecharge  : " << nextPrecharge );
+        PRINT("    nextPowerUp    : " << nextPowerUp );
+}
+  Analysis: #ifndef BANKSTATE_H
+#define BANKSTATE_H
     runs-on: ubuntu-latest
 
-    steps: #include "SystemConfiguration.h"
+    steps: //BankState.h
+//
+//Header file for bank state class
+//
       - name: Analyze with SonarCloud
 
         # You can pin the exact commit or the version.
         # uses: SonarSource/sonarcloud-github-action@de2e56b42aa84d0b1c5b622644ac17e505c9a049
         uses: SonarSource/sonarcloud-github-action@de2e56b42aa84d0b1c5b622644ac17e505c9a049
-        env: namespace DRAMSim
+        env: #include "SystemConfiguration.h"
+#include "BusPacket.h"
+
+          GITHUB_TOKEN: ${{ namespace DRAMSim
 {
-enum BusPacketType
+enum CurrentBankState
 {
-        READ,
-        READ_P,
-        WRITE,
-        WRITE_P,
-        ACTIVATE,
-        PRECHARGE,
-        REFRESH,
-        DATA
-};
-          GITHUB_TOKEN: ${{ class BusPacket }}  # Needed to get PR information
-          SONAR_TOKEN: ${{         BusPacket();
+        Idle,
+        RowActive,
+        Precharging,
+        Refreshing,
+        PowerDown
+}; }}  # Needed to get PR information
+          SONAR_TOKEN: ${{ class BankState
+{
         ostream &dramsim_log; 
+public:
         //Fields
-        BusPacketType busPacketType;
-        unsigned column;
-        unsigned row;
-        unsigned bank;
-        unsigned rank;
-        uint64_t physicalAddress;
-        void *data; }}   # Generate a token on Sonarcloud.io, add it to the secrets of this repo with the name SONAR_TOKEN (Settings > Secrets > Actions > add new repository secret)
-        with:         //Functions
-        BusPacket(BusPacketType packtype, uint64_t physicalAddr, unsigned col, unsigned rw, unsigned r, unsigned b, void *dat, ostream &dramsim_log_);         
-             
-    
-        
+        CurrentBankState currentBankState;
+        unsigned openRowAddress;
+        uint64_t nextRead;
+        uint64_t nextWrite;
+        uint64_t nextActivate;
+        uint64_t nextPrecharge;
+        uint64_t nextPowerUp; }}   # Generate a token on Sonarcloud.io, add it to the secrets of this repo with the name SONAR_TOKEN (Settings > Secrets > Actions > add new repository secret)
+        with:         BusPacketType lastCommand;
+        unsigned stateChangeCountdown;
           # Additional arguments for the sonarcloud scanner
-          args:         void print();
-        void print(uint64_t currentClockCycle, bool dataStart);
-        void printData() const;
-        
+          args:         //Functions
+        BankState(ostream &dramsim_log_);
+        void print();
+};
+}
+
+#endif
             # Unique keys of your project and organization. You can find them in SonarCloud > Information (bottom-left menu)
             # mandatory
-            - };
-            - }
-            #endif
-            
+            -Dsonar.projectKey=
+            -Dsonar.organization=
             # Comma-separated paths to directories containing main source files.
             #-Dsonar.sources= # optional, default is project base directory
             # When you need the analysis to take place in a directory other than the one from which it was launched
