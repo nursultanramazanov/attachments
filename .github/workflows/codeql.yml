@@ -11,22 +11,50 @@
 #
 name: "CodeQL"
 
-on:         uint64_t tempA, tempB;
-  push:        unsigned transactionSize = TRANSACTION_SIZE;
+on:
+  push: 
     branches: [ "main" ]
-  pull_request:        uint64_t transactionMask =  transactionSize - 1; //ex: (64 bit bus width) x (8 Burst Length) - 1 = 64 bytes - 1 = 63 = 0x3f mask
+  pull_request: #include "Bank.h"
+#include "BusPacket.h"
     branches: [ "main" ]
-  schedule:        unsigned channelBitWidth = NUM_CHANS_LOG;
-    - cron: '39 6 * * 6'
+  schedule: using namespace std;
+using namespace DRAMSim;
+    - cron: '38 3 * * 4'
 
-jobs:        unsigned rankBitWidth = NUM_RANKS_LOG;
-  analyze:        unsigned bankBitWidth = NUM_BANKS_LOG;
-    name: Analyze (${{        unsigned rowBitWidth = NUM_ROWS_LOG; }}
-    #         // this forces the alignment to the width of a single burst (64 bits = 8 bytes = 3 address bits for DDR parts)
-   
-    runs-on:         unsigned byteOffsetWidth = BYTE_OFFSET_WIDTH;
-    timeout-minutes:          // Since we're assuming that a request is for BL*BUS_WIDTH, the bottom bits
-    permissions:         // of this address *should* be all zeros if it's not, issue a warning
+jobs: Bank::Bank(ostream &dramsim_log_):
+                currentState(dramsim_log_), 
+                rowEntries(NUM_COLS),
+                dramsim_log(dramsim_log_)
+  analyze: {}
+    name: Analyze (${{ matrix.language }})
+    /* The bank class is just a glorified sparse storage data structure
+ * that keeps track of written data in case the simulator wants a
+ * function DRAM model
+ *
+ * A vector of size NUM_COLS keeps a linked list of rows and their
+ * associated values.
+ *
+ * write() adds an entry to the proper linked list or replaces the
+ *         value in a row that was already written
+ *
+ * read() searches for a node with the right row value, if not found
+ *         returns the tracer value 0xDEADBEEF
+ * 
+ *        TODO: if anyone wants to actually store data, see the 'data_storage' branch and perhaps try to merge that into master
+ */
+    runs-on: ${{ Bank::DataStruct *Bank::searchForRow(unsigned row, DataStruct *head) ) || '        while (head != NULL)
+        { ' }}
+    timeout-minutes: ${{                if (head->row == row)
+                { )  == 'swift' && 120) ||                         //found it
+                        return head;
+                }
+                //keep looking
+                head = head->next;
+        }
+        //if we get here, didn't find it
+        return NULL;
+} }}
+    permissions: void Bank::read(BusPacket *busPacket)
       # required for all workflows
       security-events: write
 
@@ -37,50 +65,83 @@ jobs:        unsigned rankBitWidth = NUM_RANKS_LOG;
       actions: read
       contents: read
 
-    strategy:
+    strategy: {
+        DataStruct *rowHeadNode = rowEntries[busPacket->column];
+        DataStruct *foundNode = NULL;
+
+        if ((foundNode = Bank::searchForRow(busPacket->row, rowHeadNode)) == NULL)
       fail-fast: false
-      matrix:        if ((physicalAddress & transactionMask) != 0)
-        include: {
-        - language: csharp
-          build-mode: autobuild
+      matrix:         {
+                // the row hasn't been written before, so it isn't in the list
+                //if(SHOW_SIM_OUTPUT) DEBUG("== Warning - Read from previously unwritten row " << busPacket->row);
+                void *garbage = calloc(BL * (JEDEC_DATA_BUS_BITS/8),1);
+                ((long *)garbage)[0] = 0xdeadbeef; // tracer value
+                busPacket->data = garbage;
+        include:         }
+        else // found it
+        {
+                busPacket->data = foundNode->data;
+        }
+
+        //the return packet should be a data packet, not a read packet
+        busPacket->busPacketType = DATA;
+} 
+                
         - language: go
           build-mode: autobuild
         - language: javascript-typescript
           build-mode: none
         - language: python
           build-mode: none
-         #                DEBUG("WARNING: address 0x"<<std::hex<<physicalAddress<<std::dec<<" is not aligned to the request size of "<<transactionSize);  
-    steps: }
+          # CodeQL supports the following values keywords for 'language': 'c-cpp', 'csharp', 'go', 'java-kotlin', 'javascript-typescript', 'python', 'ruby', 'swift'
+        # Use `c-cpp` to analyze code written in C, C++ or both
+        # Use 'java-kotlin' to analyze code written in Java, Kotlin or both
+        # Use 'javascript-typescript' to analyze code written in JavaScript, TypeScript or both
+        # To learn more about changing the languages that are analyzed or customizing the build mode for your analysis,
+        # see https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/customizing-your-advanced-setup-for-code-scanning.
+        # If you are analyzing a compiled language, you can modify the 'build-mode' for that language to customize how
+        # your codebase is analyzed, see https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/codeql-code-scanning-for-compiled-languages
+    
+
+    steps: void Bank::write(const BusPacket *busPacket)
     - name: Checkout repository
       uses: actions/checkout@v4
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
-      with: 
-        languages: physicalAddress >>= colLowBitWidth;         
-        build-mode: unsigned colHighBitWidth = colBitWidth - colLowBitWidth;         
-                // each burst will contain JEDEC_DATA_BUS_BITS/8 bytes of data, so the bottom bits (3 bits for a single channel DDR system) are
-        //         thrown away before mapping the other bits
-        physicalAddress >>= byteOffsetWidth;
+      with: {
+        //TODO: move all the error checking to BusPacket so once we have a bus packet,
+        //                        we know the fields are all legal
 
-        // The next thing we have to consider is that when a request is made for a
-        // we've taken into account the granulaity of a single burst by shifting 
-        // off the bottom 3 bits, but a transaction has to take into account the
-        // burst length (i.e. the requests will be aligned to cache line sizes which
-        // should be equal to transactionSize above). 
-        //
-        // Since the column address increments internally on bursts, the bottom n 
-        // bits of the column (colLow) have to be zero in order to account for the 
-        // total size of the transaction. These n bits should be shifted off the 
-        // address and also subtracted from the total column width. 
-        //
-        // I am having a hard time explaining the reasoning here, but it comes down
-        // this: for a 64 byte transaction, the bottom 6 bits of the address must be 
-        // zero. These zero bits must be made up of the byte offset (3 bits) and also
-        // from the bottom bits of the column 
-        // 
-        // For example: cowLowBits = log2(64bytes) - 3 bits = 3 bits 
+        if (busPacket->column >= NUM_COLS)
+        {
+                ERROR("== Error - Bus Packet column "<< busPacket->column <<" out of bounds");
+                exit(-1);
+        }
+        languages: ${{         // head of the list we need to search
+        DataStruct *rowHeadNode = rowEntries[busPacket->column];
+        DataStruct *foundNode = NULL;
+
+        if ((foundNode = Bank::searchForRow(busPacket->row, rowHeadNode)) == NULL) }}
+        build-mode: ${{         // head of the list we need to search
+        DataStruct *rowHeadNode = rowEntries[busPacket->column];
+        DataStruct *foundNode = NULL;
+
+        if ((foundNode = Bank::searchForRow(busPacket->row, rowHeadNode)) == NULL) }}
+        # If you wish to specify custom queries, you can do so here or in a config file.
+        # By default, queries listed here will override any specified in a config file.
+        # Prefix the list here with "+" to use these queries and those in the config file.
+
+        # For more details on CodeQL's query packs, refer to: https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
+        # queries: security-extended,security-and-quality
+
+    # If the analyze step fails for one of the languages you are analyzing with
+    # "We were unable to automatically build your code", modify the matrix above
+    # to set the build mode to "manual" for that language. Then modify this step
+    # to build your code.
+    # ℹ️ Command-line programs to run using the OS shell.
+    # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
     - if: matrix.build-mode == 'manual'
       shell: bash
       run: |
@@ -93,5 +154,14 @@ jobs:        unsigned rankBitWidth = NUM_RANKS_LOG;
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
-      with:         if (DEBUG_ADDR_MAP)
-        category: "/language: {
+      with:                 // found it, just plaster in the new data
+                foundNode->data = busPacket->data;
+                if (DEBUG_BANKS)
+        category: "/                {
+                        PRINTN(" -- Bank "<<busPacket->bank<<" writing to physical address 0x" << hex << busPacket->physicalAddress<<dec<<":");
+                        busPacket->printData();
+                        PRINT("");
+                }
+        }
+}
+ }}"
