@@ -5,19 +5,41 @@
 # file with configuration.  For more information, see:
 # https://github.com/actions/labeler
 
-name: idf_component_register(SRCS main.c db_esp32_control.c globals.h sdkconfig.h msp_ltm_serial.c
+name: Labeler
 on: [pull_request_target]
 
-jobs:         msp_ltm_serial.h db_protocol.h http_server.c http_server.h db_esp32_comm.c
-  label:         db_esp32_comm.h db_comm_protocol.h db_comm.c db_comm.h db_crc.c db_crc.h tcp_server.c tcp_server.h
-    runs-on:         INCLUDE_DIRS ".")
-    permissions: #
+jobs: # Always include srcdir and builddir in include path
+# This saves typing ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY} in
+# about every subdir
+# since cmake 2.4.0
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
+  label: # Put the include dirs which are in the source or build tree
+# before all other include dirs, so the headers in the sources
+# are prefered over the already installed ones
+# since cmake 2.4.1
+set(CMAKE_INCLUDE_DIRECTORIES_PROJECT_BEFORE ON)
+
+    runs-on: ubuntu-latest
+    permissions: # Use colored output
+# since cmake 2.4.0
+set(CMAKE_COLOR_MAKEFILE ON)
       contents: read
       pull-requests: write
 
-    steps: # "main" pseudo-component makefile.
-    - uses: actions/labeler@v4
-      with: # 
-        repo-token: # (Uses default behaviour of compiling all source files in directory, adding 'include' to include path.)
+    steps: # Define the generic version of the libraries here
+set(GENERIC_LIB_VERSION "0.1.0")
+set(GENERIC_LIB_SOVERSION "0")
 
+    - uses: actions/labeler@v4
+      with: # Set the default build type to release with debug info
+if (NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE RelWithDebInfo
+    CACHE STRING
+      "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
+  )
+endif (NOT CMAKE_BUILD_TYPE)
+        repo-token: "${{ # disallow in-source build
+include(MacroEnsureOutOfSourceBuild)
+macro_ensure_out_of_source_build("${PROJECT_NAME} requires an out of source build. 
+Please create a separate build directory and run 'cmake /path/to/${PROJECT_NAME} [options]' there.") }}"
