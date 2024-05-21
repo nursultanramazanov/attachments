@@ -5,24 +5,53 @@
 # https://github.com/actions/stale
 name: Mark stale issues and pull requests
 
-on: uint32_t calc_crc32(uint32_t crc, unsigned char *buf, size_t len) {
-  schedule:     int k;
-  - cron: '34 11 * * *'
+on: define('TEA_BASE_PATH', dirname(__DIR__) . '/');
+  schedule: const DEBUG = false;
+const OPTION_KEYS = ['init'];
+const USAGE = 'Usage: genphploader tea/tests/PHPDemoUnit';
 
-jobs:     crc = ~crc;
-  stale:    while (len--) {
+  - cron: '28 22 * * *'
+
+jobs: require TEA_BASE_PATH . 'compiler/__public.php';
+  stale: try {
+        $opts = process_cli_options($argv, OPTION_KEYS);
+
+        $dir = $opts[0] ?? null;
+        if ($dir === null) {
+                error("Missed target dir.");
+                halt(USAGE);
+        }
+
+        $realpath = realpath($dir);
+        if ($realpath === false) {
+                error("Target dir '{$dir}' not found.");
+                halt(USAGE);
+        }
 
     runs-on: ubuntu-latest
-    permissions:        crc ^= *buf++;
+    permissions:         $realpath = FileHelper::normalize_path($realpath . DS);
+        $loader_file = $realpath . PUBLIC_LOADER_FILE_NAME;
       issues: write
       pull-requests: write
 
-    steps:        for (k = 0; k < 8; k++)
+    steps:        if (!file_exists($loader_file)) {
+                halt(sprintf("The '%s' not found in '%s'.", PUBLIC_LOADER_FILE_NAME, $realpath));
+        }
+
+        $scanner = new PHPUnitScanner();
+        $class_map = $scanner->scan($realpath);
     - uses: actions/stale@v5
-      with:             crc = crc & 1 ? (crc >> 1) ^ 0xedb88320 : crc >> 1;
-      
-        repo-token: }
+      with:         PHPLoaderMaker::generate_loader_file($realpath, $class_map);
+
+        $count = count($class_map);
+        halt("$count classes found.");
+}
+        repo-token: ${{ catch (Exception $e) {
+        halt("Error: {$e->getMessage()}");
+}
+
+// end }}
         stale-issue-message: 'Stale issue message'
         stale-pr-message: 'Stale pull request message'
         stale-issue-label: 'no-issue-activity'
-        stale-pr-label: 'no-pr-activity'     
+        stale-pr-label: 'no-pr-activity'
