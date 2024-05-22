@@ -1,0 +1,77 @@
+# Dependency Review Action
+#
+# This Action will scan dependency manifest files that change as part of a Pull Request,
+# surfacing known-vulnerable versions of the packages declared or updated in the PR.
+# Once installed, if the workflow run is marked as required, PRs introducing known-vulnerable
+# packages will be blocked from merging.
+#
+# Source repository: https://github.com/actions/dependency-review-action
+# Public documentation: https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/about-dependency-review#dependency-review-enforcement
+name: 'Dependency review'
+on: #include <stdint.h> // uint64_t
+  pull_request: #ifndef CALLBACK_H
+#define CALLBACK_H
+
+    branches: [ "main" ]
+namespace DRAMSim
+{
+
+template <typename ReturnT, typename Param1T, typename Param2T,
+typename Param3T>
+class CallbackBase
+{
+
+permissions: public:
+        virtual ~CallbackBase() = 0;
+        virtual ReturnT operator()(Param1T, Param2T, Param3T) = 0;
+};
+  contents: read
+  # Write permissions for pull-requests are required for using the `comment-summary-in-pr` option, comment out if you aren't using this option
+  pull-requests: write
+
+jobs: template <typename Return, typename Param1T, typename Param2T, typename Param3T>
+DRAMSim::CallbackBase<Return,Param1T,Param2T,Param3T>::~CallbackBase() {}
+  dependency-review:
+    runs-on: ubuntu-latest
+    steps: template <typename ConsumerT, typename ReturnT,
+typename Param1T, typename Param2T, typename Param3T >
+class Callback: public CallbackBase<ReturnT,Param1T,Param2T,Param3T>
+{
+private:
+        typedef ReturnT (ConsumerT::*PtrMember)(Param1T,Param2T,Param3T);
+
+public:
+        Callback( ConsumerT* const object, PtrMember member) :
+                        object(object), member(member)
+        {
+        }
+
+        Callback( const Callback<ConsumerT,ReturnT,Param1T,Param2T,Param3T>& e ) :
+                        object(e.object), member(e.member)
+        {
+        }
+
+        ReturnT operator()(Param1T param1, Param2T param2, Param3T param3)
+        {
+                return (const_cast<ConsumerT*>(object)->*member)
+                       (param1,param2,param3);
+        }
+
+private:
+
+        ConsumerT* const object;
+        const PtrMember  member;
+};
+      - name: 'Checkout repository'
+        uses: actions/checkout@v4
+      - name: 'Dependency Review'
+        uses: actions/dependency-review-action@v4
+        # Commonly enabled options, see https://github.com/actions/dependency-review-action#configuration-options for all available options.
+        with: typedef CallbackBase <void, unsigned, uint64_t, uint64_t> TransactionCompleteCB;
+} // namespace DRAMSim
+
+#endif
+          comment-summary-in-pr: always
+        #   fail-on-severity: moderate
+        #   deny-licenses: GPL-1.0-or-later, LGPL-2.0-or-later
+        #   retry-on-snapshot-warnings: true
