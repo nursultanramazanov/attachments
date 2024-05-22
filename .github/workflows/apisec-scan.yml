@@ -28,145 +28,90 @@
 name: APIsec
 
 # Controls when the workflow will run
-on: #include "ClockDomain.h"
+on: #include <stdint.h> // uint64_t
   # Triggers the workflow on push or pull request events but only for the "main" branch
   # Customize trigger events based on your DevSecOps processes.
-  push: using namespace std;
-    branches: [ "main" ]
-  pull_request: namespace ClockDomain
+  push: namespace DRAMSim
 {
-        // "Default" crosser with a 1:1 ratio
-        ClockDomainCrosser::ClockDomainCrosser(ClockUpdateCB *_callback)
-                : callback(_callback), clock1(1UL), clock2(1UL), counter1(0UL), counter2(0UL)
-        {
-        }
-        ClockDomainCrosser::ClockDomainCrosser(uint64_t _clock1, uint64_t _clock2, ClockUpdateCB *_callback) 
-                : callback(_callback), clock1(_clock1), clock2(_clock2), counter1(0), counter2(0)
-        {
-                //cout << "CTOR: callback address: " << (uint64_t)(this->callback) << "\t ratio="<<clock1<<"/"<<clock2<< endl;
-        }
 
-        ClockDomainCrosser::ClockDomainCrosser(double ratio, ClockUpdateCB *_callback)
-                : callback(_callback), counter1(0), counter2(0)
-        {
+template <typename ReturnT, typename Param1T, typename Param2T,
+typename Param3T>
     branches: [ "main" ]
-  schedule:                 // Compute numerator and denominator for ratio, then pass that to other constructor.
-                double x = ratio;
+  pull_request: class CallbackBase
+{
+public:
+	virtual ~CallbackBase() = 0;
+	virtual ReturnT operator()(Param1T, Param2T, Param3T) = 0;
+};
 
-                const int MAX_ITER = 15;
-                size_t i;
-                unsigned ns[MAX_ITER], ds[MAX_ITER];
-                double zs[MAX_ITER];
-                ds[0] = 0;
-                ds[1] = 1;
-                zs[1] = x;
-                ns[1] = (int)x; 
+template <typename Return, typename Param1T, typename Param2T, typename Param3T>
+DRAMSim::CallbackBase<Return,Param1T,Param2T,Param3T>::~CallbackBase() {}
 
-                for (i = 1; i<MAX_ITER-1; i++)
-                {
-                        if (fabs(x - (double)ns[i]/(double)ds[i]) < 0.00005)
-                        {
-                                //printf("ANSWER= %u/%d\n",ns[i],ds[i]);
-                                break;
-                        }
-    - cron: '44 5 * * 3'
+template <typename ConsumerT, typename ReturnT,
+typename Param1T, typename Param2T, typename Param3T >
+    branches: [ "main" ]
+  schedule: class Callback: public CallbackBase<ReturnT,Param1T,Param2T,Param3T>
+{
+private:
+	typedef ReturnT (ConsumerT::*PtrMember)(Param1T,Param2T,Param3T);
+
+public:
+	Callback( ConsumerT* const object, PtrMember member) :
+			object(object), member(member)
+	{
+	}
+
+	Callback( const Callback<ConsumerT,ReturnT,Param1T,Param2T,Param3T>& e ) :
+			object(e.object), member(e.member)
+	{
+	}
+
+	ReturnT operator()(Param1T param1, Param2T param2, Param3T param3)
+	{
+		return (const_cast<ConsumerT*>(object)->*member)
+		       (param1,param2,param3);
+	}
+
+private:
+
+	ConsumerT* const object;
+	const PtrMember  member;
+};
+
+typedef CallbackBase <void, unsigned, uint64_t, uint64_t> TransactionCompleteCB;
+} // namespace DRAMSim
+
+#endif
+    - cron: '36 20 * * 2'
 
   # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:                         //TODO: or, if the answers are the same as the last iteration, stop 
-
-                        zs[i+1] = 1.0f/(zs[i]-(int)floor(zs[i])); // 1/(fractional part of z_i)
-                        ds[i+1] = ds[i]*(int)floor(zs[i+1])+ds[i-1];
-                        double tmp = x*ds[i+1];
-                        double tmp2 = tmp - (int)tmp;
-                        ns[i+1] = tmp2 >= 0.5 ? ceil(tmp) : floor(tmp); // ghetto implementation of a rounding function
-                        //printf("i=%lu, z=%20f n=%5u d=%5u\n",i,zs[i],ns[i],ds[i]);
-                }
+  workflow_dispatch:
 
 
-
-permissions:                 //printf("APPROXIMATION= %u/%d\n",ns[i],ds[i]);
-                this->clock1=ns[i];
-                this->clock2=ds[i];
+permissions:
   contents: read
 
-jobs:                 //cout << "CTOR: callback address: " << (uint64_t)(this->callback) << "\t ratio="<<clock1<<"/"<<clock2<< endl;
-        }
+jobs:
 
-  Trigger_APIsec_scan:         void ClockDomainCrosser::update()
-        {
-    permissions:                 //short circuit case for 1:1 ratios
-                if (clock1 == clock2 && callback)
-                {
-                        (*callback)();
-                        return; 
-                }
-
+  Trigger_APIsec_scan:
+    permissions:
       security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
       actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
     runs-on: ubuntu-latest
 
-    steps:                 // Update counter 1.
-                counter1 += clock1;
-
-                while (counter2 < counter1)
-                {
-                        counter2 += clock2;
-                        //cout << "CALLBACK: counter1= " << counter1 << "; counter2= " << counter2 << "; " << endl;
-                        //cout << "callback address: " << (uint64_t)callback << endl;
-                        if (callback)
-                        {
-                                //cout << "Callback() " << (uint64_t)callback<< "Counters: 1="<<counter1<<", 2="<<counter2 <<endl;
-                                (*callback)();
-                        }
-                }
-
-                if (counter1 == counter2)
-                {
-                        counter1 = 0;
-                        counter2 = 0;
-                }
-        }
-
-
-
-        void TestObj::cb()
-        {
-                        cout << "In Callback\n";
-        }
-
-        int TestObj::test()
-        {
-                ClockUpdateCB *callback = new Callback<TestObj, void>(this, &TestObj::cb);
-
+    steps:
        - name: APIsec scan
          uses: apisec-inc/apisec-run-scan@025432089674a28ba8fb55f8ab06c10215e772ea
-         with:                 //ClockDomainCrosser x(5,2,&cb);
-                //ClockDomainCrosser x(2,5,NULL);
-                //ClockDomainCrosser x(37,41,NULL);
-                //ClockDomainCrosser x(41,37,NULL);
-                //cout << "(main) callback address: " << (uint64_t)&cb << endl;
-                ClockDomainCrosser x(0.5, callback);
-                cout <<"------------------------------------------\n";
-                ClockDomainCrosser y(0.3333, callback);
-                cout <<"------------------------------------------\n";
-                ClockDomainCrosser z(0.9, callback);
-                cout <<"------------------------------------------\n";
+         with:
           # The APIsec username with which the scans will be executed
-          apisec-username: ${{                 for (int i=0; i<10; i++) }}
+          apisec-username: ${{ secrets.apisec_username }}
           # The Password of the APIsec user with which the scans will be executed
-          apisec-password: ${{                         x.update();
-                        cout << "UPDATE: counter1= " << x.counter1 << "; counter2= " << x.counter2 << "; " << endl; }}
+          apisec-password: ${{ secrets.apisec_password}}
           # The name of the project for security scan
           apisec-project: "VAmPI"
           # The name of the sarif format result file The file is written only if this property is provided.
           sarif-result-file: "apisec-results.sarif"
        - name: Import results
          uses: github/codeql-action/upload-sarif@v2
-         with:                 }
-
-                return 0;
-        }
-
-
-}
+         with:
           sarif_file: ./apisec-results.sarif
