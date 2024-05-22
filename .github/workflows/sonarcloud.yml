@@ -28,104 +28,123 @@
 
 name: SonarCloud analysis
 
-on:
-  push: 
-    branches: [ "main" ]
-  pull_request: #include "BankState.h"
-    branches: [ "main" ]
-  workflow_dispatch: using namespace std;
+on: #include "Bank.h"
+#include "BusPacket.h"
+  push: using namespace std;
 using namespace DRAMSim;
-
-permissions: //All banks start precharged
-BankState::BankState(ostream &dramsim_log_):
-                dramsim_log(dramsim_log_),
-                currentBankState(Idle),
-                openRowAddress(0),
-                nextRead(0),
-                nextWrite(0),
-                nextActivate(0),
-                nextPrecharge(0),
-                nextPowerUp(0),
-                lastCommand(READ),
-                stateChangeCountdown(0)
+    branches: [ "main" ]
+  pull_request: Bank::Bank(ostream &dramsim_log_):
+		currentState(dramsim_log_), 
+		rowEntries(NUM_COLS),
+		dramsim_log(dramsim_log_)
 {}
-  pull-requests: read # allows SonarCloud to decorate PRs with analysis results
+    branches: [ "main" ]
+  workflow_dispatch: /* The bank class is just a glorified sparse storage data structure
+ * that keeps track of written data in case the simulator wants a
+ * function DRAM model
+ *
+ * A vector of size NUM_COLS keeps a linked list of rows and their
+ * associated values.
+ *
+ * write() adds an entry to the proper linked list or replaces the
+ * 	value in a row that was already written
+ *
+ * read() searches for a node with the right row value, if not found
+ * 	returns the tracer value 0xDEADBEEF
+ * 
+ *	TODO: if anyone wants to actually store data, see the 'data_storage' branch and perhaps try to merge that into master
+ */
 
-jobs: void BankState::print()
+permissions: Bank::DataStruct *Bank::searchForRow(unsigned row, DataStruct *head)
 {
-        PRINT(" == Bank State ");
-        if (currentBankState == Idle)
-        {
-                PRINT("    State : Idle" );
-        }
-        else if (currentBankState == RowActive)
-        {
-                PRINT("    State : Active" );
-        }
-        else if (currentBankState == Refreshing)
-        {
-                PRINT("    State : Refreshing" );
-        }
-        else if (currentBankState == PowerDown)
-        {
-                PRINT("    State : Power Down" );
-        }
-
-        PRINT("    OpenRowAddress : " << openRowAddress );
-        PRINT("    nextRead       : " << nextRead );
-        PRINT("    nextWrite      : " << nextWrite );
-        PRINT("    nextActivate   : " << nextActivate );
-        PRINT("    nextPrecharge  : " << nextPrecharge );
-        PRINT("    nextPowerUp    : " << nextPowerUp );
+	while (head != NULL)
+	{
+		if (head->row == row)
+		{
+			//found it
+			return head;
+		}
+		//keep looking
+		head = head->next;
+	}
+	//if we get here, didn't find it
+	return NULL;
 }
-  Analysis: #ifndef BANKSTATE_H
-#define BANKSTATE_H
+  pull-requests: read # allows SonarCloud to decorate PRs with analysis results
+jobs: void Bank::read(BusPacket *busPacket)
+{
+	DataStruct *rowHeadNode = rowEntries[busPacket->column];
+	DataStruct *foundNode = NULL;
+
+	if ((foundNode = Bank::searchForRow(busPacket->row, rowHeadNode)) == NULL)
+	{
+		// the row hasn't been written before, so it isn't in the list
+		//if(SHOW_SIM_OUTPUT) DEBUG("== Warning - Read from previously unwritten row " << busPacket->row);
+		void *garbage = calloc(BL * (JEDEC_DATA_BUS_BITS/8),1);
+		((long *)garbage)[0] = 0xdeadbeef; // tracer value
+		busPacket->data = garbage;
+	}
+	else // found it
+	{
+		busPacket->data = foundNode->data;
+	}
+
+	//the return packet should be a data packet, not a read packet
+	busPacket->busPacketType = DATA;
+}
+  Analysis: void Bank::write(const BusPacket *busPacket)
+{
+	//TODO: move all the error checking to BusPacket so once we have a bus packet,
+	//			we know the fields are all legal
+
+	if (busPacket->column >= NUM_COLS)
+	{
+		ERROR("== Error - Bus Packet column "<< busPacket->column <<" out of bounds");
+		exit(-1);
+	}
+
+	// head of the list we need to search
+	DataStruct *rowHeadNode = rowEntries[busPacket->column];
+	DataStruct *foundNode = NULL;
+
+	if ((foundNode = Bank::searchForRow(busPacket->row, rowHeadNode)) == NULL)
+	{
+		//not found
+		DataStruct *newRowNode = (DataStruct *)malloc(sizeof(DataStruct));
+
+		//insert at the head for speed
+		//TODO: Optimize this data structure for speedier lookups?
+		newRowNode->row = busPacket->row;
+		newRowNode->data = busPacket->data;
+		newRowNode->next = rowHeadNode;
+		rowEntries[busPacket->column] = newRowNode;
+	}
+	else
+	{
+		// found it, just plaster in the new data
+		foundNode->data = busPacket->data;
+		if (DEBUG_BANKS)
+		{
+			PRINTN(" -- Bank "<<busPacket->bank<<" writing to physical address 0x" << hex << busPacket->physicalAddress<<dec<<":");
+			busPacket->printData();
+			PRINT("");
+		}
+	}
+}
     runs-on: ubuntu-latest
 
-    steps: //BankState.h
-//
-//Header file for bank state class
-//
+    steps:
       - name: Analyze with SonarCloud
 
         # You can pin the exact commit or the version.
         # uses: SonarSource/sonarcloud-github-action@de2e56b42aa84d0b1c5b622644ac17e505c9a049
         uses: SonarSource/sonarcloud-github-action@de2e56b42aa84d0b1c5b622644ac17e505c9a049
-        env: #include "SystemConfiguration.h"
-#include "BusPacket.h"
-
-          GITHUB_TOKEN: ${{ namespace DRAMSim
-{
-enum CurrentBankState
-{
-        Idle,
-        RowActive,
-        Precharging,
-        Refreshing,
-        PowerDown
-}; }}  # Needed to get PR information
-          SONAR_TOKEN: ${{ class BankState
-{
-        ostream &dramsim_log; 
-public:
-        //Fields
-        CurrentBankState currentBankState;
-        unsigned openRowAddress;
-        uint64_t nextRead;
-        uint64_t nextWrite;
-        uint64_t nextActivate;
-        uint64_t nextPrecharge;
-        uint64_t nextPowerUp; }}   # Generate a token on Sonarcloud.io, add it to the secrets of this repo with the name SONAR_TOKEN (Settings > Secrets > Actions > add new repository secret)
-        with:         BusPacketType lastCommand;
-        unsigned stateChangeCountdown;
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}   # Generate a token on Sonarcloud.io, add it to the secrets of this repo with the name SONAR_TOKEN (Settings > Secrets > Actions > add new repository secret)
+        with:
           # Additional arguments for the sonarcloud scanner
-          args:         //Functions
-        BankState(ostream &dramsim_log_);
-        void print();
-};
-}
-
-#endif
+          args:
             # Unique keys of your project and organization. You can find them in SonarCloud > Information (bottom-left menu)
             # mandatory
             -Dsonar.projectKey=
