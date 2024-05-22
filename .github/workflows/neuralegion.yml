@@ -1,174 +1,257 @@
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-#
-# Run a Nexploit Scan
-# This action runs a new security scan in Nexploit, or reruns an existing one.
-# Build Secure Apps & APIs. Fast.
-# [NeuraLegion](https://www.neuralegion.com) is a powerful dynamic application & API security testing (DAST) platform that security teams trust and developers love.
-# Automatically Tests Every Aspect of Your Apps & APIs
-# Scans any target, whether Web Apps, APIs (REST. & SOAP, GraphQL & more), Web sockets or mobile, providing actionable reports
-# Seamlessly integrates with the Tools and Workflows You Already Use
-#
-# NeuraLegion works with your existing CI/CD pipelines – trigger scans on every commit, pull request or build with unit testing.
-# Spin-Up, Configure and Control Scans with Code
-# One file. One command. One scan. No UI needed.
-#
-# Super-Fast Scans
-#
-# Interacts with applications and APIs, instead of just crawling them and guessing.
-# Scans are fast as our AI-powered engine can understand application architecture and generate sophisticated and targeted attacks.
-#
-# No False Positives
-#
-# Stop chasing ghosts and wasting time. NeuraLegion doesn’t return false positives, so you can focus on releasing code.
-#
-# Comprehensive Security Testing
-#
-# NeuraLegion tests for all common vulnerabilities, such as SQL injection, CSRF, XSS, and XXE -- as well as uncommon vulnerabilities, such as business logic vulnerabilities.
-#
-# More information is available on NeuraLegion’s:
-# * [Website](https://www.neuralegion.com/)
-# * [Knowledge base](https://docs.neuralegion.com/docs/quickstart)
-# * [YouTube channel](https://www.youtube.com/channel/UCoIC0T1pmozq3eKLsUR2uUw)
-# * [GitHub Actions](https://github.com/marketplace?query=neuralegion+)
-#
-# Inputs   print "FAILED"
-#
-# `name`  
-#
-# **Required**. Scan name.
-#
-# _Example:_ `name: GitHub scan ${{   quit() }}`
-#
-# `api_token`
-#
-# **Required**. Your Nexploit API authorization token (2096). You can generate it in the **Organization** section on [nexploit.app](https://nexploit.app/login). Find more information [here](https://kb.neuralegion.com/#/guide/np-web-ui/advanced-set-up/managing-org?id=managing-organization-apicli-authentication-tokens).
-#
-# _Example:_ `api_token: ${{ else: }}`
-#
-# `restart_scan`
-#
-# **Required** when restarting an existing scan by its ID. You can get the scan ID in the Scans section on [nexploit.app](https://nexploit.app/login).<br> Please make sure to only use the necessary parameters. Otherwise, you will get a response with the parameter usage requirements.
-#
-# _Example:_ `restart_scan: ai3LG8DmVn9Rn1YeqCNRGQ)`
-#
-# `discovery_types`
-#
-# **Required**. Array of discovery types. The following types are available:
-# * `archive` - uses an uploaded HAR-file for a scan
-# * `crawler` - uses a crawler to define the attack surface for a scan
-# * `oas` - uses an uploaded OpenAPI schema for a scan <br>
-# If no discovery type is specified, `crawler` is applied by default.
-#
-# _Example:_  print "OK"
-#
-# ```yml
-# discovery_types: |
-#   [ "crawler", "archive" ]
-# ```
-#
-# `file_id` print "Parsing ",
-#
-# **Required** if the discovery type is set to `archive` or `oas`. ID of a HAR-file or an OpenAPI schema you want to use for a scan. You can get the ID of an uploaded HAR-file or an OpenAPI schema in the **Storage** section on [nexploit.app](https://nexploit.app/login).
-#
-# _Example:_ tracefile = open(temp_trace,"r")
-#
-# ```
-# FILE_ID=$(nexploit-cli archive:upload   \
-# --token ${{ if tracefile_filename.startswith("k6"): }}   \
-# --discard true                          \
-# ./example.har)
-# ```
-#
-# `crawler_urls`  print "k6 trace ..."
-#
-# **Required** if the discovery type is set to `crawler`. Target URLs to be used by the crawler to define the attack surface.
-#
-# _Example:_  linePattern = re.compile(r'(0x[0-9A-F]+)\s+([A-Z_]+)\s+([0-9.,]+)\s+(.*)')
-#
-# ```
-# crawler_urls: |
-#   [ "http://vulnerable-bank.com" ]
-# ```
-#
-# `hosts_filter`  for line in tracefile:
-#
-# **Required** when the the discovery type is set to `archive`. Allows selecting specific hosts for a scan.
-#
-# Outputs    searchResult = linePattern.search(line)
-#
-# `url` if searchResult:
-#
-# Url of the resulting scan
-#
-# `id`
-#
-# ID of the created scan. This ID could then be used to restart the scan, or for the following GitHub actions:
-# * [Nexploit Wait for Issues](https://github.com/marketplace/actions/nexploit-wait-for-issues)
-# * [Nexploit Stop Scan](https://github.com/marketplace/actions/nexploit-stop-scan)
-#
-# Example usage
-#
-# Start a new scan with parameters
-#
-# ```yml
-# steps:        (address,command,time,units) = searchResult.groups()
-#     - name: Start Nexploit Scan
-#       id: start
-#       uses: NeuraLegion/run-scan@29ebd17b4fd6292ce7a238a59401668953b37fbe
-#       with:        length = len(time)
-#         api_token: ${{         time = time[0:length-5] }}
-#         name: GitHub scan ${{         temp = len(time) }}
-#         discovery_types: |
-#           [ "crawler", "archive" ]
-#         crawler_urls: |
-#           [ "http://vulnerable-bank.com" ]
-#         file_id: LiYknMYSdbSZbqgMaC9Sj
-#         hosts_filter: |
-#           [ ]
-#     - name: Get the output scan url
-#       run: echo "The scan was started on ${{ if temp==0: }}"
-# ```
-#
-# Restart an existing scan
-#
-# ```yml
-# steps:            time = "0"
-#     - name: Start Nexploit Scan
-#       id: start
-#       uses: NeuraLegion/run-scan@29ebd17b4fd6292ce7a238a59401668953b37fbe
-#       with:        time = string.replace(time,",","")
-#         api_token: ${{         time = string.replace(time,".","") }}
-#         name: GitHub scan ${{         if command != "BOFF" and command != "P_INT_ACK": }}
-#         restart_scan: ai3LG8DmVn9Rn1YeqCNRGQ
-#     - name: Get the output scan url
-#       run: echo "The scan was started on ${{             outfile.write("%s %s %s\n" % (address,command,time))  }}"
+					PRINTN("[lowp] ");
+				}
+			}
+			PRINT(""); // effectively just cout<<endl;
+		}
+	}
+
+	if (DEBUG_CMD_Q)
+	{
+		commandQueue.print();
+	}
+
+	commandQueue.step();
+
+}
+
+bool MemoryController::WillAcceptTransaction()
+{
+	return transactionQueue.size() < TRANS_QUEUE_DEPTH;
+}
+
+//allows outside source to make request of memory system
+bool MemoryController::addTransaction(Transaction *trans)
+{
+	if (WillAcceptTransaction())
+	{
+		trans->timeAdded = currentClockCycle;
+		transactionQueue.push_back(trans);
+		return true;
+	}
+	else 
+	{
+		return false;
+	}
+}
+
+void MemoryController::resetStats()
+{
+	for (size_t i=0; i<NUM_RANKS; i++)
+	{
+		for (size_t j=0; j<NUM_BANKS; j++)
+		{
+			//XXX: this means the bank list won't be printed for partial epochs
+			grandTotalBankAccesses[SEQUENTIAL(i,j)] += totalReadsPerBank[SEQUENTIAL(i,j)] + totalWritesPerBank[SEQUENTIAL(i,j)];
+			totalReadsPerBank[SEQUENTIAL(i,j)] = 0;
+			totalWritesPerBank[SEQUENTIAL(i,j)] = 0;
+			totalEpochLatency[SEQUENTIAL(i,j)] = 0;
+		}
+
+		burstEnergy[i] = 0;
+		actpreEnergy[i] = 0;
+		refreshEnergy[i] = 0;
+		backgroundEnergy[i] = 0;
+		totalReadsPerRank[i] = 0;
+		totalWritesPerRank[i] = 0;
+	}
+}
+//prints statistics at the end of an epoch or  simulation
+void MemoryController::printStats(bool finalStats)
+{
+	unsigned myChannel = parentMemorySystem->systemID;
+
+	//if we are not at the end of the epoch, make sure to adjust for the actual number of cycles elapsed
+
+	uint64_t cyclesElapsed = (currentClockCycle % EPOCH_LENGTH == 0) ? EPOCH_LENGTH : currentClockCycle % EPOCH_LENGTH;
+	unsigned bytesPerTransaction = (JEDEC_DATA_BUS_BITS*BL)/8;
+	uint64_t totalBytesTransferred = totalTransactions * bytesPerTransaction;
+	double secondsThisEpoch = (double)cyclesElapsed * tCK * 1E-9;
+
+	// only per rank
+	vector<double> backgroundPower = vector<double>(NUM_RANKS,0.0);
+	vector<double> burstPower = vector<double>(NUM_RANKS,0.0);
+	vector<double> refreshPower = vector<double>(NUM_RANKS,0.0);
+	vector<double> actprePower = vector<double>(NUM_RANKS,0.0);
+	vector<double> averagePower = vector<double>(NUM_RANKS,0.0);
+
+	// per bank variables
+	vector<double> averageLatency = vector<double>(NUM_RANKS*NUM_BANKS,0.0);
+	vector<double> bandwidth = vector<double>(NUM_RANKS*NUM_BANKS,0.0);
+
+	double totalBandwidth=0.0;
+	for (size_t i=0;i<NUM_RANKS;i++)
+	{
+		for (size_t j=0; j<NUM_BANKS; j++)
+		{
+			bandwidth[SEQUENTIAL(i,j)] = (((double)(totalReadsPerBank[SEQUENTIAL(i,j)]+totalWritesPerBank[SEQUENTIAL(i,j)]) * (double)bytesPerTransaction)/(1024.0*1024.0*1024.0)) / secondsThisEpoch;
+			averageLatency[SEQUENTIAL(i,j)] = ((float)totalEpochLatency[SEQUENTIAL(i,j)] / (float)(totalReadsPerBank[SEQUENTIAL(i,j)])) * tCK;
+			totalBandwidth+=bandwidth[SEQUENTIAL(i,j)];
+			totalReadsPerRank[i] += totalReadsPerBank[SEQUENTIAL(i,j)];
+			totalWritesPerRank[i] += totalWritesPerBank[SEQUENTIAL(i,j)];
+		}
+	}
+#ifdef LOG_OUTPUT
+	dramsim_log.precision(3);
+	dramsim_log.setf(ios::fixed,ios::floatfield);
+#else
+	cout.precision(3);
+	cout.setf(ios::fixed,ios::floatfield);
+#endif
+
+	PRINT( " =======================================================" );
+	PRINT( " ============== Printing Statistics [id:"<<parentMemorySystem->systemID<<"]==============" );
+	PRINTN( "   Total Return Transactions : " << totalTransactions );
+	PRINT( " ("<<totalBytesTransferred <<" bytes) aggregate average bandwidth "<<totalBandwidth<<"GB/s");
+
+	double totalAggregateBandwidth = 0.0;	
+	for (size_t r=0;r<NUM_RANKS;r++)
+	{
+
+		PRINT( "      -Rank   "<<r<<" : ");
+		PRINTN( "        -Reads  : " << totalReadsPerRank[r]);
+		PRINT( " ("<<totalReadsPerRank[r] * bytesPerTransaction<<" bytes)");
+		PRINTN( "        -Writes : " << totalWritesPerRank[r]);
+		PRINT( " ("<<totalWritesPerRank[r] * bytesPerTransaction<<" bytes)");
+		for (size_t j=0;j<NUM_BANKS;j++)
+		{
+			PRINT( "        -Bandwidth / Latency  (Bank " <<j<<"): " <<bandwidth[SEQUENTIAL(r,j)] << " GB/s\t\t" <<averageLatency[SEQUENTIAL(r,j)] << " ns");
+		}
+
+		// factor of 1000 at the end is to account for the fact that totalEnergy is accumulated in mJ since IDD values are given in mA
+		backgroundPower[r] = ((double)backgroundEnergy[r] / (double)(cyclesElapsed)) * Vdd / 1000.0;
+		burstPower[r] = ((double)burstEnergy[r] / (double)(cyclesElapsed)) * Vdd / 1000.0;
+		refreshPower[r] = ((double) refreshEnergy[r] / (double)(cyclesElapsed)) * Vdd / 1000.0;
+		actprePower[r] = ((double)actpreEnergy[r] / (double)(cyclesElapsed)) * Vdd / 1000.0;
+		averagePower[r] = ((backgroundEnergy[r] + burstEnergy[r] + refreshEnergy[r] + actpreEnergy[r]) / (double)cyclesElapsed) * Vdd / 1000.0;
+
+		if ((*parentMemorySystem->ReportPower)!=NULL)
+		{
+			(*parentMemorySystem->ReportPower)(backgroundPower[r],burstPower[r],refreshPower[r],actprePower[r]);
+		}
+
+		PRINT( " == Power Data for Rank        " << r );
+		PRINT( "   Average Power (watts)     : " << averagePower[r] );
+		PRINT( "     -Background (watts)     : " << backgroundPower[r] );
+		PRINT( "     -Act/Pre    (watts)     : " << actprePower[r] );
+		PRINT( "     -Burst      (watts)     : " << burstPower[r]);
+		PRINT( "     -Refresh    (watts)     : " << refreshPower[r] );
+
+		if (VIS_FILE_OUTPUT)
+		{
+		//	cout << "c="<<myChannel<< " r="<<r<<"writing to csv out on cycle "<< currentClockCycle<<endl;
+			// write the vis file output
+			csvOut << CSVWriter::IndexedName("Background_Power",myChannel,r) <<backgroundPower[r];
+			csvOut << CSVWriter::IndexedName("ACT_PRE_Power",myChannel,r) << actprePower[r];
+			csvOut << CSVWriter::IndexedName("Burst_Power",myChannel,r) << burstPower[r];
+			csvOut << CSVWriter::IndexedName("Refresh_Power",myChannel,r) << refreshPower[r];
+			double totalRankBandwidth=0.0;
+			for (size_t b=0; b<NUM_BANKS; b++)
+			{
+				csvOut << CSVWriter::IndexedName("Bandwidth",myChannel,r,b) << bandwidth[SEQUENTIAL(r,b)];
+				totalRankBandwidth += bandwidth[SEQUENTIAL(r,b)];
+				totalAggregateBandwidth += bandwidth[SEQUENTIAL(r,b)];
+				csvOut << CSVWriter::IndexedName("Average_Latency",myChannel,r,b) << averageLatency[SEQUENTIAL(r,b)];
+			}
+			csvOut << CSVWriter::IndexedName("Rank_Aggregate_Bandwidth",myChannel,r) << totalRankBandwidth; 
+			csvOut << CSVWriter::IndexedName("Rank_Average_Bandwidth",myChannel,r) << totalRankBandwidth/NUM_RANKS; 
+		}
+	}
+	if (VIS_FILE_OUTPUT)
+	{
+		csvOut << CSVWriter::IndexedName("Aggregate_Bandwidth",myChannel) << totalAggregateBandwidth;
+		csvOut << CSVWriter::IndexedName("Average_Bandwidth",myChannel) << totalAggregateBandwidth / (NUM_RANKS*NUM_BANKS);
+	}
+
+	// only print the latency histogram at the end of the simulation since it clogs the output too much to print every epoch
+	if (finalStats)
+	{
+		PRINT( " ---  Latency list ("<<latencies.size()<<")");
+		PRINT( "       [lat] : #");
+		if (VIS_FILE_OUTPUT)
+		{
+			csvOut.getOutputStream() << "!!HISTOGRAM_DATA"<<endl;
+		}
+
+		map<unsigned,unsigned>::iterator it; //
+		for (it=latencies.begin(); it!=latencies.end(); it++)
+		{
+			PRINT( "       ["<< it->first <<"-"<<it->first+(HISTOGRAM_BIN_SIZE-1)<<"] : "<< it->second );
+			if (VIS_FILE_OUTPUT)
+			{
+				csvOut.getOutputStream() << it->first <<"="<< it->second << endl;
+			}
+		}
+		if (currentClockCycle % EPOCH_LENGTH == 0)
+		{
+			PRINT( " --- Grand Total Bank usage list");
+			for (size_t i=0;i<NUM_RANKS;i++)
+			{
+				PRINT("Rank "<<i<<":"); 
+				for (size_t j=0;j<NUM_BANKS;j++)
+				{
+					PRINT( "  b"<<j<<": "<<grandTotalBankAccesses[SEQUENTIAL(i,j)]);
+				}
+			}
+		}
+
+	}
+
+
+	PRINT(endl<< " == Pending Transactions : "<<pendingReadTransactions.size()<<" ("<<currentClockCycle<<")==");
+	/*
+	for(size_t i=0;i<pendingReadTransactions.size();i++)
+		{
+			PRINT( i << "] I've been waiting for "<<currentClockCycle-pendingReadTransactions[i].timeAdded<<endl;
+		}
+	*/
+
 
 
 name: "NeuraLegion"
 
-on: elif tracefile_filename.startswith("mase"):
-  push:  print "mase trace ...",
+on: #ifdef LOG_OUTPUT
+	dramsim_log.flush();
+  push: #endif
+
+	resetStats();
+}
     branches: [ "main" ]
-  pull_request:  os.system("cp %s %s"%(temp_trace, tracefile_filename));
+  pull_request: MemoryController::~MemoryController()
+{
+	//ERROR("MEMORY CONTROLLER DESTRUCTOR");
+	//abort();
+	for (size_t i=0; i<pendingReadTransactions.size(); i++)
+	{
+		delete pendingReadTransactions[i];
+	}
+	for (size_t i=0; i<returnTransaction.size(); i++)
+	{
+		delete returnTransaction[i];
+	}
+
+}
     branches: [ "main" ]
-  schedule:  print "OK"
-    - cron: '30 0 * * 4'
+  schedule: //inserts a latency into the latency histogram
+void MemoryController::insertHistogram(unsigned latencyValue, unsigned rank, unsigned bank)
+{
+	totalEpochLatency[SEQUENTIAL(rank,bank)] += latencyValue;
+	//poor man's way to bin things.
+	latencies[(latencyValue/HISTOGRAM_BIN_SIZE)*HISTOGRAM_BIN_SIZE]++;
+}
+    - cron: '20 23 * * 0'
 
 jobs:
-  neuralegion_scan: else:
+  neuralegion_scan:
     runs-on: ubuntu-18.04
     name: A job to run a Nexploit scan
-    steps:  print "Unknown trace file!!!"
+    steps:
       - uses: actions/checkout@v2
       - name: Start Nexploit Scan 🏁
         id: start
         uses: NeuraLegion/run-scan@29ebd17b4fd6292ce7a238a59401668953b37fbe
-        with:  quit()
+        with:
           api_token: ${{ secrets.NEURALEGION_TOKEN }}
-          name: GitHub scan ${{ os.system("rm %s" % temp_trace); }}
+          name: GitHub scan ${{ github.sha }}
           discovery_types: |
             [ "crawler" ]
           crawler_urls: |
