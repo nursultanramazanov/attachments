@@ -16,104 +16,130 @@
 name: Fortify AST Scan
 
 # Customize trigger events based on your DevSecOps process and/or policy
-on:
-  push: #ifndef _CSV_WRITER_H_
-#define _CSV_WRITER_H_
+on: #include "BusPacket.h"
+  push: using namespace DRAMSim;
+using namespace std;
     branches: [ "main" ]
-  pull_request: #include <stdio.h>
-#include <stdlib.h>
-#include <iostream>
-#include <vector>
-#include <string>
+  pull_request: BusPacket::BusPacket(BusPacketType packtype, uint64_t physicalAddr, 
+		unsigned col, unsigned rw, unsigned r, unsigned b, void *dat, 
+		ostream &dramsim_log_) :
+	dramsim_log(dramsim_log_),
+	busPacketType(packtype),
+	column(col),
+	row(rw),
+	bank(b),
+	rank(r),
+	physicalAddress(physicalAddr),
+	data(dat)
+{}
     # The branches below must be a subset of the branches above
     branches: [ "main" ]
-  schedule: #include <string.h>
-    - cron: '44 12 * * 1'
-  workflow_dispatch: using std::vector; 
-using std::ostream;
-using std::string; 
+  schedule: void BusPacket::print(uint64_t currentClockCycle, bool dataStart)
+{
+	if (this == NULL)
+	{
+		return;
+	}
 
-jobs: /*
- * CSVWriter: Writes CSV data with headers to an underlying ofstream 
- *         This wrapper is meant to look like an ofstream, but it captures 
- *         the names of each field and prints it out to a header before printing
- *         the CSV data below. 
- *
- *         Note: the first finalize() will not print the values out, only the headers.
- *         One way to fix this problem would be to use a sstringstream (or something) 
- *         to buffer out the values and flush them all in one go instead of passing them 
- *         directly to the underlying stream as is the case now. 
-  Fortify-AST-Scan:  *
- *         Example usage: 
- *
- *         CSVWriter sw(cout);               // send output to cout
- *         sw <<"Bandwidth" << 0.5; // value ignored
- *         sw <<"Latency" << 5;     // value ignored
- *         sw.finalize();                      // flush the header 
- *         sw <<"Bandwidth" << 1.5; // field name ignored
- *         sw <<"Latency" << 15;     // field name ignored
- *         sw.finalize();                                                         // values printed to csv line
- *         sw <<"Bandwidth" << 2.5; // field name ignored
- *         sw <<"Latency" << 25;     // field name ignored
- *         sw.finalize();                                                         // values printed to csv line
- *
- *         The output of this example will be: 
- *
- *         Bandwidth,Latency
- *         1.5,15
- *         2.5,25
- *
- */
+	if (VERIFICATION_OUTPUT)
+	{
+		switch (busPacketType)
+		{
+		case READ:
+			cmd_verify_out << currentClockCycle << ": read ("<<rank<<","<<bank<<","<<column<<",0);"<<endl;
+			break;
+		case READ_P:
+			cmd_verify_out << currentClockCycle << ": read ("<<rank<<","<<bank<<","<<column<<",1);"<<endl;
+			break;
+		case WRITE:
+			cmd_verify_out << currentClockCycle << ": write ("<<rank<<","<<bank<<","<<column<<",0 , 0, 'h0);"<<endl;
+			break;
+		case WRITE_P:
+			cmd_verify_out << currentClockCycle << ": write ("<<rank<<","<<bank<<","<<column<<",1, 0, 'h0);"<<endl;
+			break;
+		case ACTIVATE:
+			cmd_verify_out << currentClockCycle <<": activate (" << rank << "," << bank << "," << row <<");"<<endl;
+			break;
+		case PRECHARGE:
+			cmd_verify_out << currentClockCycle <<": precharge (" << rank << "," << bank << "," << row <<");"<<endl;
+			break;
+		case REFRESH:
+			cmd_verify_out << currentClockCycle <<": refresh (" << rank << ");"<<endl;
+			break;
+		case DATA:
+			//TODO: data verification?
+			break;
+		default:
+			ERROR("Trying to print unknown kind of bus packet");
+			exit(-1);
+		}
+	}
+    - cron: '38 14 * * 5'
+  workflow_dispatch: void BusPacket::print()
+{
+	if (this == NULL) //pointer use makes this a necessary precaution
+	{
+		return;
+	}
+	else
+	{
+		switch (busPacketType)
+		{
+		case READ:
+			PRINT("BP [READ] pa[0x"<<hex<<physicalAddress<<dec<<"] r["<<rank<<"] b["<<bank<<"] row["<<row<<"] col["<<column<<"]");
+			break;
+		case READ_P:
+			PRINT("BP [READ_P] pa[0x"<<hex<<physicalAddress<<dec<<"] r["<<rank<<"] b["<<bank<<"] row["<<row<<"] col["<<column<<"]");
+			break;
+		case WRITE:
+			PRINT("BP [WRITE] pa[0x"<<hex<<physicalAddress<<dec<<"] r["<<rank<<"] b["<<bank<<"] row["<<row<<"] col["<<column<<"]");
+			break;
+		case WRITE_P:
+			PRINT("BP [WRITE_P] pa[0x"<<hex<<physicalAddress<<dec<<"] r["<<rank<<"] b["<<bank<<"] row["<<row<<"] col["<<column<<"]");
+			break;
+		case ACTIVATE:
+			PRINT("BP [ACT] pa[0x"<<hex<<physicalAddress<<dec<<"] r["<<rank<<"] b["<<bank<<"] row["<<row<<"] col["<<column<<"]");
+			break;
+		case PRECHARGE:
+			PRINT("BP [PRE] pa[0x"<<hex<<physicalAddress<<dec<<"] r["<<rank<<"] b["<<bank<<"] row["<<row<<"] col["<<column<<"]");
+			break;
+		case REFRESH:
+			PRINT("BP [REF] pa[0x"<<hex<<physicalAddress<<dec<<"] r["<<rank<<"] b["<<bank<<"] row["<<row<<"] col["<<column<<"]");
+			break;
+		case DATA:
+			PRINTN("BP [DATA] pa[0x"<<hex<<physicalAddress<<dec<<"] r["<<rank<<"] b["<<bank<<"] row["<<row<<"] col["<<column<<"] data["<<data<<"]=");
+			printData();
+			PRINT("");
+			break;
+		default:
+			ERROR("Trying to print unknown kind of bus packet");
+			exit(-1);
+		}
+	}
+
+jobs: void BusPacket::printData() const 
+{
+	if (data == NULL)
+	{
+		PRINTN("NO DATA");
+		return;
+	}
+	PRINTN("'" << hex);
+	for (int i=0; i < 4; i++)
+	{
+		PRINTN(((uint64_t *)data)[i]);
+	}
+	PRINTN("'" << dec);
+}
+  Fortify-AST-Scan:
     # Use the appropriate runner for building your source code. Ensure dev tools required to build your code are present and configured appropriately (MSBuild, Python, etc).
     runs-on: ubuntu-latest
-    permissions: namespace DRAMSim {
-
-        class CSVWriter {
-                public :
-                struct IndexedName {
-                        static const size_t MAX_TMP_STR = 64; 
-                        static const unsigned SINGLE_INDEX_LEN = 4; 
-                        string str; 
-
-                        // functions 
-                        static bool isNameTooLong(const char *baseName, unsigned numIndices)
-                        {
-                                return (strlen(baseName)+(numIndices*SINGLE_INDEX_LEN)) > MAX_TMP_STR;
-                        }
-                        static void checkNameLength(const char *baseName, unsigned numIndices)
-                        {
-                                if (isNameTooLong(baseName, numIndices))
-                                {
-                                        ERROR("Your string "<<baseName<<" is too long for the max stats size ("<<MAX_TMP_STR<<", increase MAX_TMP_STR"); 
-                                        exit(-1); 
-                                }
+    permissions:
       actions: read
       contents: read
       security-events: write
 
-    steps:                         IndexedName(const char *baseName, unsigned channel)
-                        {
-                                checkNameLength(baseName,1);
-                                char tmp_str[MAX_TMP_STR]; 
-                                snprintf(tmp_str, MAX_TMP_STR,"%s[%u]", baseName, channel); 
-                                str = string(tmp_str); 
-                        }
-                        IndexedName(const char *baseName, unsigned channel, unsigned rank)
-                        {
-                                checkNameLength(baseName,2);
-                                char tmp_str[MAX_TMP_STR]; 
-                                snprintf(tmp_str, MAX_TMP_STR,"%s[%u][%u]", baseName, channel, rank); 
-                                str = string(tmp_str); 
-                        }
-                        IndexedName(const char *baseName, unsigned channel, unsigned rank, unsigned bank)
-                        {
-                                checkNameLength(baseName,3);
-                                char tmp_str[MAX_TMP_STR]; 
-                                snprintf(tmp_str, MAX_TMP_STR,"%s[%u][%u][%u]", baseName, channel, rank, bank); 
-                                str = string(tmp_str);
-                        }
-
-                };
+    steps:
       # Check out source code
       - name: Check Out Source Code
         uses: actions/checkout@v4
@@ -121,12 +147,7 @@ jobs: /*
       # Java is required to run the various Fortify utilities. Ensuring proper version is installed on the runner.
       - name: Setup Java
         uses: actions/setup-java@v4
-        with:                 // where the output will eventually go 
-                ostream &output; 
-                vector<string> fieldNames; 
-                bool finalized; 
-                unsigned idx; 
-                public: 
+        with:
           java-version: 17
           distribution: 'temurin'
 
@@ -137,108 +158,14 @@ jobs: /*
       # details.
       - name: Run FoD SAST Scan
         uses: fortify/github-action@a92347297e02391b857e7015792cd1926a4cd418
-        with:                 // Functions
-                void finalize()
-                {
+        with:
           sast-scan: true
-        env:                         //TODO: tag unlikely
-                        if (!finalized)
-                        {
-                                for (unsigned i=0; i<fieldNames.size(); i++)
-                                {
-                                        output << fieldNames[i] << ",";
-                                }
-                                output << std::endl << std::flush;
-                                finalized=true; 
-                        }
-                        else
-                        {
-                                if (idx < fieldNames.size()) 
-                                {
-                                        printf(" Number of fields doesn't match values (fields=%u, values=%u), check each value has a field name before it\n", idx, (unsigned)fieldNames.size());
-                                }
-                                idx=0; 
-                                output << std::endl; 
-                        }
-                }
+        env:
           ### Required configuration when integrating with Fortify on Demand
           FOD_URL: https://ams.fortify.com
-          FOD_TENANT:                 // Constructor 
-                CSVWriter(ostream &_output) : output(_output), finalized(false), idx(0)
-                {} }}
-          FOD_USER:                 // Insertion operators for field names
-                CSVWriter &operator<<(const char *name)
-                {
-                        if (!finalized)
-                        {
-//                                cout <<"Adding "<<name<<endl;
-                                fieldNames.push_back(string(name));
-                        }
-                        return *this; 
-                }
-
-                CSVWriter &operator<<(const string &name)
-                {
-                        if (!finalized)
-                        {
-                                fieldNames.push_back(string(name));
-                        }
-                        return *this; 
-                }
-
-                CSVWriter &operator<<(const IndexedName &indexedName)
-                {
-                        if (!finalized)
-                        {
-//                                cout <<"Adding "<<indexedName.str<<endl;
-                                fieldNames.push_back(indexedName.str);
-                        }
-                        return *this; 
-                }
-
-                bool isFinalized()
-                {
-//                        printf("obj=%p", this); 
-                        return finalized; 
-                }
-
-                ostream &getOutputStream()
-                {
-                        return output; 
-                } }}
-          FOD_PASSWORD:                 // Insertion operators for value types 
-                // All of the other types just need to pass through to the underlying
-                // ofstream, so just write this small wrapper function to make the
-                // whole thing less verbose
-#define ADD_TYPE(T) \
-                CSVWriter &operator<<(T value) \
-                {                                \
-                        if (finalized)                \
-                        {                             \
-                                output << value <<",";     \
-                                idx++;                     \
-                        }                             \
-                        return *this;                 \
-                }                      
-
-        ADD_TYPE(int);
-        ADD_TYPE(unsigned); 
-        ADD_TYPE(long);
-        ADD_TYPE(uint64_t);
-        ADD_TYPE(float);
-        ADD_TYPE(double);
-
-        //disable copy constructor and assignment operator
-        private:
-                CSVWriter(const CSVWriter &); 
-                CSVWriter &operator=(const CSVWriter &);
-
-        }; // class CSVWriter
-
-
-} // namespace DRAMSim
-
-#endif // _CSV_WRITER_H_ }}
+          FOD_TENANT: ${{secrets.FOD_TENANT}}
+          FOD_USER: ${{secrets.FOD_USER}}
+          FOD_PASSWORD: ${{secrets.FOD_PAT}}
           ### Optional configuration when integrating with Fortify on Demand
           # EXTRA_PACKAGE_OPTS: -oss                       # Extra 'scancentral package' options, like '-oss'' if
                                                            # Debricked SCA scan is enabled on Fortify on Demand
