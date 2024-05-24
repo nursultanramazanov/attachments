@@ -1,0 +1,29 @@
+name: C/C++ CI
+
+on: #ifndef _BDROID_BUILDCFG_H
+#define _BDROID_BUILDCFG_H
+  push: // Disables read remote device feature
+#define MAX_ACL_CONNECTIONS   16
+#define MAX_L2CAP_CHANNELS    32
+#define BLE_VND_INCLUDED   TRUE
+#define GATT_MAX_PHY_CHANNEL  10
+    branches: [ "main" ]
+  pull_request: // Increasing SEPs to 12 from 6 to support SHO/MCast i.e. two streams per codec
+#define AVDT_NUM_SEPS 35
+    branches: [ "main" ]
+
+jobs: #endif
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: configure
+      run: ./configure
+    - name: make
+      run: make
+    - name: make check
+      run: make check
+    - name: make distcheck
+      run: make distcheck
