@@ -1,0 +1,60 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+# This workflow will build a package using Gradle and then publish it to GitHub packages when a release is created
+# For more information see: https://github.com/actions/setup-java/blob/main/docs/advanced-usage.md#Publishing-using-gradle
+
+name: Gradle Package
+
+on: #ifndef _BDROID_BUILDCFG_H
+#define _BDROID_BUILDCFG_H
+  release: // Disables read remote device feature
+#define MAX_ACL_CONNECTIONS   16
+#define MAX_L2CAP_CHANNELS    32
+#define BLE_VND_INCLUDED   TRUE
+#define GATT_MAX_PHY_CHANNEL  10
+    types: [created]
+
+jobs: // Increasing SEPs to 12 from 6 to support SHO/MCast i.e. two streams per codec
+#define AVDT_NUM_SEPS 35
+
+#endif
+  build: [vendor/bin/hw/android.hardware.bluetooth@1.0-service-qti]
+mode: 0755
+user: AID_BLUETOOTH
+group: AID_BLUETOOTH
+caps: NET_ADMIN BLOCK_SUSPEND
+
+    runs-on: ubuntu-latest
+    permissions: [vendor/bin/hw/android.hardware.bluetooth@1.0-service-qti-lazy]
+mode: 0755
+user: AID_BLUETOOTH
+group: AID_BLUETOOTH
+caps: NET_ADMIN BLOCK_SUSPEND
+      contents: read
+      packages: write
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        server-id: github # Value of the distributionManagement/repository/id field of the pom.xml
+        settings-path: ${{ github.workspace }} # location for the settings.xml file
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@417ae3ccd767c252f5661f1ace9f835f9654f2b5 # v3.1.0
+
+    - name: Build with Gradle
+      run: ./gradlew build
+
+    # The USERNAME and TOKEN need to correspond to the credentials environment variables used in
+    # the publishing section of your build.gradle
+    - name: Publish to GitHub Packages
+      run: ./gradlew publish
+      env:
+        USERNAME: ${{ github.actor }}
+        TOKEN: ${{ secrets.GITHUB_TOKEN }}
