@@ -1,0 +1,2321 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+name: MSBuild
+
+on: #pragma once
+
+#include <AP_Common/AP_Common.h>
+
+// Global parameter class.
+//
+class Parameters {
+public:
+    // The version of the layout as described by the parameter enum.
+    //
+    // When changing the parameter enum in an incompatible fashion, this
+    // value should be incremented by one.
+    //
+    // The increment will prevent old parameters from being used incorrectly
+    // by newer code.
+    //
+    static const uint16_t k_format_version = 16;
+    static const uint16_t k_software_type = 20;
+
+    enum {
+        // Layout version number, always key zero.
+        //
+        k_param_format_version = 0,
+        k_param_software_type,
+        k_param_BoardConfig_CAN,
+
+        // Misc
+        //
+        k_param_log_bitmask_old = 10,  // unused
+        k_param_num_resets_old,         // unused
+        k_param_reset_switch_chan,
+        k_param_initial_mode,
+        k_param_scheduler,
+        k_param_relay,
+        k_param_BoardConfig,
+        k_param_pivot_turn_angle,
+        k_param_rc_13_old,  // unused
+        k_param_rc_14_old,  // unused
+
+        // IO pins
+        k_param_rssi_pin = 20,  // unused, replaced by rssi_ library parameters
+        k_param_battery_volt_pin,
+        k_param_battery_curr_pin,
+
+        // braking
+        k_param_braking_percent_old = 30,   // unused
+        k_param_braking_speederr_old,       // unused
+
+        // misc2
+        k_param_log_bitmask = 40,
+        k_param_gps,
+        k_param_serial0_baud,   // deprecated, can be deleted
+        k_param_serial1_baud,   // deprecated, can be deleted
+        k_param_serial2_baud,   // deprecated, can be deleted
+
+        // 97: RSSI
+        k_param_rssi = 97,
+
+        // 100: Arming parameters
+        k_param_arming = 100,
+
+        // 110: Telemetry control
+        //
+        k_param_gcs0 = 110,         // stream rates for uartA
+        k_param_gcs1,               // stream rates for uartC
+        k_param_sysid_this_mav,
+        k_param_sysid_my_gcs,
+        k_param_serial0_baud_old,   // unused
+        k_param_serial1_baud_old,   // unused
+        k_param_telem_delay,
+        k_param_skip_gyro_cal,      // unused
+        k_param_gcs2,               // stream rates for uartD
+        k_param_serial2_baud_old,   // unused
+        k_param_serial2_protocol,   // deprecated, can be deleted
+        k_param_serial_manager,     // serial manager library
+        k_param_cli_enabled_old,    // unused
+        k_param_gcs3,
+        k_param_gcs_pid_mask,
+
+        //
+        // 130: Sensor parameters
+        //
+        k_param_compass_enabled = 130,
+        k_param_steering_learn,     // unused
+        k_param_NavEKF,             // deprecated - remove
+        k_param_mission,            // mission library
+        k_param_NavEKF2_old,        // deprecated - remove
+        k_param_NavEKF2,
+        k_param_g2,                 // 2nd block of parameters
+        k_param_NavEKF3,
+
+        // 140: battery controls
+        k_param_battery_monitoring = 140,   // deprecated, can be deleted
+        k_param_volt_div_ratio,             // deprecated, can be deleted
+        k_param_curr_amp_per_volt,          // deprecated, can be deleted
+        k_param_input_voltage,              // deprecated, can be deleted
+        k_param_pack_capacity,              // deprecated, can be deleted
+        k_param_battery,
+
+        //
+        // 150: Navigation parameters
+        //
+        k_param_crosstrack_gain = 150,  // unused
+        k_param_crosstrack_entry_angle, // unused
+        k_param_speed_cruise,
+        k_param_speed_turn_gain,
+        k_param_speed_turn_dist,    // unused
+        k_param_ch7_option,
+        k_param_auto_trigger_pin,
+        k_param_auto_kickstart,
+        k_param_turn_circle,  // unused
+        k_param_turn_max_g,
+
+        //
+        // 160: Radio settings
+        //
+        k_param_rc_1_old = 160, // unused
+        k_param_rc_2_old,       // unused
+        k_param_rc_3_old,       // unused
+        k_param_rc_4_old,       // unused
+        k_param_rc_5_old,       // unused
+        k_param_rc_6_old,       // unused
+        k_param_rc_7_old,       // unused
+        k_param_rc_8_old,       // unused
+
+        // throttle control
+        k_param_throttle_min_old = 170, // unused
+        k_param_throttle_max_old,       // unused
+        k_param_throttle_cruise,
+        k_param_throttle_slewrate_old,  // unused
+        k_param_throttle_reduction,     // unused
+        k_param_pilot_steer_type,
+        k_param_skid_steer_out_old, // unused
+
+        // failsafe control
+        k_param_fs_action = 180,
+        k_param_fs_timeout,
+        k_param_fs_throttle_enabled,
+        k_param_fs_throttle_value,
+        k_param_fs_gcs_enabled,
+        k_param_fs_crash_check,
+
+        // obstacle control
+        k_param_sonar_enabled = 190,  // deprecated, can be removed
+        k_param_sonar_old,            // unused
+        k_param_rangefinder_trigger_cm,
+        k_param_rangefinder_turn_angle,
+        k_param_rangefinder_turn_time,
+        k_param_sonar2_old,           // unused
+        k_param_rangefinder_debounce,
+        k_param_rangefinder,          // rangefinder object
+
+        //
+        // 210: driving modes
+        //
+        k_param_mode_channel = 210,
+        k_param_mode1,
+        k_param_mode2,
+        k_param_mode3,
+        k_param_mode4,
+        k_param_mode5,
+        k_param_mode6,
+        k_param_aux_channel,
+
+        //
+        // 220: Waypoint data
+        //
+        k_param_command_total = 220,    // unused
+        k_param_command_index,          // unused
+        k_param_waypoint_radius,
+        k_param_waypoint_overshoot,
+
+        //
+        // 230: camera control
+        //
+        k_param_camera,
+        k_param_camera_mount,
+        k_param_camera_mount2,          // unused
+
+        //
+        // 240: PID Controllers
+        k_param_pidNavSteer = 230,
+        k_param_pidServoSteer,  // unused
+        k_param_pidSpeedThrottle_old,   // unused
+
+        // high RC channels
+        k_param_rc_9_old = 235, // unused
+        k_param_rc_10_old,      // unused
+        k_param_rc_11_old,      // unused
+        k_param_rc_12_old,      // unusedS
+
+        // other objects
+        k_param_sitl = 240,
+        k_param_ahrs,
+        k_param_ins,
+        k_param_compass,
+        k_param_rcmap,
+        k_param_L1_controller,
+        k_param_steerController_old,    // unused
+        k_param_barometer,
+        k_param_notify,
+        k_param_button,
+
+        k_param_DataFlash = 253,  // Logging Group
+
+        // 254,255: reserved
+        };
+
+    AP_Int16    format_version;
+    AP_Int8     software_type;
+
+    // Misc
+    //
+    AP_Int32    log_bitmask;
+    AP_Int8     reset_switch_chan;
+    AP_Int8     initial_mode;
+
+    // Telemetry control
+    //
+    AP_Int16    sysid_this_mav;
+    AP_Int16    sysid_my_gcs;
+    AP_Int8     telem_delay;
+
+    // sensor parameters
+    AP_Int8     compass_enabled;
+
+    // navigation parameters
+    //
+    AP_Float    speed_cruise;
+    AP_Int8     speed_turn_gain;
+    AP_Int8     ch7_option;
+    AP_Int8     auto_trigger_pin;
+    AP_Float    auto_kickstart;
+    AP_Float    turn_max_g;
+    AP_Int16    pivot_turn_angle;
+    AP_Int16    gcs_pid_mask;
+
+    // Throttle
+    //
+    AP_Int8     throttle_cruise;
+    AP_Int8     pilot_steer_type;
+
+    // failsafe control
+    AP_Int8     fs_action;
+    AP_Float    fs_timeout;
+    AP_Int8     fs_throttle_enabled;
+    AP_Int16    fs_throttle_value;
+    AP_Int8     fs_gcs_enabled;
+    AP_Int8     fs_crash_check;
+
+    // obstacle avoidance control
+    AP_Int16    rangefinder_trigger_cm;
+    AP_Float    rangefinder_turn_angle;
+    AP_Float    rangefinder_turn_time;
+    AP_Int8     rangefinder_debounce;
+
+
+    // driving modes
+    //
+    AP_Int8     mode_channel;
+    AP_Int8     mode1;
+    AP_Int8     mode2;
+    AP_Int8     mode3;
+    AP_Int8     mode4;
+    AP_Int8     mode5;
+    AP_Int8     mode6;
+    AP_Int8     aux_channel;
+
+    // Waypoints
+    //
+    AP_Float    waypoint_radius;
+    AP_Float    waypoint_overshoot;
+
+    Parameters() {}
+};
+
+/*
+  2nd block of parameters, to avoid going past 256 top level keys
+ */
+class ParametersG2 {
+public:
+    ParametersG2(void);
+
+    // var_info for holding Parameter information
+    static const struct AP_Param::GroupInfo var_info[];
+
+#if STATS_ENABLED == ENABLED
+    // vehicle statistics
+    AP_Stats stats;
+#endif
+
+    // whether to enforce acceptance of packets only from sysid_my_gcs
+    AP_Int8 sysid_enforce;
+
+    // RC input channels
+    RC_Channels rc_channels;
+
+    // control over servo output ranges
+    SRV_Channels servo_channels;
+
+#if ADVANCED_FAILSAFE == ENABLED
+    // advanced failsafe library
+    AP_AdvancedFailsafe_Rover afs;
+#endif
+
+    AP_Beacon beacon;
+
+    // Visual Odometry camera
+    AP_VisualOdom visual_odom;
+
+    // Motor library
+    AP_MotorsUGV motors;
+
+    // wheel encoders
+    AP_WheelEncoder wheel_encoder;
+
+    // steering and throttle controller
+    AR_AttitudeControl attitude_control;
+
+    // turn radius of vehicle (only used in steering mode)
+    AP_Float turn_radius;
+
+    // acro mode turn rate maximum
+    AP_Float acro_turn_rate;
+
+    // Safe RTL library
+    AP_SmartRTL smart_rtl;
+
+    // default speeds for auto, rtl
+    AP_Float wp_speed;
+    AP_Float rtl_speed;
+
+    // frame class for vehicle
+    AP_Int8 frame_class;
+
+    // fence library
+    AC_Fence fence;
+
+    // proximity library
+    AP_Proximity proximity;
+
+    // avoidance library
+    AC_Avoid avoid;
+};
+
+extern const AP_Param::Info var_info[];
+  push: /*
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+/* 
+   main Rover class, containing all vehicle specific state
+*/
+
+#include "Rover.h"
+
+#define FORCE_VERSION_H_INCLUDE
+#include "version.h"
+#undef FORCE_VERSION_H_INCLUDE
+
+Rover::Rover(void) :
+    param_loader(var_info),
+    channel_steer(nullptr),
+    channel_throttle(nullptr),
+    channel_aux(nullptr),
+    DataFlash{fwver.fw_string, g.log_bitmask},
+    modes(&g.mode1),
+    nav_controller(&L1_controller),
+    control_mode(&mode_initializing),
+    home(ahrs.get_home()),
+    G_Dt(0.02f),
+    mode_auto(mode_rtl)
+{
+}
+    branches: [ "main" ]
+  pull_request: /*
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+/*
+   main Rover class, containing all vehicle specific state
+*/
+#pragma once
+
+#include <cmath>
+#include <stdarg.h>
+
+// Libraries
+#include <AP_Common/AP_Common.h>
+#include <AP_HAL/AP_HAL.h>
+#include <AC_PID/AC_P.h>
+#include <AC_PID/AC_PID.h>
+#include <AP_AccelCal/AP_AccelCal.h>                // interface and maths for accelerometer calibration
+#include <AP_ADC/AP_ADC.h>                          // ArduPilot Mega Analog to Digital Converter Library
+#include <AP_AHRS/AP_AHRS.h>                        // ArduPilot Mega DCM Library
+#include <AP_Airspeed/AP_Airspeed.h>                // needed for AHRS build
+#include <AP_Baro/AP_Baro.h>
+#include <AP_BattMonitor/AP_BattMonitor.h>          // Battery monitor library
+#include <AP_Beacon/AP_Beacon.h>
+#include <AP_BoardConfig/AP_BoardConfig.h>
+#include <AP_BoardConfig/AP_BoardConfig_CAN.h>
+#include <AP_Buffer/AP_Buffer.h>                    // FIFO buffer library
+#include <AP_Button/AP_Button.h>
+#include <AP_Camera/AP_Camera.h>                    // Camera triggering
+#include <AP_Compass/AP_Compass.h>                  // ArduPilot Mega Magnetometer Library
+#include <AP_Declination/AP_Declination.h>          // Compass declination library
+#include <AP_Frsky_Telem/AP_Frsky_Telem.h>
+#include <AP_Devo_Telem/AP_Devo_Telem.h>
+#include <AP_GPS/AP_GPS.h>                          // ArduPilot GPS library
+#include <AP_InertialSensor/AP_InertialSensor.h>    // Inertial Sensor (uncalibated IMU) Library
+#include <AP_L1_Control/AP_L1_Control.h>
+#include <AP_Math/AP_Math.h>                        // ArduPilot Mega Vector/Matrix math Library
+#include <AP_Menu/AP_Menu.h>
+#include <AP_Mission/AP_Mission.h>                  // Mission command library
+#include <AP_Mount/AP_Mount.h>                      // Camera/Antenna mount
+#include <AP_NavEKF2/AP_NavEKF2.h>
+#include <AP_NavEKF3/AP_NavEKF3.h>
+#include <AP_Navigation/AP_Navigation.h>
+#include <AP_Notify/AP_Notify.h>                    // Notify library
+#include <AP_OpticalFlow/AP_OpticalFlow.h>          // Optical Flow library
+#include <AP_Param/AP_Param.h>
+#include <AP_Rally/AP_Rally.h>
+#include <AP_RangeFinder/AP_RangeFinder.h>          // Range finder library
+#include <AP_RCMapper/AP_RCMapper.h>                // RC input mapping library
+#include <AP_Relay/AP_Relay.h>                      // APM relay
+#include <AP_RSSI/AP_RSSI.h>                        // RSSI Library
+#include <AP_Scheduler/AP_Scheduler.h>              // main loop scheduler
+#include <AP_SerialManager/AP_SerialManager.h>      // Serial manager library
+#include <AP_ServoRelayEvents/AP_ServoRelayEvents.h>
+#include <AP_Stats/AP_Stats.h>                      // statistics library
+#include <AP_Terrain/AP_Terrain.h>
+#include <AP_Vehicle/AP_Vehicle.h>                  // needed for AHRS build
+#include <AP_VisualOdom/AP_VisualOdom.h>
+#include <AP_WheelEncoder/AP_WheelEncoder.h>
+#include <APM_Control/AR_AttitudeControl.h>
+#include <AP_SmartRTL/AP_SmartRTL.h>
+#include <DataFlash/DataFlash.h>
+#include <Filter/AverageFilter.h>                   // Mode Filter from Filter library
+#include <Filter/Butter.h>                          // Filter library - butterworth filter
+#include <Filter/Filter.h>                          // Filter library
+#include <Filter/LowPassFilter.h>
+#include <Filter/ModeFilter.h>                      // Mode Filter from Filter library
+#include <RC_Channel/RC_Channel.h>                  // RC Channel Library
+#include <StorageManager/StorageManager.h>
+#include <AC_Fence/AC_Fence.h>
+#include <AP_Proximity/AP_Proximity.h>
+#include <AC_Avoidance/AC_Avoid.h>
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+#include <SITL/SITL.h>
+#endif
+
+// Local modules
+#include "AP_MotorsUGV.h"
+#include "mode.h"
+#include "AP_Arming.h"
+// Configuration
+#include "config.h"
+#include "defines.h"
+#if ADVANCED_FAILSAFE == ENABLED
+#include "afs_rover.h"
+#endif
+#include "Parameters.h"
+#include "GCS_Mavlink.h"
+#include "GCS_Rover.h"
+
+class Rover : public AP_HAL::HAL::Callbacks {
+public:
+    friend class GCS_MAVLINK_Rover;
+    friend class Parameters;
+    friend class ParametersG2;
+    friend class AP_Arming_Rover;
+#if ADVANCED_FAILSAFE == ENABLED
+    friend class AP_AdvancedFailsafe_Rover;
+#endif
+    friend class GCS_Rover;
+    friend class Mode;
+    friend class ModeAcro;
+    friend class ModeAuto;
+    friend class ModeGuided;
+    friend class ModeHold;
+    friend class ModeSteering;
+    friend class ModeManual;
+    friend class ModeRTL;
+    friend class ModeSmartRTL;
+
+    Rover(void);
+
+    // HAL::Callbacks implementation.
+    void setup(void) override;
+    void loop(void) override;
+
+private:
+    static const AP_FWVersion fwver;
+
+    // must be the first AP_Param variable declared to ensure its
+    // constructor runs before the constructors of the other AP_Param
+    // variables
+    AP_Param param_loader;
+
+    // all settable parameters
+    Parameters g;
+    ParametersG2 g2;
+
+    // main loop scheduler
+    AP_Scheduler scheduler;
+
+    // mapping between input channels
+    RCMapper rcmap;
+
+    // board specific config
+    AP_BoardConfig BoardConfig;
+
+#if HAL_WITH_UAVCAN
+    // board specific config for CAN bus
+    AP_BoardConfig_CAN BoardConfig_CAN;
+#endif
+
+    // primary control channels
+    RC_Channel *channel_steer;
+    RC_Channel *channel_throttle;
+    RC_Channel *channel_aux;
+
+    DataFlash_Class DataFlash;
+
+    // sensor drivers
+    AP_GPS gps;
+    AP_Baro barometer;
+    Compass compass;
+    AP_InertialSensor ins;
+    RangeFinder rangefinder{serial_manager, ROTATION_NONE};
+    AP_Button button;
+
+    // flight modes convenience array
+    AP_Int8 *modes;
+
+    // Inertial Navigation EKF
+#if AP_AHRS_NAVEKF_AVAILABLE
+    NavEKF2 EKF2{&ahrs, rangefinder};
+    NavEKF3 EKF3{&ahrs, rangefinder};
+    AP_AHRS_NavEKF ahrs{EKF2, EKF3};
+#else
+    AP_AHRS_DCM ahrs;
+#endif
+
+    // Arming/Disarming management class
+    AP_Arming_Rover arming{ahrs, compass, battery, g2.fence};
+
+    AP_L1_Control L1_controller{ahrs, nullptr};
+
+    // selected navigation controller
+    AP_Navigation *nav_controller;
+
+    // Mission library
+    AP_Mission mission{ahrs,
+            FUNCTOR_BIND_MEMBER(&Rover::start_command, bool, const AP_Mission::Mission_Command&),
+            FUNCTOR_BIND_MEMBER(&Rover::verify_command_callback, bool, const AP_Mission::Mission_Command&),
+            FUNCTOR_BIND_MEMBER(&Rover::exit_mission, void)};
+
+#if AP_AHRS_NAVEKF_AVAILABLE
+    OpticalFlow optflow{ahrs};
+#endif
+
+    // RSSI
+    AP_RSSI rssi;
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+    SITL::SITL sitl;
+#endif
+
+    AP_SerialManager serial_manager;
+
+    // GCS handling
+    GCS_Rover _gcs;  // avoid using this; use gcs()
+    GCS_Rover &gcs() { return _gcs; }
+
+    // relay support
+    AP_Relay relay;
+
+    AP_ServoRelayEvents ServoRelayEvents{relay};
+
+    // The rover's current location
+    struct Location current_loc;
+
+    // Camera
+#if CAMERA == ENABLED
+    AP_Camera camera{&relay, MASK_LOG_CAMERA, current_loc, ahrs};
+#endif
+
+    // Camera/Antenna mount tracking and stabilisation stuff
+#if MOUNT == ENABLED
+    // current_loc uses the baro/gps solution for altitude rather than gps only.
+    AP_Mount camera_mount{ahrs, current_loc};
+#endif
+
+    // true if initialisation has completed
+    bool initialised;
+
+    // if USB is connected
+    bool usb_connected;
+
+    // This is the state of the flight control system
+    // There are multiple states defined such as MANUAL, AUTO, ...
+    Mode *control_mode;
+    mode_reason_t control_mode_reason = MODE_REASON_INITIALISED;
+
+    // Used to maintain the state of the previous control switch position
+    // This is set to -1 when we need to re-read the switch
+    uint8_t oldSwitchPosition;
+
+    // A flag if GCS joystick control is in use
+    bool rc_override_active;
+
+    // Failsafe
+    // A tracking variable for type of failsafe active
+    // Used for failsafe based on loss of RC signal or GCS signal. See
+    // FAILSAFE_EVENT_*
+    struct {
+        uint8_t bits;
+        uint32_t rc_override_timer;
+        uint32_t start_time;
+        uint8_t triggered;
+        uint32_t last_valid_rc_ms;
+    } failsafe;
+
+    // notification object for LEDs, buzzers etc (parameter set to false disables external leds)
+    AP_Notify notify;
+
+    // true if we have a position estimate from AHRS
+    bool have_position;
+
+    // receiver RSSI
+    uint8_t receiver_rssi;
+
+    // the time when the last HEARTBEAT message arrived from a GCS
+    uint32_t last_heartbeat_ms;
+
+    // obstacle detection information
+    struct {
+        // have we detected an obstacle?
+        uint8_t detected_count;
+        float turn_angle;
+        uint16_t rangefinder1_distance_cm;
+        uint16_t rangefinder2_distance_cm;
+
+        // time when we last detected an obstacle, in milliseconds
+        uint32_t detected_time_ms;
+    } obstacle;
+
+    // Ground speed
+    // The amount current ground speed is below min ground speed.  meters per second
+    float ground_speed;
+
+    // CH7 auxiliary switches last known position
+    aux_switch_pos aux_ch7;
+
+    // Battery Sensors
+    AP_BattMonitor battery{MASK_LOG_CURRENT,
+                           FUNCTOR_BIND_MEMBER(&Rover::handle_battery_failsafe, void, const char*, const int8_t),
+                           _failsafe_priorities};
+
+#if FRSKY_TELEM_ENABLED == ENABLED
+    // FrSky telemetry support
+    AP_Frsky_Telem frsky_telemetry{ahrs, battery, rangefinder};
+#endif
+#if DEVO_TELEM_ENABLED == ENABLED
+    AP_DEVO_Telem devo_telemetry{ahrs};
+#endif
+
+    uint32_t control_sensors_present;
+    uint32_t control_sensors_enabled;
+    uint32_t control_sensors_health;
+
+    // Conditional command
+    // A value used in condition commands (eg delay, change alt, etc.)
+    // For example in a change altitude command, it is the altitude to change to.
+    int32_t condition_value;
+    // A starting value used to check the status of a conditional command.
+    // For example in a delay command the condition_start records that start time for the delay
+    int32_t condition_start;
+
+    // 3D Location vectors
+    // Location structure defined in AP_Common
+    // The home location used for RTL.  The location is set when we first get stable GPS lock
+    const struct Location &home;
+
+    // true if the system time has been set from the GPS
+    bool system_time_set;
+
+    // true if the compass's initial location has been set
+    bool compass_init_location;
+
+    // IMU variables
+    // The main loop execution time.  Seconds
+    // This is the time between calls to the DCM algorithm and is the Integration time for the gyros.
+    float G_Dt;
+
+    // set if we are driving backwards
+    bool in_reverse;
+
+    // true if pivoting (set by use_pivot_steering)
+    bool pivot_steering_active;
+
+    static const AP_Scheduler::Task scheduler_tasks[];
+
+    // use this to prevent recursion during sensor init
+    bool in_mavlink_delay;
+
+    static const AP_Param::Info var_info[];
+    static const LogStructure log_structure[];
+
+    // Loiter control
+    uint16_t loiter_duration;       // How long we should loiter at the nav_waypoint (time in seconds)
+    uint32_t loiter_start_time;     // How long have we been loitering - The start time in millis
+    bool previously_reached_wp;     // set to true if we have EVER reached the waypoint
+
+    // time that rudder/steering arming has been running
+    uint32_t rudder_arm_timer;
+
+    // Store the time the last GPS message was received.
+    uint32_t last_gps_msg_ms{0};
+
+    // last visual odometry update time
+    uint32_t visual_odom_last_update_ms;
+
+    // last wheel encoder update times
+    float wheel_encoder_last_angle_rad[WHEELENCODER_MAX_INSTANCES];     // distance in radians at time of last update to EKF
+    uint32_t wheel_encoder_last_update_ms[WHEELENCODER_MAX_INSTANCES];  // system time of last ping from each encoder
+    uint32_t wheel_encoder_last_ekf_update_ms;                          // system time of last encoder data push to EKF
+    float wheel_encoder_rpm[WHEELENCODER_MAX_INSTANCES];                // for reporting to GCS
+
+    // True when we are doing motor test
+    bool motor_test;
+
+    ModeInitializing mode_initializing;
+    ModeHold mode_hold;
+    ModeManual mode_manual;
+    ModeAcro mode_acro;
+    ModeGuided mode_guided;
+    ModeAuto mode_auto;
+    ModeSteering mode_steering;
+    ModeRTL mode_rtl;
+    ModeSmartRTL mode_smartrtl;
+
+    // cruise throttle and speed learning
+    struct {
+        bool learning;
+        LowPassFilterFloat speed_filt = LowPassFilterFloat(2.0f);
+        LowPassFilterFloat throttle_filt = LowPassFilterFloat(2.0f);
+    } cruise_learn;
+
+private:
+
+    // APMrover2.cpp
+    void stats_update();
+    void ahrs_update();
+    void gcs_failsafe_check(void);
+    void update_compass(void);
+    void update_logging1(void);
+    void update_logging2(void);
+    void update_aux(void);
+    void one_second_loop(void);
+    void update_GPS_50Hz(void);
+    void update_GPS_10Hz(void);
+    void update_current_mode(void);
+
+    // capabilities.cpp
+    void init_capabilities(void);
+
+    // commands_logic.cpp
+    void update_mission(void);
+    bool start_command(const AP_Mission::Mission_Command& cmd);
+    void exit_mission();
+    bool verify_command_callback(const AP_Mission::Mission_Command& cmd);
+    bool verify_command(const AP_Mission::Mission_Command& cmd);
+    void do_RTL(void);
+    void do_nav_wp(const AP_Mission::Mission_Command& cmd, bool always_stop_at_destination);
+    void do_nav_set_yaw_speed(const AP_Mission::Mission_Command& cmd);
+    bool verify_nav_wp(const AP_Mission::Mission_Command& cmd);
+    bool verify_RTL();
+    bool verify_loiter_unlimited(const AP_Mission::Mission_Command& cmd);
+    bool verify_loiter_time(const AP_Mission::Mission_Command& cmd);
+    bool verify_nav_set_yaw_speed();
+    void do_wait_delay(const AP_Mission::Mission_Command& cmd);
+    void do_within_distance(const AP_Mission::Mission_Command& cmd);
+    bool verify_wait_delay();
+    bool verify_within_distance();
+    void do_change_speed(const AP_Mission::Mission_Command& cmd);
+    void do_set_home(const AP_Mission::Mission_Command& cmd);
+#if CAMERA == ENABLED
+    void do_digicam_configure(const AP_Mission::Mission_Command& cmd);
+    void do_digicam_control(const AP_Mission::Mission_Command& cmd);
+#endif
+    void do_set_reverse(const AP_Mission::Mission_Command& cmd);
+
+    // commands.cpp
+    void update_home_from_EKF();
+    bool set_home_to_current_location(bool lock);
+    bool set_home(const Location& loc, bool lock);
+    void set_ekf_origin(const Location& loc);
+    void set_system_time_from_GPS();
+    void update_home();
+
+    // compat.cpp
+    void delay(uint32_t ms);
+
+    // control_modes.cpp
+    Mode *mode_from_mode_num(enum mode num);
+    void read_control_switch();
+    uint8_t readSwitch(void);
+    void reset_control_switch();
+    aux_switch_pos read_aux_switch_pos();
+    void init_aux_switch();
+    void read_aux_switch();
+    bool motor_active();
+
+    // crash_check.cpp
+    void crash_check();
+
+    // cruise_learn.cpp
+    void cruise_learn_start();
+    void cruise_learn_update();
+    void cruise_learn_complete();
+
+    // failsafe.cpp
+    void failsafe_trigger(uint8_t failsafe_type, bool on);
+    void handle_battery_failsafe(const char* type_str, const int8_t action);
+#if ADVANCED_FAILSAFE == ENABLED
+    void afs_fs_check(void);
+#endif
+
+    // fence.cpp
+    void fence_check();
+    void fence_send_mavlink_status(mavlink_channel_t chan);
+
+    // GCS_Mavlink.cpp
+    void send_attitude(mavlink_channel_t chan);
+    void send_extended_status1(mavlink_channel_t chan);
+    void send_location(mavlink_channel_t chan);
+    void send_nav_controller_output(mavlink_channel_t chan);
+    void send_servo_out(mavlink_channel_t chan);
+    void send_vfr_hud(mavlink_channel_t chan);
+    void send_simstate(mavlink_channel_t chan);
+    void send_rangefinder(mavlink_channel_t chan);
+    void send_pid_tuning(mavlink_channel_t chan);
+    void send_wheel_encoder(mavlink_channel_t chan);
+    void send_fence_status(mavlink_channel_t chan);
+    void gcs_data_stream_send(void);
+    void gcs_update(void);
+    void gcs_retry_deferred(void);
+
+    // Log.cpp
+    void Log_Write_Performance();
+    void Log_Write_Steering();
+    void Log_Write_Startup(uint8_t type);
+    void Log_Write_Throttle();
+    void Log_Write_Nav_Tuning();
+    void Log_Write_Attitude();
+    void Log_Write_Rangefinder();
+    void Log_Arm_Disarm();
+    void Log_Write_RC(void);
+    void Log_Write_Error(uint8_t sub_system, uint8_t error_code);
+    void Log_Write_Home_And_Origin();
+    void Log_Write_GuidedTarget(uint8_t target_type, const Vector3f& pos_target, const Vector3f& vel_target);
+    void Log_Write_WheelEncoder();
+    void Log_Write_Proximity();
+    void Log_Read(uint16_t log_num, uint16_t start_page, uint16_t end_page);
+    void log_init(void);
+    void Log_Write_Vehicle_Startup_Messages();
+
+    // Parameters.cpp
+    void load_parameters(void);
+
+    // radio.cpp
+    void set_control_channels(void);
+    void init_rc_in();
+    void init_rc_out();
+    void rudder_arm_disarm_check();
+    void read_radio();
+    void control_failsafe(uint16_t pwm);
+    void trim_control_surfaces();
+    void trim_radio();
+
+    // sensors.cpp
+    void init_compass(void);
+    void compass_accumulate(void);
+    void init_rangefinder(void);
+    void init_beacon();
+    void init_visual_odom();
+    void update_visual_odom();
+    void update_wheel_encoder();
+    void read_receiver_rssi(void);
+    void compass_cal_update(void);
+    void accel_cal_update(void);
+    void read_rangefinders(void);
+    void init_proximity();
+    void update_sensor_status_flags(void);
+
+    // Steering.cpp
+    bool use_pivot_steering(float yaw_error_cd);
+    void set_servos(void);
+
+    // system.cpp
+    void init_ardupilot();
+    void startup_ground(void);
+    void set_reverse(bool reverse);
+    bool set_mode(Mode &new_mode, mode_reason_t reason);
+    bool mavlink_set_mode(uint8_t mode);
+    void startup_INS_ground(void);
+    void check_usb_mux(void);
+    void print_mode(AP_HAL::BetterStream *port, uint8_t mode);
+    void notify_mode(const Mode *new_mode);
+    uint8_t check_digital_pin(uint8_t pin);
+    bool should_log(uint32_t mask);
+    void change_arm_state(void);
+    bool arm_motors(AP_Arming::ArmingMethod method);
+    bool disarm_motors(void);
+    bool is_boat() const;
+
+    enum Failsafe_Action {
+        Failsafe_Action_None          = 0,
+        Failsafe_Action_RTL           = 1,
+        Failsafe_Action_Hold          = 2,
+        Failsafe_Action_SmartRTL      = 3,
+        Failsafe_Action_SmartRTL_Hold = 4,
+        Failsafe_Action_Terminate     = 5
+    };
+
+    static constexpr int8_t _failsafe_priorities[] = {
+                                                       Failsafe_Action_Terminate,
+                                                       Failsafe_Action_Hold,
+                                                       Failsafe_Action_RTL,
+                                                       Failsafe_Action_SmartRTL_Hold,
+                                                       Failsafe_Action_SmartRTL,
+                                                       Failsafe_Action_None,
+                                                       -1 // the priority list must end with a sentinel of -1
+                                                      };
+    static_assert(_failsafe_priorities[ARRAY_SIZE(_failsafe_priorities) - 1] == -1,
+                  "_failsafe_priorities is missing the sentinel");
+
+
+public:
+    void mavlink_delay_cb();
+    void failsafe_check();
+
+    void update_soft_armed();
+    // Motor test
+    void motor_test_output();
+    bool mavlink_motor_test_check(mavlink_channel_t chan, bool check_rc, uint8_t motor_seq, uint8_t throttle_type, int16_t throttle_value);
+    MAV_RESULT mavlink_motor_test_start(mavlink_channel_t chan, uint8_t motor_seq, uint8_t throttle_type, int16_t throttle_value, float timeout_sec);
+    void motor_test_stop();
+};
+
+extern const AP_HAL::HAL& hal;
+extern Rover rover;
+
+using AP_HAL::millis;
+using AP_HAL::micros;
+    branches: [ "main" ]
+
+env: #include "Rover.h"
+
+/*
+    work out if we are going to use pivot steering
+*/
+bool Rover::use_pivot_steering(float yaw_error_cd)
+{
+    // check cases where we clearly cannot use pivot steering
+    if (!g2.motors.have_skid_steering() || g.pivot_turn_angle <= 0) {
+        pivot_steering_active = false;
+        return false;
+    }
+
+    // calc bearing error
+    const float yaw_error = fabsf(yaw_error_cd) * 0.01f;
+
+    // if error is larger than pivot_turn_angle start pivot steering
+    if (yaw_error > g.pivot_turn_angle) {
+        pivot_steering_active = true;
+        return true;
+    }
+
+    // if within 10 degrees of the target heading, exit pivot steering
+    if (yaw_error < 10.0f) {
+        pivot_steering_active = false;
+        return false;
+    }
+
+    // by default stay in
+    return pivot_steering_active;
+}
+
+/*****************************************
+    Set the flight control servos based on the current calculated values
+*****************************************/
+void Rover::set_servos(void)
+{
+    // send output signals to motors
+    if (motor_test) {
+        motor_test_output();
+    } else {
+        g2.motors.output(arming.is_armed() && hal.util->get_soft_armed(), G_Dt);
+    }
+}
+  # Path to the solution file relative to the root of the project.
+  SOLUTION_FILE_PATH: /*
+  Rover specific AP_AdvancedFailsafe class
+ */
+
+#include "Rover.h"
+
+#if ADVANCED_FAILSAFE == ENABLED
+
+// Constructor
+AP_AdvancedFailsafe_Rover::AP_AdvancedFailsafe_Rover(AP_Mission &_mission, const AP_GPS &_gps, const RCMapper &_rcmap) :
+    AP_AdvancedFailsafe(_mission, _gps, _rcmap)
+{}
+
+
+/*
+  Setup radio_out values for all channels to termination values
+ */
+void AP_AdvancedFailsafe_Rover::terminate_vehicle(void)
+{
+    // disarm as well
+    rover.disarm_motors();
+
+    // Set to HOLD mode
+    rover.set_mode(rover.mode_hold, MODE_REASON_CRASH_FAILSAFE);
+}
+
+/*
+  Return an AFS_MODE for current control mode
+ */
+AP_AdvancedFailsafe::control_mode AP_AdvancedFailsafe_Rover::afs_mode(void)
+{
+    if (rover.control_mode->is_autopilot_mode()) {
+        return AP_AdvancedFailsafe::AFS_AUTO;
+    }
+    return AP_AdvancedFailsafe::AFS_STABILIZED;
+}
+
+#endif  // ADVANCED_FAILSAFE .
+
+  # Configuration type to build.
+  # You can convert this to a build matrix if you need coverage of multiple configuration types.
+  # https://docs.github.com/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+  BUILD_CONFIGURATION: Release
+
+permissions: /*
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+#pragma once
+
+/*
+  advanced failsafe support for rover
+ */
+
+#if ADVANCED_FAILSAFE == ENABLED
+#include <AP_AdvancedFailsafe/AP_AdvancedFailsafe.h>
+
+/*
+  a rover specific AP_AdvancedFailsafe class
+ */
+class AP_AdvancedFailsafe_Rover : public AP_AdvancedFailsafe
+{
+public:
+    AP_AdvancedFailsafe_Rover(AP_Mission &_mission, const AP_GPS &_gps, const RCMapper &_rcmap);
+
+    // called to set all outputs to termination state
+    void terminate_vehicle(void) override;
+
+protected:
+    // setup failsafe values - this is handled by motors library
+    void setup_IO_failsafe(void) override {}
+
+    // return the AFS mapped control mode
+    enum control_mode afs_mode(void) override;
+};
+
+#endif  // ADVANCED_FAILSAFE
+  contents: read
+
+jobs: #include "Rover.h"
+
+void Rover::init_capabilities(void)
+{
+    hal.util->set_capabilities(MAV_PROTOCOL_CAPABILITY_MISSION_FLOAT |
+                               MAV_PROTOCOL_CAPABILITY_PARAM_FLOAT |
+                               MAV_PROTOCOL_CAPABILITY_MISSION_INT |
+                               MAV_PROTOCOL_CAPABILITY_COMMAND_INT |
+                               MAV_PROTOCOL_CAPABILITY_SET_POSITION_TARGET_LOCAL_NED |
+                               MAV_PROTOCOL_CAPABILITY_SET_POSITION_TARGET_GLOBAL_INT |
+                               MAV_PROTOCOL_CAPABILITY_COMPASS_CALIBRATION);
+}
+  build: #include "Rover.h"
+
+// checks if we should update ahrs home position from the EKF's position
+void Rover::update_home_from_EKF()
+{
+    // exit immediately if home already set
+    if (ahrs.home_is_set()) {
+        return;
+    }
+
+    // move home to current ekf location (this will set home_state to HOME_SET)
+    set_home_to_current_location(false);
+}
+
+// set ahrs home to current location from EKF reported location or GPS
+bool Rover::set_home_to_current_location(bool lock)
+{
+    // use position from EKF if available otherwise use GPS
+    Location temp_loc;
+    if (ahrs.have_inertial_nav() && ahrs.get_position(temp_loc)) {
+        if (!set_home(temp_loc, lock)) {
+            return false;
+        }
+        // we have successfully set AHRS home, set it for SmartRTL
+        g2.smart_rtl.set_home(true);
+        return true;
+    }
+    return false;
+}
+
+// sets ahrs home to specified location
+//  returns true if home location set successfully
+bool Rover::set_home(const Location& loc, bool lock)
+{
+    // check location is valid
+    if (loc.lat == 0 && loc.lng == 0 && loc.alt == 0) {
+        return false;
+    }
+    if (!check_latlng(loc)) {
+        return false;
+    }
+
+    // check if EKF origin has been set
+    Location ekf_origin;
+    if (!ahrs.get_origin(ekf_origin)) {
+        return false;
+    }
+
+    // set ahrs home
+    ahrs.set_home(loc);
+
+    // init compass declination
+    if (!ahrs.home_is_set()) {
+        // record home is set
+        ahrs.set_home_status(HOME_SET_NOT_LOCKED);
+
+        // log new home position which mission library will pull from ahrs
+        if (should_log(MASK_LOG_CMD)) {
+            AP_Mission::Mission_Command temp_cmd;
+            if (mission.read_cmd_from_storage(0, temp_cmd)) {
+                DataFlash.Log_Write_Mission_Cmd(mission, temp_cmd);
+            }
+        }
+    }
+
+    // lock home position
+    if (lock) {
+        ahrs.set_home_status(HOME_SET_AND_LOCKED);
+    }
+
+    // Save Home to EEPROM
+    mission.write_home_to_storage();
+
+    // log ahrs home and ekf origin dataflash
+    Log_Write_Home_And_Origin();
+
+    // send new home and ekf origin to GCS
+    gcs().send_home(loc);
+    gcs().send_ekf_origin(loc);
+
+    // send text of home position to ground stations
+    gcs().send_text(MAV_SEVERITY_INFO, "Set HOME to %.6f %.6f at %.2fm",
+            static_cast<double>(loc.lat * 1.0e-7f),
+            static_cast<double>(loc.lng * 1.0e-7f),
+            static_cast<double>(loc.alt * 0.01f));
+
+    // return success
+    return true;
+}
+
+// sets ekf_origin if it has not been set.
+//  should only be used when there is no GPS to provide an absolute position
+void Rover::set_ekf_origin(const Location& loc)
+{
+    // check location is valid
+    if (!check_latlng(loc)) {
+        return;
+    }
+
+    // check if EKF origin has already been set
+    Location ekf_origin;
+    if (ahrs.get_origin(ekf_origin)) {
+        return;
+    }
+
+    if (!ahrs.set_origin(loc)) {
+        return;
+    }
+
+    // log ahrs home and ekf origin dataflash
+    Log_Write_Home_And_Origin();
+
+    // send ekf origin to GCS
+    gcs().send_ekf_origin(loc);
+}
+
+// checks if we should update ahrs/RTL home position from GPS
+void Rover::set_system_time_from_GPS()
+{
+    // exit immediately if system time already set
+    if (system_time_set) {
+        return;
+    }
+
+    // if we have a 3d lock and valid location
+    if (gps.status() >= AP_GPS::GPS_OK_FIX_3D) {
+        // set system clock for log timestamps
+        const uint64_t gps_timestamp = gps.time_epoch_usec();
+
+        hal.util->set_system_clock(gps_timestamp);
+
+        // update signing timestamp
+        GCS_MAVLINK::update_signing_timestamp(gps_timestamp);
+
+        system_time_set = true;
+    }
+}
+
+/*
+  update home location from GPS
+  this is called as long as we have 3D lock and the arming switch is
+  not pushed
+*/
+void Rover::update_home()
+{
+    if (ahrs.home_status() == HOME_SET_NOT_LOCKED) {
+        Location loc;
+        if (ahrs.get_position(loc)) {
+            if (get_distance(loc, ahrs.get_home()) > DISTANCE_HOME_MAX) {
+                ahrs.set_home(loc);
+                Log_Write_Home_And_Origin();
+                gcs().send_home(gps.location());
+            }
+        }
+    }
+    barometer.update_calibration();
+}
+    runs-on: windows-latest
+
+    steps: #include "Rover.h"
+
+// update mission including starting or stopping commands. called by scheduler at 10Hz
+void Rover::update_mission(void)
+{
+    if (control_mode == &mode_auto) {
+        if (ahrs.home_is_set() && mission.num_commands() > 1) {
+            mission.update();
+        }
+    }
+}
+
+/********************************************************************************/
+// Command Event Handlers
+/********************************************************************************/
+bool Rover::start_command(const AP_Mission::Mission_Command& cmd)
+{
+    // log when new commands start
+    if (should_log(MASK_LOG_CMD)) {
+        DataFlash.Log_Write_Mission_Cmd(mission, cmd);
+    }
+
+    gcs().send_text(MAV_SEVERITY_INFO, "Executing %s(ID=%i)",
+                    cmd.type(), cmd.id);
+
+    switch (cmd.id) {
+    case MAV_CMD_NAV_WAYPOINT:  // Navigate to Waypoint
+        do_nav_wp(cmd, false);
+        break;
+
+    case MAV_CMD_NAV_RETURN_TO_LAUNCH:
+        do_RTL();
+        break;
+
+    case MAV_CMD_NAV_LOITER_UNLIM:  // Loiter indefinitely
+    case MAV_CMD_NAV_LOITER_TIME:   // Loiter for specified time
+        do_nav_wp(cmd, true);
+        break;
+
+    case MAV_CMD_NAV_SET_YAW_SPEED:
+        do_nav_set_yaw_speed(cmd);
+        break;
+
+    // Conditional commands
+    case MAV_CMD_CONDITION_DELAY:
+        do_wait_delay(cmd);
+        break;
+
+    case MAV_CMD_CONDITION_DISTANCE:
+        do_within_distance(cmd);
+        break;
+
+    // Do commands
+    case MAV_CMD_DO_CHANGE_SPEED:
+        do_change_speed(cmd);
+        break;
+
+    case MAV_CMD_DO_SET_HOME:
+        do_set_home(cmd);
+        break;
+
+    case MAV_CMD_DO_SET_SERVO:
+        ServoRelayEvents.do_set_servo(cmd.content.servo.channel, cmd.content.servo.pwm);
+        break;
+
+    case MAV_CMD_DO_SET_RELAY:
+        ServoRelayEvents.do_set_relay(cmd.content.relay.num, cmd.content.relay.state);
+        break;
+
+    case MAV_CMD_DO_REPEAT_SERVO:
+        ServoRelayEvents.do_repeat_servo(cmd.content.repeat_servo.channel, cmd.content.repeat_servo.pwm,
+                                         cmd.content.repeat_servo.repeat_count, cmd.content.repeat_servo.cycle_time * 1000.0f);
+        break;
+
+    case MAV_CMD_DO_REPEAT_RELAY:
+        ServoRelayEvents.do_repeat_relay(cmd.content.repeat_relay.num, cmd.content.repeat_relay.repeat_count,
+                                         cmd.content.repeat_relay.cycle_time * 1000.0f);
+        break;
+
+#if CAMERA == ENABLED
+    case MAV_CMD_DO_CONTROL_VIDEO:                      // Control on-board camera capturing. |Camera ID (-1 for all)| Transmission: 0: disabled, 1: enabled compressed, 2: enabled raw| Transmission mode: 0: video stream, >0: single images every n seconds (decimal)| Recording: 0: disabled, 1: enabled compressed, 2: enabled raw| Empty| Empty| Empty|
+        break;
+
+    case MAV_CMD_DO_DIGICAM_CONFIGURE:                  // Mission command to configure an on-board camera controller system. |Modes: P, TV, AV, M, Etc| Shutter speed: Divisor number for one second| Aperture: F stop number| ISO number e.g. 80, 100, 200, Etc| Exposure type enumerator| Command Identity| Main engine cut-off time before camera trigger in seconds/10 (0 means no cut-off)|
+        do_digicam_configure(cmd);
+        break;
+
+    case MAV_CMD_DO_DIGICAM_CONTROL:                    // Mission command to control an on-board camera controller system. |Session control e.g. show/hide lens| Zoom's absolute position| Zooming step value to offset zoom from the current position| Focus Locking, Unlocking or Re-locking| Shooting Command| Command Identity| Empty|
+        do_digicam_control(cmd);
+        break;
+
+    case MAV_CMD_DO_SET_CAM_TRIGG_DIST:
+        camera.set_trigger_distance(cmd.content.cam_trigg_dist.meters);
+        break;
+#endif
+
+#if MOUNT == ENABLED
+    // Sets the region of interest (ROI) for a sensor set or the
+    // vehicle itself. This can then be used by the vehicles control
+    // system to control the vehicle attitude and the attitude of various
+    // devices such as cameras.
+    //    |Region of interest mode. (see MAV_ROI enum)| Waypoint index/ target ID. (see MAV_ROI enum)| ROI index (allows a vehicle to manage multiple cameras etc.)| Empty| x the location of the fixed ROI (see MAV_FRAME)| y| z|
+    case MAV_CMD_DO_SET_ROI:
+        if (cmd.content.location.alt == 0 && cmd.content.location.lat == 0 && cmd.content.location.lng == 0) {
+            // switch off the camera tracking if enabled
+            if (camera_mount.get_mode() == MAV_MOUNT_MODE_GPS_POINT) {
+                camera_mount.set_mode_to_default();
+            }
+        } else {
+            // send the command to the camera mount
+            camera_mount.set_roi_target(cmd.content.location);
+        }
+        break;
+#endif
+
+    case MAV_CMD_DO_SET_REVERSE:
+        do_set_reverse(cmd);
+        break;
+
+    case MAV_CMD_DO_FENCE_ENABLE:
+        if (cmd.p1 == 0) {  //disable
+            g2.fence.enable(false);
+            gcs().send_text(MAV_SEVERITY_INFO, "Fence Disabled");
+        } else {  //enable fence
+            g2.fence.enable(true);
+            gcs().send_text(MAV_SEVERITY_INFO, "Fence Enabled");
+        }
+        break;
+
+    default:
+        // return false for unhandled commands
+        return false;
+    }
+
+    // if we got this far we must have been successful
+    return true;
+}
+
+// exit_mission - callback function called from ap-mission when the mission has completed
+void Rover::exit_mission()
+{
+    gcs().send_text(MAV_SEVERITY_NOTICE, "Mission Complete");
+    set_mode(mode_hold, MODE_REASON_MISSION_END);
+}
+
+// verify_command_callback - callback function called from ap-mission at 10hz or higher when a command is being run
+//      we double check that the flight mode is AUTO to avoid the possibility of ap-mission triggering actions while we're not in AUTO mode
+bool Rover::verify_command_callback(const AP_Mission::Mission_Command& cmd)
+{
+    const bool cmd_complete = verify_command(cmd);
+
+    // send message to GCS
+    if (cmd_complete) {
+        gcs().send_mission_item_reached_message(cmd.index);
+    }
+
+    return cmd_complete;
+}
+
+/*******************************************************************************
+Verify command Handlers
+
+Each type of mission element has a "verify" operation. The verify
+operation returns true when the mission element has completed and we
+should move onto the next mission element.
+Return true if we do not recognize the command so that we move on to the next command
+*******************************************************************************/
+
+bool Rover::verify_command(const AP_Mission::Mission_Command& cmd)
+{
+    switch (cmd.id) {
+    case MAV_CMD_NAV_WAYPOINT:
+        return verify_nav_wp(cmd);
+
+    case MAV_CMD_NAV_RETURN_TO_LAUNCH:
+        return verify_RTL();
+
+    case MAV_CMD_NAV_LOITER_UNLIM:
+        return verify_loiter_unlimited(cmd);
+
+    case MAV_CMD_NAV_LOITER_TIME:
+        return verify_loiter_time(cmd);
+
+    case MAV_CMD_CONDITION_DELAY:
+        return verify_wait_delay();
+
+    case MAV_CMD_CONDITION_DISTANCE:
+        return verify_within_distance();
+
+    case MAV_CMD_NAV_SET_YAW_SPEED:
+        return verify_nav_set_yaw_speed();
+
+    // do commands (always return true)
+    case MAV_CMD_DO_CHANGE_SPEED:
+    case MAV_CMD_DO_SET_HOME:
+    case MAV_CMD_DO_SET_SERVO:
+    case MAV_CMD_DO_SET_RELAY:
+    case MAV_CMD_DO_REPEAT_SERVO:
+    case MAV_CMD_DO_REPEAT_RELAY:
+    case MAV_CMD_DO_CONTROL_VIDEO:
+    case MAV_CMD_DO_DIGICAM_CONFIGURE:
+    case MAV_CMD_DO_DIGICAM_CONTROL:
+    case MAV_CMD_DO_SET_CAM_TRIGG_DIST:
+    case MAV_CMD_DO_SET_ROI:
+    case MAV_CMD_DO_SET_REVERSE:
+    case MAV_CMD_DO_FENCE_ENABLE:
+        return true;
+
+    default:
+        // error message
+        gcs().send_text(MAV_SEVERITY_WARNING, "Skipping invalid cmd #%i", cmd.id);
+        // return true if we do not recognize the command so that we move on to the next command
+        return true;
+    }
+}
+
+/********************************************************************************/
+//  Nav (Must) commands
+/********************************************************************************/
+
+void Rover::do_RTL(void)
+{
+    // start rtl in auto mode
+    mode_auto.start_RTL();
+}
+
+void Rover::do_nav_wp(const AP_Mission::Mission_Command& cmd, bool always_stop_at_destination)
+{
+    // just starting so we haven't previously reached the waypoint
+    previously_reached_wp = false;
+
+    // this will be used to remember the time in millis after we reach or pass the WP.
+    loiter_start_time = 0;
+
+    // this is the delay, stored in seconds
+    loiter_duration = cmd.p1;
+
+    // get heading to following waypoint (auto mode reduces speed to allow corning without large overshoot)
+    // in case of non-zero loiter duration, we provide heading-unknown to signal we should stop at the point
+    float next_leg_bearing_cd = MODE_NEXT_HEADING_UNKNOWN;
+    if (!always_stop_at_destination && loiter_duration == 0) {
+        next_leg_bearing_cd = mission.get_next_ground_course_cd(MODE_NEXT_HEADING_UNKNOWN);
+    }
+
+    // retrieve and sanitize target location
+    Location cmdloc = cmd.content.location;
+    location_sanitize(current_loc, cmdloc);
+    mode_auto.set_desired_location(cmdloc, next_leg_bearing_cd);
+}
+
+// do_set_yaw_speed - turn to a specified heading and achieve and given speed
+void Rover::do_nav_set_yaw_speed(const AP_Mission::Mission_Command& cmd)
+{
+    float desired_heading_cd;
+
+    // get final angle, 1 = Relative, 0 = Absolute
+    if (cmd.content.set_yaw_speed.relative_angle > 0) {
+        // relative angle
+        desired_heading_cd = wrap_180_cd(ahrs.yaw_sensor + cmd.content.set_yaw_speed.angle_deg * 100.0f);
+    } else {
+        // absolute angle
+        desired_heading_cd = cmd.content.set_yaw_speed.angle_deg * 100.0f;
+    }
+
+    // set auto target
+    const float speed_max = control_mode->get_speed_default();
+    mode_auto.set_desired_heading_and_speed(desired_heading_cd, constrain_float(cmd.content.set_yaw_speed.speed, -speed_max, speed_max));
+}
+
+/********************************************************************************/
+//  Verify Nav (Must) commands
+/********************************************************************************/
+bool Rover::verify_nav_wp(const AP_Mission::Mission_Command& cmd)
+{
+    // exit immediately if we haven't reached the destination
+    if (!mode_auto.reached_destination()) {
+        return false;
+    }
+
+    // Check if this is the first time we have noticed reaching the waypoint
+    if (!previously_reached_wp) {
+        previously_reached_wp = true;
+
+        // check if we are loitering at this waypoint - the message sent to the GCS is different
+        if (loiter_duration > 0) {
+            // send message including loiter time
+            gcs().send_text(MAV_SEVERITY_INFO, "Reached waypoint #%u. Loiter for %u seconds",
+                    static_cast<uint32_t>(cmd.index),
+                    static_cast<uint32_t>(loiter_duration));
+            // record the current time i.e. start timer
+            loiter_start_time = millis();
+        } else {
+            // send simpler message to GCS
+            gcs().send_text(MAV_SEVERITY_INFO, "Reached waypoint #%u", static_cast<uint32_t>(cmd.index));
+        }
+    }
+
+    // Check if we have loitered long enough
+    if (loiter_duration == 0) {
+        return true;
+    } else {
+        return (((millis() - loiter_start_time) / 1000) >= loiter_duration);
+    }
+}
+
+bool Rover::verify_RTL()
+{
+    return mode_auto.reached_destination();
+}
+
+bool Rover::verify_loiter_unlimited(const AP_Mission::Mission_Command& cmd)
+{
+    verify_nav_wp(cmd);
+    return false;
+}
+
+// verify_loiter_time - check if we have loitered long enough
+bool Rover::verify_loiter_time(const AP_Mission::Mission_Command& cmd)
+{
+    const bool result = verify_nav_wp(cmd);
+    if (result) {
+        gcs().send_text(MAV_SEVERITY_WARNING, "Finished active loiter");
+    }
+    return result;
+}
+
+// verify_yaw - return true if we have reached the desired heading
+bool Rover::verify_nav_set_yaw_speed()
+{
+    return mode_auto.reached_heading();
+}
+
+/********************************************************************************/
+//  Condition (May) commands
+/********************************************************************************/
+
+void Rover::do_wait_delay(const AP_Mission::Mission_Command& cmd)
+{
+    condition_start = millis();
+    condition_value = static_cast<int32_t>(cmd.content.delay.seconds * 1000);  // convert seconds to milliseconds
+}
+
+void Rover::do_within_distance(const AP_Mission::Mission_Command& cmd)
+{
+    condition_value = cmd.content.distance.meters;
+}
+
+/********************************************************************************/
+// Verify Condition (May) commands
+/********************************************************************************/
+
+bool Rover::verify_wait_delay()
+{
+    if (static_cast<uint32_t>(millis() - condition_start) > static_cast<uint32_t>(condition_value)) {
+        condition_value = 0;
+        return true;
+    }
+    return false;
+}
+
+bool Rover::verify_within_distance()
+{
+    if (mode_auto.get_distance_to_destination() < condition_value) {
+        condition_value = 0;
+        return true;
+    }
+    return false;
+}
+
+
+/********************************************************************************/
+//  Do (Now) commands
+/********************************************************************************/
+
+void Rover::do_change_speed(const AP_Mission::Mission_Command& cmd)
+{
+    // set speed for active mode
+    if ((cmd.content.speed.target_ms >= 0.0f) && (cmd.content.speed.target_ms <= rover.control_mode->get_speed_default())) {
+        control_mode->set_desired_speed(cmd.content.speed.target_ms);
+        gcs().send_text(MAV_SEVERITY_INFO, "speed: %.1f m/s", static_cast<double>(cmd.content.speed.target_ms));
+    }
+}
+
+void Rover::do_set_home(const AP_Mission::Mission_Command& cmd)
+{
+    if (cmd.p1 == 1 && have_position) {
+        set_home_to_current_location(false);
+    } else {
+        set_home(cmd.content.location, false);
+    }
+}
+
+#if CAMERA == ENABLED
+
+// do_digicam_configure Send Digicam Configure message with the camera library
+void Rover::do_digicam_configure(const AP_Mission::Mission_Command& cmd)
+{
+    camera.configure(cmd.content.digicam_configure.shooting_mode,
+                     cmd.content.digicam_configure.shutter_speed,
+                     cmd.content.digicam_configure.aperture,
+                     cmd.content.digicam_configure.ISO,
+                     cmd.content.digicam_configure.exposure_type,
+                     cmd.content.digicam_configure.cmd_id,
+                     cmd.content.digicam_configure.engine_cutoff_time);
+}
+
+// do_digicam_control Send Digicam Control message with the camera library
+void Rover::do_digicam_control(const AP_Mission::Mission_Command& cmd)
+{
+    camera.control(cmd.content.digicam_control.session,
+                   cmd.content.digicam_control.zoom_pos,
+                   cmd.content.digicam_control.zoom_step,
+                   cmd.content.digicam_control.focus_lock,
+                   cmd.content.digicam_control.shooting_cmd,
+                   cmd.content.digicam_control.cmd_id);
+}
+
+#endif
+
+void Rover::do_set_reverse(const AP_Mission::Mission_Command& cmd)
+{
+    mode_auto.set_reversed(cmd.p1 == 1);
+    set_reverse(cmd.p1 == 1);
+}
+    - uses: actions/checkout@v4
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v1.0.2
+
+    - name: Restore NuGet packages
+      working-directory: #include "Rover.h"
+
+void Rover::delay(uint32_t ms)
+{
+    hal.scheduler->delay(ms);
+} }}
+      run: nuget restore //
+//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+//
+// WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+//
+//  DO NOT EDIT this file to adjust your configuration.  Create your own
+//  APM_Config.h and use APM_Config.h.example as a reference.
+//
+// WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+///
+//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+//
+// Default and automatic configuration details.
+//
+// Notes for maintainers:
+//
+// - Try to keep this file organised in the same order as APM_Config.h.example
+//
+#pragma once
+
+#include "defines.h"
+
+///
+/// DO NOT EDIT THIS INCLUDE - if you want to make a local change, make that
+/// change in your local copy of APM_Config.h.
+///
+#include "APM_Config.h"  // <== THIS INCLUDE, DO NOT EDIT IT. EVER.
+///
+/// DO NOT EDIT THIS INCLUDE - if you want to make a local change, make that
+/// change in your local copy of APM_Config.h.
+///
+
+//////////////////////////////////////////////////////////////////////////////
+// sensor types
+
+//////////////////////////////////////////////////////////////////////////////
+// HIL_MODE                                 OPTIONAL
+
+#ifndef HIL_MODE
+  #define HIL_MODE HIL_MODE_DISABLED
+#endif
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+  #define BATTERY_PIN_1     1
+  #define CURRENT_PIN_1     2
+#elif CONFIG_HAL_BOARD == HAL_BOARD_PX4
+  #define BATTERY_PIN_1    -1
+  #define CURRENT_PIN_1    -1
+#elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX
+  #define BATTERY_PIN_1    -1
+  #define CURRENT_PIN_1    -1
+#elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+  #define BATTERY_PIN_1    -1
+  #define CURRENT_PIN_1    -1
+#endif
+
+#ifndef MAV_SYSTEM_ID
+  #define MAV_SYSTEM_ID    1
+#endif
+
+#ifndef ARM_DELAY_MS
+  #define ARM_DELAY_MS  2000
+#endif
+
+//////////////////////////////////////////////////////////////////////////////
+// FrSky telemetry support
+//
+
+#ifndef FRSKY_TELEM_ENABLED
+  #define FRSKY_TELEM_ENABLED ENABLED
+#endif
+
+
+#ifndef CH7_OPTION
+  #define CH7_OPTION CH7_SAVE_WP
+#endif
+
+//////////////////////////////////////////////////////////////////////////////
+//  MAGNETOMETER
+#ifndef MAGNETOMETER
+  #define MAGNETOMETER ENABLED
+#endif
+
+//////////////////////////////////////////////////////////////////////////////
+// MODE
+// MODE_CHANNEL
+//
+#ifndef MODE_CHANNEL
+  #define MODE_CHANNEL    8
+#endif
+#if (MODE_CHANNEL != 5) && (MODE_CHANNEL != 6) && (MODE_CHANNEL != 7) && (MODE_CHANNEL != 8)
+  #error XXX
+  #error XXX You must set MODE_CHANNEL to 5, 6, 7 or 8
+  #error XXX
+#endif
+
+
+//////////////////////////////////////////////////////////////////////////////
+//  VISUAL ODOMETRY
+#ifndef VISUAL_ODOMETRY_ENABLED
+# define VISUAL_ODOMETRY_ENABLED ENABLED
+#endif
+
+//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+// STARTUP BEHAVIOUR
+//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+// GROUND_START_DELAY
+//
+#ifndef GROUND_START_DELAY
+  #define GROUND_START_DELAY    0
+#endif
+
+//////////////////////////////////////////////////////////////////////////////
+// MOUNT (ANTENNA OR CAMERA)
+//
+#ifndef MOUNT
+  #define MOUNT ENABLED
+#endif
+
+//////////////////////////////////////////////////////////////////////////////
+// CAMERA control
+//
+#ifndef CAMERA
+  #define CAMERA ENABLED
+#endif
+
+//////////////////////////////////////////////////////////////////////////////
+// NAVL1
+//
+#ifndef NAVL1
+  #define NAVL1_PERIOD    8
+#endif
+
+//////////////////////////////////////////////////////////////////////////////
+// CRUISE_SPEED default
+//
+#ifndef CRUISE_SPEED
+  #define CRUISE_SPEED    2  // in m/s
+#endif
+
+#ifndef TURN_GAIN
+  #define TURN_GAIN       5
+#endif
+
+//////////////////////////////////////////////////////////////////////////////
+// Dataflash logging control
+//
+#ifndef LOGGING_ENABLED
+  #define LOGGING_ENABLED ENABLED
+#endif
+
+#define DEFAULT_LOG_BITMASK    0xffff
+
+
+//////////////////////////////////////////////////////////////////////////////
+// Developer Items
+//
+
+// if RESET_SWITCH_CH is not zero, then this is the PWM value on
+// that channel where we reset the control mode to the current switch
+// position (to for example return to switched mode after failsafe or
+// fence breach)
+#ifndef RESET_SWITCH_CHAN_PWM
+  #define RESET_SWITCH_CHAN_PWM    1750
+#endif
+
+#ifndef ADVANCED_FAILSAFE
+  #define ADVANCED_FAILSAFE DISABLED
+#endif
+
+#ifndef STATS_ENABLED
+ # define STATS_ENABLED ENABLED
+#endif
+
+#ifndef DEVO_TELEM_ENABLED
+#if HAL_MINIMIZE_FEATURES
+ #define DEVO_TELEM_ENABLED DISABLED
+#else
+ #define DEVO_TELEM_ENABLED ENABLED
+#endif
+#endif }}
+
+    - name: Build
+      working-directory: #include "Rover.h"
+
+static const int16_t CH_7_PWM_TRIGGER = 1800;
+
+Mode *Rover::mode_from_mode_num(const enum mode num)
+{
+    Mode *ret = nullptr;
+    switch (num) {
+    case MANUAL:
+        ret = &mode_manual;
+        break;
+    case ACRO:
+        ret = &mode_acro;
+        break;
+    case STEERING:
+        ret = &mode_steering;
+        break;
+    case HOLD:
+        ret = &mode_hold;
+        break;
+    case AUTO:
+        ret = &mode_auto;
+        break;
+    case RTL:
+        ret = &mode_rtl;
+        break;
+    case SMART_RTL:
+        ret = &mode_smartrtl;
+        break;
+    case GUIDED:
+       ret = &mode_guided;
+        break;
+    case INITIALISING:
+        ret = &mode_initializing;
+        break;
+    default:
+        break;
+    }
+    return ret;
+}
+
+void Rover::read_control_switch()
+{
+    static bool switch_debouncer;
+    const uint8_t switchPosition = readSwitch();
+
+    // If switchPosition = 255 this indicates that the mode control channel input was out of range
+    // If we get this value we do not want to change modes.
+    if (switchPosition == 255) {
+        return;
+    }
+
+    if (AP_HAL::millis() - failsafe.last_valid_rc_ms > 100) {
+        // only use signals that are less than 0.1s old.
+        return;
+    }
+
+    // we look for changes in the switch position. If the
+    // RST_SWITCH_CH parameter is set, then it is a switch that can be
+    // used to force re-reading of the control switch. This is useful
+    // when returning to the previous mode after a failsafe or fence
+    // breach. This channel is best used on a momentary switch (such
+    // as a spring loaded trainer switch).
+    if (oldSwitchPosition != switchPosition ||
+        (g.reset_switch_chan != 0 &&
+         RC_Channels::get_radio_in(g.reset_switch_chan-1) > RESET_SWITCH_CHAN_PWM)) {
+        if (switch_debouncer == false) {
+            // this ensures that mode switches only happen if the
+            // switch changes for 2 reads. This prevents momentary
+            // spikes in the mode control channel from causing a mode
+            // switch
+            switch_debouncer = true;
+            return;
+        }
+
+        Mode *new_mode = mode_from_mode_num((enum mode)modes[switchPosition].get());
+        if (new_mode != nullptr) {
+            set_mode(*new_mode, MODE_REASON_TX_COMMAND);
+        }
+
+        oldSwitchPosition = switchPosition;
+    }
+
+    switch_debouncer = false;
+}
+
+uint8_t Rover::readSwitch(void) {
+    const uint16_t pulsewidth = RC_Channels::get_radio_in(g.mode_channel - 1);
+    if (pulsewidth <= 900 || pulsewidth >= 2200) {
+        return 255;  // This is an error condition
+    }
+    if (pulsewidth <= 1230) {
+        return 0;
+    }
+    if (pulsewidth <= 1360) {
+        return 1;
+    }
+    if (pulsewidth <= 1490) {
+        return 2;
+    }
+    if (pulsewidth <= 1620) {
+        return 3;
+    }
+    if (pulsewidth <= 1749) {
+        return 4;  // Software Manual
+    }
+    return 5;  // Hardware Manual
+}
+
+void Rover::reset_control_switch()
+{
+    oldSwitchPosition = 254;
+    read_control_switch();
+}
+
+// ready auxiliary switch's position
+aux_switch_pos Rover::read_aux_switch_pos()
+{
+    const uint16_t radio_in = channel_aux->get_radio_in();
+    if (radio_in < AUX_SWITCH_PWM_TRIGGER_LOW) return AUX_SWITCH_LOW;
+    if (radio_in > AUX_SWITCH_PWM_TRIGGER_HIGH) return AUX_SWITCH_HIGH;
+    return AUX_SWITCH_MIDDLE;
+}
+
+// initialise position of auxiliary switch
+void Rover::init_aux_switch()
+{
+    aux_ch7 = read_aux_switch_pos();
+}
+
+// read ch7 aux switch
+void Rover::read_aux_switch()
+{
+    // do not consume input during rc or throttle failsafe
+    if ((failsafe.bits & FAILSAFE_EVENT_THROTTLE) || (failsafe.bits & FAILSAFE_EVENT_RC)) {
+        return;
+    }
+
+    // get ch7's current position
+    aux_switch_pos aux_ch7_pos = read_aux_switch_pos();
+
+    // return if no change to switch position
+    if (aux_ch7_pos == aux_ch7) {
+        return;
+    }
+    aux_ch7 = aux_ch7_pos;
+
+    switch ((enum ch7_option)g.ch7_option.get()) {
+    case CH7_DO_NOTHING:
+        break;
+    case CH7_SAVE_WP:
+        if (aux_ch7 == AUX_SWITCH_HIGH) {
+            // do nothing if in AUTO mode
+            if (control_mode == &mode_auto) {
+                return;
+            }
+
+            // if disarmed clear mission and set home to current location
+            if (!arming.is_armed()) {
+                mission.clear();
+                set_home_to_current_location(false);
+                return;
+            }
+
+            // record the waypoint if not in auto mode
+            if (control_mode != &mode_auto) {
+                // create new mission command
+                AP_Mission::Mission_Command cmd = {};
+
+                // set new waypoint to current location
+                cmd.content.location = current_loc;
+
+                // make the new command to a waypoint
+                cmd.id = MAV_CMD_NAV_WAYPOINT;
+
+                // save command
+                if (mission.add_cmd(cmd)) {
+                    hal.console->printf("Added waypoint %u", static_cast<uint32_t>(mission.num_commands()));
+                }
+            }
+        }
+        break;
+
+    // learn cruise speed and throttle
+    case CH7_LEARN_CRUISE:
+        if (aux_ch7 == AUX_SWITCH_HIGH) {
+            cruise_learn_start();
+        } else if (aux_ch7 == AUX_SWITCH_LOW) {
+            cruise_learn_complete();
+        }
+        break;
+
+    // arm or disarm the motors
+    case CH7_ARM_DISARM:
+        if (aux_ch7 == AUX_SWITCH_HIGH) {
+            arm_motors(AP_Arming::RUDDER);
+        } else if (aux_ch7 == AUX_SWITCH_LOW) {
+            disarm_motors();
+        }
+        break;
+
+    // set mode to Manual
+    case CH7_MANUAL:
+        if (aux_ch7 == AUX_SWITCH_HIGH) {
+            set_mode(mode_manual, MODE_REASON_TX_COMMAND);
+        } else if ((aux_ch7 == AUX_SWITCH_LOW) && (control_mode == &mode_manual)) {
+            reset_control_switch();
+        }
+        break;
+
+    // set mode to Acro
+    case CH7_ACRO:
+        if (aux_ch7 == AUX_SWITCH_HIGH) {
+            set_mode(mode_acro, MODE_REASON_TX_COMMAND);
+        } else if ((aux_ch7 == AUX_SWITCH_LOW) && (control_mode == &mode_acro)) {
+            reset_control_switch();
+        }
+        break;
+
+    // set mode to Steering
+    case CH7_STEERING:
+        if (aux_ch7 == AUX_SWITCH_HIGH) {
+            set_mode(mode_steering, MODE_REASON_TX_COMMAND);
+        } else if ((aux_ch7 == AUX_SWITCH_LOW) && (control_mode == &mode_steering)) {
+            reset_control_switch();
+        }
+        break;
+
+    // set mode to Hold
+    case CH7_HOLD:
+        if (aux_ch7 == AUX_SWITCH_HIGH) {
+            set_mode(mode_hold, MODE_REASON_TX_COMMAND);
+        } else if ((aux_ch7 == AUX_SWITCH_LOW) && (control_mode == &mode_hold)) {
+            reset_control_switch();
+        }
+        break;
+
+    // set mode to Auto
+    case CH7_AUTO:
+        if (aux_ch7 == AUX_SWITCH_HIGH) {
+            set_mode(mode_auto, MODE_REASON_TX_COMMAND);
+        } else if ((aux_ch7 == AUX_SWITCH_LOW) && (control_mode == &mode_auto)) {
+            reset_control_switch();
+        }
+        break;
+
+    // set mode to RTL
+    case CH7_RTL:
+        if (aux_ch7 == AUX_SWITCH_HIGH) {
+            set_mode(mode_rtl, MODE_REASON_TX_COMMAND);
+        } else if ((aux_ch7 == AUX_SWITCH_LOW) && (control_mode == &mode_rtl)) {
+            reset_control_switch();
+        }
+        break;
+
+    // set mode to SmartRTL
+    case CH7_SMART_RTL:
+        if (aux_ch7 == AUX_SWITCH_HIGH) {
+            set_mode(mode_smartrtl, MODE_REASON_TX_COMMAND);
+        } else if ((aux_ch7 == AUX_SWITCH_LOW) && (control_mode == &mode_smartrtl)) {
+            reset_control_switch();
+        }
+        break;
+
+    // set mode to Guided
+    case CH7_GUIDED:
+        if (aux_ch7 == AUX_SWITCH_HIGH) {
+            set_mode(mode_guided, MODE_REASON_TX_COMMAND);
+        } else if ((aux_ch7 == AUX_SWITCH_LOW) && (control_mode == &mode_guided)) {
+            reset_control_switch();
+        }
+        break;
+    }
+}
+
+// return true if motors are moving
+bool Rover::motor_active()
+{
+    // if soft disarmed, motors not active
+    if (!hal.util->get_soft_armed()) {
+        return false;
+    }
+
+    // check throttle is active
+    if (!is_zero(g2.motors.get_throttle())) {
+        return true;
+    }
+
+    // skid-steering vehicles active when steering
+    if (g2.motors.have_skid_steering() && !is_zero(g2.motors.get_steering())) {
+        return true;
+    }
+
+    return false;
+} }}
+      # Add additional options to the MSBuild command line here (like platform or verbosity level).
+      # See https://docs.microsoft.com/visualstudio/msbuild/msbuild-command-line-reference
+      run: msbuild /m / #include "Rover.h"
+
+// Code to detect a crash or block
+static const uint16_t CRASH_CHECK_TRIGGER_SEC = 2;   // 2 seconds blocked indicates a crash
+static const float CRASH_CHECK_THROTTLE_MIN = 5.0f;  // vehicle must have a throttle greater that 5% to be considered crashed
+static const float CRASH_CHECK_VEL_MIN = 0.08f;      // vehicle must have a velocity under 0.08 m/s or rad/s to be considered crashed
+
+// crash_check - disarms motors if a crash or block has been detected
+// crashes are detected by the vehicle being static (no speed) for more than CRASH_CHECK_TRIGGER_SEC and motor are running
+// called at 10Hz
+void Rover::crash_check()
+{
+  static uint16_t crash_counter;  // number of iterations vehicle may have been crashed
+
+  // return immediately if disarmed, crash checking is disabled or vehicle is Hold, Manual or Acro mode
+  if (!arming.is_armed() || g.fs_crash_check == FS_CRASH_DISABLE || (!control_mode->is_autopilot_mode())) {
+    crash_counter = 0;
+    return;
+  }
+
+  // TODO : Check if min vel can be calculated
+  // min_vel = ( CRASH_CHECK_THROTTLE_MIN * g.speed_cruise) / g.throttle_cruise;
+
+  if ((ahrs.groundspeed() >= CRASH_CHECK_VEL_MIN) ||        // Check velocity
+      (fabsf(ahrs.get_gyro().z) >= CRASH_CHECK_VEL_MIN) ||  // Check turn speed
+      (fabsf(g2.motors.get_throttle()) < CRASH_CHECK_THROTTLE_MIN)) {
+    crash_counter = 0;
+    return;
+  }
+
+  // we may be crashing
+  crash_counter++;
+
+  // check if crashing for 2 seconds
+  if (crash_counter >= (CRASH_CHECK_TRIGGER_SEC * 10)) {
+    // log an error in the dataflash
+    Log_Write_Error(ERROR_SUBSYSTEM_CRASH_CHECK, ERROR_CODE_CRASH_CHECK_CRASH);
+    // send message to gcs
+    gcs().send_text(MAV_SEVERITY_EMERGENCY, "Crash: Going to HOLD");
+    // change mode to hold and disarm
+    set_mode(mode_hold, MODE_REASON_CRASH_FAILSAFE);
+    if (g.fs_crash_check == FS_CRASH_HOLD_AND_DISARM) {
+      disarm_motors();
+    }
+  }
+} }} #!/bin/bash
+#" Autocompletion enabled vim for arduino pde's
+
+ctags -RV --language-force=C++ --c++-kinds=+p --fields=+iaS --extra=+q  \
+        . \
+        ../libraries/*
+
+# sample vimrc file
+# you'll need to have omnicpp plugin for vim
+
+#"set compatible
+
+#" Vim5 and later versions support syntax highlighting. Uncommenting the next
+#" line enables syntax highlighting by default.
+#syntax on
+#filetype on
+
+#" If using a dark background within the editing area and syntax highlighting
+#" turn on this option as well
+#"set background=dark
+
+#" Uncomment the following to have Vim jump to the last position when
+#" reopening a file
+#if has("autocmd")
+  #au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
+#endif
+
+#" Uncomment the following to have Vim load indentation rules and plugins
+#" according to the detected filetype.
+#if has("autocmd")
+  #filetype plugin indent on
+#endif
+
+#" The following are commented out as they cause vim to behave a lot
+#" differently from regular Vi. They are highly recommended though.
+#set showcmd                " Show (partial) command in status line.
+#set showmatch                " Show matching brackets.
+#set ignorecase                " Do case insensitive matching
+#set smartcase                " Do smart case matching
+#set incsearch                " Incremental search
+#set autowrite                " Automatically save before commands like :next and :make
+#set hidden             " Hide buffers when they are abandoned
+#set mouse=a                " Enable mouse usage (all modes)
+#set vb
+
+#" build tags of your own project with Ctrl-F12
+#map <C-F12> :!ctags -R --sort=yes --c++-kinds=+p --fields=+iaS --extra=+q .<CR>
+
+#" OmniCppComplete
+#let OmniCpp_NamespaceSearch = 1
+#let OmniCpp_GlobalScopeSearch = 1
+#let OmniCpp_ShowAccess = 1
+#let OmniCpp_ShowPrototypeInAbbr = 1 " show function parameters
+#let OmniCpp_MayCompleteDot = 1 " autocomplete after .
+#let OmniCpp_MayCompleteArrow = 1 " autocomplete after ->
+#let OmniCpp_MayCompleteScope = 1 " autocomplete after ::
+#let OmniCpp_DefaultNamespaces = ["std", "_GLIBCXX_STD"]
+
+#" automatically open and close the popup menu / preview window
+#"au CursorMovedI,InsertLeave * if pumvisible() == 0|silent! pclose|endif
+#"set completeopt=menuone,menu,longest,preview
+#set ts=4
+#set sw=4 }}
