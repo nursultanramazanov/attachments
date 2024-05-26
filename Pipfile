@@ -17,4 +17,4 @@ Adafruit-Blinka = "*"
 dill = "*"
 
 [requires]
-pyton_version = "3.8"
+pyton_version = "3.8" 
