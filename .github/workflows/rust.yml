@@ -1,21 +1,236 @@
 name: Rust
 
-on: ifeq ($(DEBUG), 1)
-  push: OPTFLAGS= -O0 -g
+on: #
+# This file is run prior to the unit tests for preparing the testing
+# environment. Currently only required / necessary for running the
+# tests on the Android device emulator.
+#
+
+# Restore the required settings of the CMake configuration step
+cmake_minimum_required(VERSION 2.6)
+set(CMAKE_COMMAND "@CMAKE_COMMAND@")
+set(CMAKE_BINARY_DIR "@CMAKE_BINARY_DIR@")
+set(CMAKE_CURRENT_BINARY_DIR "@CMAKE_BINARY_DIR@")
+set(CMAKE_FILES_DIRECTORY "@CMAKE_FILES_DIRECTORY@")
+set(CMAKE_MODULE_PATH "@CMAKE_ROOT@/Modules")
+set(CMAKE_SHARED_LIBRARY_PREFIX "@CMAKE_SHARED_LIBRARY_PREFIX@")
+set(CMAKE_SHARED_LIBRARY_SUFFIX "@CMAKE_SHARED_LIBRARY_SUFFIX@")
+set(CMAKE_HOST_SYSTEM "@CMAKE_HOST_SYSTEM@")
+set(DCMTK_CMAKE_INCLUDE "@CMAKE_SOURCE_DIR@/@DCMTK_CMAKE_INCLUDE@")
+set(DCMTK_TEST_EXECUTABLES "@DCMTK_TEST_EXECUTABLES@")
+set(DCMTK_ALL_LIBRARIES "@DCMTK_ALL_LIBRARIES@")
+set(DCMTK_LIBRARY_DEPENDENCIES "@DCMTK_LIBRARY_DEPENDENCIES@")
+set(DCMTK_PACKAGE_VERSION "@DCMTK_PACKAGE_VERSION@")
+set(DCMTK_ABI_VERSION "@DCMTK_ABI_VERSION@")
+set(BUILD_SHARED_LIBS "@BUILD_SHARED_LIBS@")
+set(DCMTK_DICOM_DICTIONARIES "@DCMTK_DICOM_DICTIONARIES@")
+set(ANDROID "@ANDROID@")
+set(ANDROID_ADB_PROGRAM "@ANDROID_ADB_PROGRAM@")
+set(ANDROID_ANDROID_PROGRAM "@ANDROID_ANDROID_PROGRAM@")
+set(ANDROID_EMULATOR_PROGRAM "@ANDROID_EMULATOR_PROGRAM@")
+set(ANDROID_EMULATOR_AVD "@ANDROID_EMULATOR_AVD@")
+set(ANDROID_RUNTIME_LIBRARIES "@ANDROID_RUNTIME_LIBRARIES@")
+set(ANDROID_TEMPORARY_FILES_LOCATION "@ANDROID_TEMPORARY_FILES_LOCATION@")
+# Emulate some required CMake commands while running inside CTest
+include(${DCMTK_CMAKE_INCLUDE}CMake/CTest/dcmtkCTestMacros.cmake)
+# For DCMTK_UNSET_XXX
+include(${DCMTK_CMAKE_INCLUDE}CMake/dcmtkMacros.cmake)
+# Load required functions for controlling the Android device emulator
+include(${DCMTK_CMAKE_INCLUDE}CMake/dcmtkUseAndroidSDK.cmake)
+
+# Prepare the Android testing environment
+# Prepare the emulator
+DCMTK_ANDROID_START_EMULATOR(DCMTK_ANDROID_EMULATOR_INSTANCE)
+DCMTK_ANDROID_WAIT_FOR_EMULATOR(DCMTK_ANDROID_EMULATOR_INSTANCE)
+
+# Get the emulator's name for emitting a shutdown command when done
+DCMTK_ANDROID_GET_OBJECT_PROPERTIES(DCMTK_ANDROID_EMULATOR_INSTANCE)
+DCMTK_ANDROID_STOP_EMULATOR_COMMAND(STOP_EMULATOR "${EMULATOR_NAME}")
+DCMTK_ANDROID_EMULATOR_SHUTDOWN_MESSAGE(STOP_MESSAGE)
+# Note: no quotation marks around STOP_MESSAGE, since it contains the message
+#       and the message type (e.g. STATUS)
+MESSAGE_COMMAND(STOP_MESSAGE ${STOP_MESSAGE})
+# CTEST_CUSTOM_POST_TESTS executes a sequence of 'non CMake' commands separated
+# by ';' characters. Therefore the sequence a single command consists of must
+# be translated appropriately first
+string(REPLACE ";" " " STOP_EMULATOR "${STOP_EMULATOR}")
+string(REPLACE ";" " " STOP_MESSAGE "${STOP_MESSAGE}")
+# Register the cleanup hooks
+set(CTEST_CUSTOM_POST_TEST "${STOP_MESSAGE}" "${STOP_EMULATOR}")
+
+# Set the current emulator instance handle via an environment variable
+set(ENV{DCMTK_ANDROID_EMULATOR_INSTANCE} "${DCMTK_ANDROID_EMULATOR_INSTANCE}")
+
+# Collect the list of required libraries
+if(BUILD_SHARED_LIBS)
+    foreach(LIBRARY ${DCMTK_ALL_LIBRARIES})
+        list(APPEND DCMTK_CREATED_SHARED_LIBRARIES "${CMAKE_BINARY_DIR}/lib/${CMAKE_SHARED_LIBRARY_PREFIX}${LIBRARY}${CMAKE_SHARED_LIBRARY_SUFFIX}.${DCMTK_PACKAGE_VERSION}")
+    endforeach()
+endif()
+
+# Transmit the required executables, libraries and dictionaries to the emulator
+DCMTK_ANDROID_PUSH(DCMTK_ANDROID_EMULATOR_INSTANCE
+    ${ANDROID_RUNTIME_LIBRARIES}
+    ${DCMTK_LIBRARY_DEPENDENCIES}
+    ${DCMTK_CREATED_SHARED_LIBRARIES}
+    ${DCMTK_TEST_EXECUTABLES}
+    ${DCMTK_DICOM_DICTIONARIES}
+    DESTINATION ${ANDROID_TEMPORARY_FILES_LOCATION}
+)
+
+# Set executable permissions
+foreach(TEST_EXECUTABLE ${DCMTK_TEST_EXECUTABLES})
+    get_filename_component(NAME "${TEST_EXECUTABLE}" NAME)
+    DCMTK_ANDROID_SHELL(DCMTK_ANDROID_EMULATOR_INSTANCE
+        COMMAND chmod 755 "${ANDROID_TEMPORARY_FILES_LOCATION}/${NAME}"
+        OUTPUT_QUIET
+        ERROR_QUIET
+    )
+endforeach()
+
+# Create necessary softlinks
+if(BUILD_SHARED_LIBS)
+    foreach(LIBRARY ${DCMTK_ALL_LIBRARIES})
+        DCMTK_ANDROID_SHELL(DCMTK_ANDROID_EMULATOR_INSTANCE
+        COMMAND ln -s "./${CMAKE_SHARED_LIBRARY_PREFIX}${LIBRARY}${CMAKE_SHARED_LIBRARY_SUFFIX}.${DCMTK_PACKAGE_VERSION}" "${ANDROID_TEMPORARY_FILES_LOCATION}/${CMAKE_SHARED_LIBRARY_PREFIX}${LIBRARY}${CMAKE_SHARED_LIBRARY_SUFFIX}.${DCMTK_ABI_VERSION}"
+        OUTPUT_QUIET
+        ERROR_QUIET
+        )
+    endforeach()
+endif()
+  push: #
+# This file ensures that the wineserver is spawned before running the unit
+# tests, such that CTest will not attach itself to it. This is an ugly hack
+# workaround, but what can you do?
+#
+
+set(ENV{WINEPREFIX} "@DCMTK_WINEPREFIX@")
+set(ENV{DCMDICTPATH} "@DCMDICTPATH@")
+set(WINE_WINE_PROGRAM "@WINE_WINE_PROGRAM@")
+
+# spawn the winserver using 'cmd /C call' -> effectively NOP
+# spawn it using 'sh', such that this script does not attach itself to it.
+execute_process(COMMAND
+    sh -c "\"${WINE_WINE_PROGRAM}\" cmd /C call"
+    OUTPUT_FILE "/dev/null"
+    ERROR_FILE "/dev/null"
+)
     branches: [ "main" ]
-  pull_request: #build portable objects (i.e. with -fPIC)
+  pull_request: #
+# This file "re-implements" some of CMake's functionality
+# that is missing inside CTest.
+#
+
+macro(MESSAGE_COMMAND VAR MODE)
+    if(${MODE} STREQUAL "STATUS")
+        set(${VAR} ${CMAKE_COMMAND} -E echo -- ${ARGN})
+    elseif(${MODE} STREQUAL "WARNING")
+        set(${VAR} ${CMAKE_COMMAND} -E echo WARNING: ${ARGN})
+    elseif(${MODE} STREQUAL "AUTHOR_WARNING")
+        set(${VAR} ${CMAKE_COMMAND} -E echo Warning: ${ARGN})
+    elseif(${MODE} STREQUAL "SEND_ERROR")
+        set(${VAR} ${CMAKE_COMMAND} -E echo Error: ${ARGN})
+    elseif(${MODE} STREQUAL "FATAL_ERROR")
+        set(${VAR} ${CMAKE_COMMAND} -E echo ERROR: ${ARGN})
+    elseif(${MODE} STREQUAL "DEPRECATION")
+        set(${VAR} ${CMAKE_COMMAND} -E echo ${ARGN})
+    else()
+        set(${VAR} ${CMAKE_COMMAND} -E echo ${MODE} ${ARGN})
+    endif()
+endmacro()
+
+function(MESSAGE)
+    MESSAGE_COMMAND(COMMAND ${ARGN})
+    execute_process(COMMAND ${COMMAND})
+endfunction()
     branches: [ "main" ]
 
-env: #   $@ target name, $^ target deps, $< matched pattern
+env: #
+# This file is used to executed given unit test commands locally, handling
+# additional arguments like 'exhaustive' and setting the DCMDICTPATH
+# environment variable appropriately.
+#
+
+set(ENV{DCMDICTPATH} "@DCMDICTPATH@")
+
+execute_process(COMMAND
+    "${DCMTK_CTEST_TESTCASE_COMMAND}" $ENV{DCMTK_CTEST_EXTRA_ARGUMENTS} "${DCMTK_CTEST_TEST_NAME}"
+    RESULT_VARIABLE RESULT
+)
+
+# We cannot forward the result value to CMake, so print it instead and let CMake
+# return with code '1' or whatever it deems appropriate to notify about an error.
+if(RESULT)
+    message(FATAL_ERROR "Test command returned: ${RESULT}")
+endif()
   CARGO_TERM_COLOR: always
 
-jobs: #include the autogenerated dependency files for each .o file
-  build: # build dependency list via gcc -M and save to a .dep file
+jobs: #
+# This file is used to executed given unit test commands on a previously
+# initialize Android device emulator instance, handling additional arguments
+# like 'exhaustive' and setting the DCMDICTPATH environment variable
+# appropriately.
+#
+
+# Restore the required settings of the CMake configuration step
+set(CMAKE_BINARY_DIR "@CMAKE_BINARY_DIR@")
+set(CMAKE_CURRENT_BINARY_DIR "@CMAKE_BINARY_DIR@")
+set(CMAKE_FILES_DIRECTORY "@CMAKE_FILES_DIRECTORY@")
+set(DCMTK_CMAKE_INCLUDE "@CMAKE_SOURCE_DIR@/@DCMTK_CMAKE_INCLUDE@")
+set(DCMDICTPATH "@DCMDICTPATH@")
+set(ANDROID_ADB_PROGRAM "@ANDROID_ADB_PROGRAM@")
+set(ANDROID_TEMPORARY_FILES_LOCATION "@ANDROID_TEMPORARY_FILES_LOCATION@")
+# Load required functions for controlling the Android device emulator
+include(${DCMTK_CMAKE_INCLUDE}CMake/dcmtkUseAndroidSDK.cmake)
+
+# Restore the Android device emulator instance handle
+set(DCMTK_ANDROID_EMULATOR_INSTANCE "$ENV{DCMTK_ANDROID_EMULATOR_INSTANCE}")
+
+# Run the actual testcase on the remote device
+DCMTK_ANDROID_SHELL(DCMTK_ANDROID_EMULATOR_INSTANCE
+    COMMAND "LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:${ANDROID_TEMPORARY_FILES_LOCATION}" "DCMDICTPATH=${DCMDICTPATH}" "${DCMTK_CTEST_TESTCASE_COMMAND}" $ENV{DCMTK_CTEST_EXTRA_ARGUMENTS} "${DCMTK_CTEST_TEST_NAME}"
+    WORKING_DIRECTORY "${ANDROID_TEMPORARY_FILES_LOCATION}"
+    RESULT_VARIABLE RESULT
+)
+
+# We cannot forward the result value to CTest, so print it instead and let CMake
+# return with code '1' or whatever it deems appropriate to notify about an error.
+if(RESULT)
+    message(FATAL_ERROR "Test command returned: ${RESULT}")
+endif()
+  build: #
+# this file is used to execute the unit tests with the -x option injected
+#
+
+set(ENV{DCMTK_CTEST_EXTRA_ARGUMENTS} "-x")
+execute_process(COMMAND ${CMAKE_CTEST_COMMAND} -C "${CONFIG}")
 
     runs-on: ubuntu-latest
 
-    steps: #po = portable object .. for lack of a better term
-    - uses: actions/checkout@v3
+    steps: #
+# This file is used to executed given unit test commands using wine, handling
+# additional arguments like 'exhaustive' and setting the DCMDICTPATH
+# environment variable appropriately. It uses the prepared wineprefix to
+# load the MinGW C++ runtime (stdc++.dll etc.) and helps to detach the
+# wineserver process from CTest such that it does not hang waiting for it to
+# shutdown.
+#
+
+set(ENV{WINEPREFIX} "@DCMTK_WINEPREFIX@")
+set(ENV{DCMDICTPATH} "@DCMDICTPATH@")
+set(WINE_WINE_PROGRAM "@WINE_WINE_PROGRAM@")
+
+execute_process(COMMAND
+    "${WINE_WINE_PROGRAM}" "${DCMTK_CTEST_TESTCASE_COMMAND}" $ENV{DCMTK_CTEST_EXTRA_ARGUMENTS} "${DCMTK_CTEST_TEST_NAME}"
+    RESULT_VARIABLE RESULT
+)
+
+# We cannot forward the result value to CMake, so print it instead and let CMake
+# return with code '1' or whatever it deems appropriate to notify about an error.
+if(RESULT)
+    message(FATAL_ERROR "Test command returned: ${RESULT}")
+endif()
+    - uses: actions/checkout@v4
     - name: Build
       run: cargo build --verbose
     - name: Run tests
