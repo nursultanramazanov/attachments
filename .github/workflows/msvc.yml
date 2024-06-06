@@ -1,0 +1,1293 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+#
+# Find more information at:
+# https://github.com/microsoft/msvc-code-analysis-action
+
+name: Microsoft C++ Code Analysis
+
+on: setlocal EnableDelayedExpansion
+@echo on
+
+:: Make a build folder and change to it
+cmake -E make_directory build
+if errorlevel 1 exit 1
+cd build
+if errorlevel 1 exit 1
+
+:: configure
+cmake -G "Ninja" ^
+    -DCMAKE_BUILD_TYPE=Release ^
+    -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
+    -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
+    -DPYTHON_EXECUTABLE="%PYTHON%" ^
+    -DGR_PYTHON_DIR="%SP_DIR%" ^
+    ..
+if errorlevel 1 exit 1
+
+:: build
+cmake --build . --config Release -- -j%CPU_COUNT%
+if errorlevel 1 exit 1
+
+:: install
+cmake --build . --config Release --target install
+if errorlevel 1 exit 1
+
+:: test
+set SKIP_TESTS=^
+%=EMPTY=%
+
+ctest --build-config Release --output-on-failure --timeout 120 -j%CPU_COUNT% -E "%SKIP_TESTS%"
+if errorlevel 1 exit 1
+
+:: now run the skipped tests to see failures, but exit without error anyway
+ctest --build-config Release --output-on-failure --timeout 120 -j%CPU_COUNT% -R "%SKIP_TESTS%"
+exit 0
+  push: #!/usr/bin/env bash
+
+if [[ $target_platform == osx* ]] ; then
+    CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
+fi
+
+# Workaround for no std::aligned_alloc with osx-64
+# https://github.com/chriskohlhoff/asio/issues/1090
+# Maybe remove when boost is updated to 1.80.0?
+if [[ "${target_platform}" == "osx-64" ]]; then
+  export CXXFLAGS="-DBOOST_ASIO_DISABLE_STD_ALIGNED_ALLOC ${CXXFLAGS}"
+fi
+
+cmake -E make_directory build
+cd build
+
+cmake_config_args=(
+    -DCMAKE_BUILD_TYPE=Release
+    -DCMAKE_PREFIX_PATH=$PREFIX
+    -DCMAKE_INSTALL_PREFIX=$PREFIX
+    -DLIB_SUFFIX=""
+    -DPYTHON_EXECUTABLE=$PYTHON
+    -DGR_PYTHON_DIR=$SP_DIR
+)
+
+cmake ${CMAKE_ARGS} -G "Ninja" .. "${cmake_config_args[@]}"
+cmake --build . --config Release -- -j${CPU_COUNT}
+
+cmake --build . --config Release --target install
+
+if [[ $target_platform == linux* ]] ; then
+    export QT_QPA_PLATFORM=offscreen
+    SKIP_TESTS=(
+    )
+else
+    SKIP_TESTS=(
+    )
+fi
+SKIP_TESTS_STR=$( IFS="|"; echo "^(${SKIP_TESTS[*]})$" )
+
+ctest --build-config Release --output-on-failure --timeout 120 -j${CPU_COUNT} -E "$SKIP_TESTS_STR"
+
+# now run the skipped tests to see the failures, but don't error out
+ctest --build-config Release --output-on-failure --timeout 120 -j${CPU_COUNT} -R "$SKIP_TESTS_STR" || exit 0
+    branches: [ "main" ]
+  pull_request: channel_targets:
+  - gnuradio main
+c_compiler:    # [win]
+- vs2022       # [win]
+cxx_compiler:  # [win]
+- vs2022       # [win]
+    branches: [ "main" ]
+  schedule: {% set name = "gnuradio-dev" %}
+# Set package version from cleaned up git tags if possible,
+# otherwise fall back to date-based version.
+{% set tag_version = environ.get("GIT_DESCRIBE_TAG", "")|string|replace("-","_")|replace("v","")|replace("git","") %}
+{% set post_commit = environ.get("GIT_DESCRIBE_NUMBER", 0)|string %}
+{% set hash = environ.get("GIT_DESCRIBE_HASH", "local")|string %}
+{% set fallback_version = "0.0.0.{0}.dev+g{1}".format(datetime.datetime.now().strftime("%Y%m%d"), environ.get("GIT_FULL_HASH", "local")[:9]) %}
+{% set version = (tag_version if post_commit == "0" else "{0}.post{1}+{2}".format(tag_version, post_commit, hash)) if tag_version else fallback_version %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  # use local path or git repository depending on if the build is local or done on CI
+  path: "../.."  # [not os.environ.get("CI")]
+  git_url: {{ environ.get('FEEDSTOCK_ROOT', "../..") }}  # [os.environ.get("CI")]
+
+build:
+  number: 0
+  skip: true  # [py!=311]
+  entry_points:
+    - gnuradio-companion = gnuradio.grc.main:main  # [win]
+    - gr_filter_design = gnuradio.filter.filter_design:main  # [win]
+    - gr_modtool = gnuradio.modtool.cli.base:cli  # [win]
+    - grcc = gnuradio.grc.compiler:main  # [win]
+    - uhd_siggen = gnuradio.uhd.uhd_siggen_base:main  # [win]
+  run_exports:
+    - {{ pin_subpackage('gnuradio-dev', max_pin='x.x.x') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake >=3.8
+    - git
+    - ninja
+    - pkg-config  # [not win]
+    - sysroot_linux-64 2.17  # [linux64]
+    - thrift-compiler
+    # cross-compilation requirements
+    - python                              # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}  # [build_platform != target_platform]
+    - pybind11                            # [build_platform != target_platform]
+    - numpy                               # [build_platform != target_platform]
+   # below are needed to link with Qt for qtgui
+    - {{ cdt('mesa-dri-drivers') }}  # [linux]
+    - {{ cdt('mesa-libgl-devel') }}  # [linux]
+  host:
+    - click
+    - click-plugins
+    - codec2
+    - fftw
+    - gmp  # [not win]
+    - gsl
+    - libboost-devel
+    - libsndfile
+    - libthrift  # [not win]
+    - mako
+    - mpir  # [win]
+    - numpy
+    - packaging
+    - pip  # [win]
+    - pybind11
+    - pybind11-abi
+    - python
+    - spdlog
+    - thrift  # [not win]
+    - volk
+  # gnuradio.audio
+    - alsa-lib  # [linux]
+    - jack  # [linux]
+    - portaudio
+  # gnuradio companion
+    - gtk3
+    - lxml
+    - pygobject
+    - pyyaml
+    - jsonschema
+  # gnuradio.iio
+    - libiio
+    - libad9361-iio
+  # gnuradio.qtgui
+    - pyqt
+    - qt-main
+    - qwt
+  # gnuradio.soapy
+    - soapysdr
+  # gnuradio.uhd
+    - uhd
+  # gnuradio.video_sdl
+    - sdl
+  # gnuradio.zeromq
+    - cppzmq
+    - zeromq
+  # below needed only to run tests in host environment
+    - pytest
+    - pyzmq
+    - setuptools
+  run:
+    - alsa-plugins  # [linux]
+    - click
+    - click-plugins
+    - fftw
+    - lxml
+    - mako
+    - matplotlib-base
+    - menuinst  # [win]
+    - numpy
+    - packaging
+    - {{ pin_compatible('portaudio') }}
+    - pygobject
+    - pyqt
+    - pyqtgraph
+    - python
+    - pyyaml
+    - jsonschema
+    - pyzmq
+    - {{ pin_compatible('qwt', max_pin='x.x') }}
+    - scipy
+    # need setuptools because modtool uses pkg_resources
+    - setuptools
+    - thrift  # [not win]
+  run_constrained:
+  # conflict with the non-dev conda-forge packages
+  # by constraining to non-existent version
+    - gnuradio-core ==9999999999
+    - gnuradio-grc ==9999999999
+    - gnuradio-qtgui ==9999999999
+    - gnuradio-soapy ==9999999999
+    - gnuradio-uhd ==9999999999
+    - gnuradio-video-sdl ==9999999999
+    - gnuradio-zeromq ==9999999999
+
+test:
+  commands:
+    - gnuradio-config-info -v --prefix --sysconfdir --prefsdir --userprefsdir --prefs --builddate --enabled-components --cc --cxx --cflags
+    - gr_modtool --help
+  imports:
+    - gnuradio.analog
+    - gnuradio.audio
+    - gnuradio.blocks
+    - gnuradio.channels
+    - gnuradio.digital
+    - gnuradio.dtv
+    - gnuradio.fec
+    - gnuradio.fft
+    - gnuradio.filter
+    - gnuradio.gr
+    - gnuradio.iio
+    - gnuradio.network
+    - gnuradio.pdu
+    - gnuradio.qtgui
+    - gnuradio.soapy
+    - gnuradio.trellis
+    - gnuradio.uhd
+    - gnuradio.video_sdl
+    - gnuradio.vocoder
+    - gnuradio.wavelet
+    - gnuradio.zeromq
+    - pmt
+
+about:
+  home: https://gnuradio.org/
+  license: GPL-3.0-or-later
+  license_file: COPYING
+  summary: The free and open software radio ecosystem
+  description: >
+    GNU Radio is a free software development toolkit that provides the signal
+    processing runtime and processing blocks to implement software radios using
+    readily-available, low-cost external RF hardware and commodity processors.
+    It is widely used in hobbyist, academic and commercial environments to
+    support wireless communications research as well as to implement real-world
+    radio systems.
+
+    GNU Radio applications are primarily written using the Python programming
+    language, while the supplied, performance-critical signal processing path
+    is implemented in C++ using processor floating point extensions where
+    available. Thus, the developer is able to implement real-time, high-
+    throughput radio systems in a simple-to-use, rapid-application-development
+    environment.
+  doc_url: https://gnuradio.org/doc/doxygen/
+  dev_url: https://github.com/gnuradio/gnuradio
+
+extra:
+  recipe-maintainers:
+    - ryanvolz
+    - cron: '38 13 * * 1'
+env: mesa-libGL
+mesa-dri-drivers
+xorg-x11-server-Xvfb
+  # Path to the CMake build directory.
+  build: '${{ # textdomain: moreblocks
+
+# German translation for More Blocks.
+# Copyright © 2011-2020 Hugo Locurcio and contributors
+# This file is distributed under the same license as the More Blocks package.
+# Xanthin, 2014.
+# CodeXP <codexp@gmx.net>, 2018.
+
+#: circular_saw.lua
+
+Circular Saw=Kreissäge
+Input material=Ausgangs-@nmaterial
+Left-over=Rest
+Max=Anzahl
+Recycle output=Wiederver-@nwerten
+Set=Ok
+owned by @1=gehört @1
+Circular Saw is empty=Kreissäge ist leer
+Circular Saw is working on @1=Kreissäge arbeitet mit @1
+
+#: init.lua
+
+[moreblocks] loaded.=[moreblocks] geladen.
+
+#: nodes.lua
+
+Deprecated=veraltet
+All-faces Acacia Tree=allseitiger Akazienbaumstamm
+All-faces Aspen Tree=allseitiger Espenbaumstamm
+All-faces Jungle Tree=allseitiger Tropenbaumstamm
+All-faces Pine Tree=allseitiger Kieferbaumstamm
+All-faces Tree=allseitiger Baumstamm
+Cactus Brick=Kaktusziegel
+Cactus Checker=Kaktus-Mosaik
+Centered Wooden Tile=Holzfliese mittig
+Checker Stone Tile=Stein-Mosaik
+Circle Stone Bricks=Kreissteinziegel
+Clean Glass=Klares Glas
+Coal Checker=Kohlen-Mosaik
+Coal Glass=Kohleglas
+Clean Super Glow Glass=
+Trap Clean Super Glow Glass=
+Trap Clean Glass=
+Clean Glow Glass=
+Trap Clean Glow Glass=
+Coal Stone=Kohlestein
+Coal Stone Bricks=Kohlesteinziegel
+Compressed Cobblestone=Gepresster Kopfsteinpflaster
+Compressed Desert Cobblestone=
+Compressed Dirt=Gepresste Erde
+Copper Patina Block=Kupfer Edelrostblock
+Empty Shelf=Leeres Regal
+Full Wooden Tile=Vollholzfliese
+Glow Glass=Leuchtglas
+Iron Checker=Metall-Mosaik
+Iron Glass=metallisiertes Glas
+Iron Stone=Eisenstein
+Iron Stone Bricks=Eisensteinziegel
+Plankstone=Brettstein
+Rope=Seil
+Split Stone Tile=Geteilte Steinfliese
+Stone Bricks=Steinziegel
+Stone Tile=Steinfliese
+Super Glow Glass=Superleuchtglas
+Sweeper=Besen
+Tar=Teer
+Trap Desert Stone=Wüstensteinfalle
+Trap Glass=Glasfalle
+Trap Glow Glass=Leuchtglasfalle
+Trap Obsidian=Obsidianfalle
+Trap Obsidian Glass=Obsidianglasfalle
+Trap Sandstone=Sandsteinfalle
+Trap Stone=Steinfalle
+Trap Super Glow Glass=Superleuchtglasfalle
+Wooden Tile=Holzfliese
+Offset Wooden Tile=Holzfliese versetzt
+Downwards Wooden Tile=Holzfliese unten
+Leftwards Wooden Tile=Holzfliese links
+Rightwards Wooden Tile=Holzfliese rechts
+
+#: ownership.lua
+
+Sorry, @1 owns that spot.=Tut mir leid, dieser Bereich gehört @1.
+someone=jemand
+
+#: stairsplus/common.lua
+
+@1 Microblock=@1mikroblock
+@1 Slab=@1platte
+@1 Slope=@1neigung
+@1 Panel=@1paneel
+@1 Stairs=@1treppe }}/build'
+
+permissions: # textdomain: moreblocks
+
+# Spanish translation for More Blocks.
+# Copyright © 2011-2020 Hugo Locurcio and contributors
+# This file is distributed under the same license as the More Blocks package.
+# kaeza, 2013.
+# CodeXP <codexp@gmx.net>, 2018.
+# Carlos Barraza 2020.
+
+#: circular_saw.lua
+
+Circular Saw=Sierra circular
+Input material=Material de@nentrada
+Left-over=Sobrante
+Max=Maximo
+Recycle output=Reciclar@nsalida
+Set=Establecer
+owned by @1=protegido por @1
+Circular Saw is empty=La sierra circular está vacia
+Circular Saw is working on @1=Sierra circular trabajando en @1
+
+#: nodes.lua
+
+Deprecated=Obsoleto
+All-faces Acacia Tree=Árbol de Acacia, todas las caras
+All-faces Aspen Tree=Álamo temblón, todas las caras
+All-faces Jungle Tree=Árbol de Selva, todas las caras
+All-faces Pine Tree=Pino, todas las caras
+All-faces Tree=Tronco de Árbol
+Cactus Brick=Ladrillos de Cactus
+Cactus Checker=Cuadros de Cactus
+Centered Wooden Tile=Parqué Centrado
+Checker Stone Tile=Cuadros de Baldosa de Piedra
+Circle Stone Bricks=Bloques de Piedra Circulares
+Clean Glass=Cristal Limpio
+Coal Checker=Cuadros de Carbón
+Coal Glass=Cristal con Carbón
+Clean Super Glow Glass=Cristal Súper Brillante Limpio
+Trap Clean Super Glow Glass=Cristal Súper Brillante Limpio Falso
+Trap Clean Glass=Cristal Limpio Falso
+Clean Glow Glass=Cristal Brillante Limpio
+Trap Clean Glow Glass=Cristal Brillante Limpio Falso
+Coal Stone=Carbón y Piedra
+Coal Stone Bricks=Ladrillos de Piedra de Carbon
+Compressed Cobblestone=Adoquín Comprimido
+Compressed Desert Cobblestone=Adoquín del Desierto Comprimido
+Compressed Dirt=Tierra Comprimida
+Copper Patina Block=Bloque de Pátina de Cobre
+Empty Shelf=Estante vacio
+Full Wooden Tile=Parqué Completo
+Glow Glass=Cristal Brillante
+Iron Checker=Cuadros de Hierro
+Iron Glass=Cristal con Hierro
+Iron Stone=Hierro y Piedra
+Iron Stone Bricks=Ladrillo de Piedra de Hierro
+Plankstone=Tablones de piedra
+Rope=Soga
+Split Stone Tile=Baldosas de Piedra Partida
+Stone Bricks=Ladrillos de Piedra
+Stone Tile=Baldosa de Piedra
+Super Glow Glass=Cristal Súper Brillante
+Sweeper=Limpiador
+Tar=Alquitrán
+Trap Desert Stone=Piedra del Desierto Falsa
+Trap Glass=Cristal Falso
+Trap Glow Glass=Cristal Brillante Falso
+Trap Obsidian=Obsidiana Falsa
+Trap Obsidian Glass=Vidrio de Obsidiana Falso
+Trap Sandstone=Arenisca Falsa
+Trap Stone=Piedra Falsa
+Trap Super Glow Glass=Cristal Súper Brillante Falso
+Wooden Tile=Parqué
+Offset Wooden Tile=Parqué Ajustado
+Downwards Wooden Tile=Parqué hacia Abajo
+Leftwards Wooden Tile=Parqué hacia la Izquierda
+Rightwards Wooden Tile=Parqué hacia la Derecha
+
+
+#: ownership.lua
+
+Sorry, @1 owns that spot.=Lo siento, @1 es dueño de ese lugar.
+someone=alguien
+
+#: stairsplus/common.lua
+
+@1 Microblock=Microbloque de @1
+@1 Slab=Losa de @1
+@1 Slope=Pendiente de @1
+@1 Panel=Panel de @1
+@1 Stairs=Escalera de @1
+
+#: stairsplus/registrations.lua
+
+Concrete=Concreto
+Cement=Cemento
+Brass Block=Bloque de latón
+  contents: read
+
+jobs: # textdomain: moreblocks
+
+# French translation for More Blocks.
+# Copyright © 2011-2020 Hugo Locurcio and contributors
+# This file is distributed under the same license as the More Blocks package.
+# Hugo Locurcio <hugo.locurcio@hugo.pro>, 2013-2019.
+# Jat15, 2013.
+# CodeXP <codexp@gmx.net>, 2018.
+
+#: circular_saw.lua
+
+Circular Saw=Scie circulaire
+Input material=Matériau@nd'entrée
+Left-over=Reste
+Max=Max
+Recycle output=Sortie à@nrecycler
+Set=Définir
+owned by @1=propriété de @1
+Circular Saw is empty=Scie circulaire vide
+Circular Saw is working on @1=Scie circulaire manipulant @1
+
+#: init.lua
+
+[moreblocks] loaded.=[moreblocks] a été chargé.
+
+#: nodes.lua
+
+Deprecated=déprécié
+All-faces Acacia Tree=Tronc d'arbre d'acacia (toutes faces)
+All-faces Aspen Tree=Tronc d'arbre de peuplier (toutes faces)
+All-faces Jungle Tree=Tronc d'arbre de jungle (toutes faces)
+All-faces Pine Tree=Tronc d'arbre de pin (toutes faces)
+All-faces Tree=Tronc d'arbre (toutes faces)
+Cactus Brick=Briques de cactus
+Cactus Checker=Damier en cactus
+Centered Wooden Tile=Dalle en bois centrée
+Checker Stone Tile=Damier de dalle en pierre
+Circle Stone Bricks=Briques en pierre circulaires
+Clean Glass=Verre propre
+Coal Checker=Damier en charbon
+Coal Glass=Verre de charbon
+Clean Super Glow Glass=
+Trap Clean Super Glow Glass=
+Trap Clean Glass=
+Clean Glow Glass=
+Trap Clean Glow Glass=
+Coal Stone=Pierre de charbon
+Coal Stone Bricks=Briques en pierre de charbon
+Compressed Cobblestone=Pierre taillée compressée
+Compressed Desert Cobblestone=
+Compressed Dirt=Terre compressée
+Copper Patina Block=Bloc de patine de cuivre
+Empty Shelf=Étagère vide
+Full Wooden Tile=Dalle en bois complète
+Glow Glass=Verre brillant
+Iron Checker=Damier de fer
+Iron Glass=Verre de fer
+Iron Stone=Pierre de fer
+Iron Stone Bricks=Briques en pierre de fer
+Plankstone=Pierre-bois
+Rope=Corde
+Split Stone Tile=Dalle en pierre découpée
+Stone Bricks=Briques en pierre
+Stone Tile=Dalle en pierre
+Super Glow Glass=Verre très brillant
+Sweeper=Balai
+Tar=Bitume
+Trap Desert Stone=Pierre du désert traversable
+Trap Glass=Verre traversable
+Trap Glow Glass=Verre brillant traversable
+Trap Obsidian=Obsidienne traversable
+Trap Obsidian Glass=Verre d'obsidienne traversable
+Trap Sandstone=Grès traversable
+Trap Stone=Pierre traversable
+Trap Super Glow Glass=Verre très brillant traversable
+Wooden Tile=Dalle en bois
+Offset Wooden Tile=Dalle en bois décalée
+Downwards Wooden Tile=Dalle en bois vers le bas
+Leftwards Wooden Tile=Dalle en bois vers la gauche
+Rightwards Wooden Tile=Dalle en bois vers la droite
+
+#: ownership.lua
+
+Sorry, @1 owns that spot.=Désolé, @1 possède cet endroit.
+someone=quelqu'un
+
+#: stairsplus/common.lua
+
+@1 Microblock=Microbloc en @1
+@1 Slab=Demi-dalle en @1
+@1 Slope=Pente en @1
+@1 Panel=Barre en @1
+@1 Stairs=Escaliers en @1
+  analyze: # textdomain: moreblocks
+
+# Italian translation for More Blocks.
+# Copyright © 2011-2020 Hugo Locurcio and contributors
+# This file is distributed under the same license as the More Blocks package.
+# Emon, 2016.
+# CodeXP <codexp@gmx.net>, 2018.
+
+#: circular_saw.lua
+
+Circular Saw=Sega circolare
+Input material=Materiale@niniziale
+Left-over=Scarto
+Max=Max.
+Recycle output=Ricicla@nfinale
+Set=Imp.
+owned by @1=
+Circular Saw is empty=Sega circolare, vuota
+Circular Saw is working on @1=Sega circolare, in funzione su @1
+
+#: init.lua
+
+[moreblocks] loaded.=[moreblocks] caricato.
+
+#: nodes.lua
+
+Deprecated=
+All-faces Acacia Tree=
+All-faces Aspen Tree=
+All-faces Jungle Tree=
+All-faces Pine Tree=
+All-faces Tree=Albero su ogni lato
+Cactus Brick=Mattoni di cactus
+Cactus Checker=Scacchiera in cactus
+Centered Wooden Tile=Mattonella in legno centrata
+Checker Stone Tile=
+Circle Stone Bricks=Mattoni concentrici in pietra
+Clean Glass=Vetro pulito
+Coal Checker=Scacchiera in carbone
+Coal Glass=Vetro e carbone
+Clean Super Glow Glass=
+Trap Clean Super Glow Glass=
+Trap Clean Glass=
+Clean Glow Glass=
+Trap Clean Glow Glass=
+Coal Stone=Pietra in carbone
+Coal Stone Bricks=Mattoni di pietra in carbone
+Compressed Cobblestone=
+Compressed Desert Cobblestone=
+Compressed Dirt=
+Copper Patina Block=
+Empty Shelf=Scaffale Vuoto
+Full Wooden Tile=Mattonella in legno pieno
+Glow Glass=Vetro luminoso
+Iron Checker=Scacchiera in ferro
+Iron Glass=Vetro e ferro
+Iron Stone=Pietra in ferro
+Iron Stone Bricks=Mattoni di pietra in ferro
+Plankstone=Pietra e legno
+Rope=Corda
+Split Stone Tile=Mattonella in pietra divisa
+Stone Bricks=
+Stone Tile=Mattonella in pietra
+Super Glow Glass=Super vetro luminoso
+Sweeper=Spazzola
+Tar=
+Trap Desert Stone=
+Trap Glass=Vetro trappola
+Trap Glow Glass=Vetro luminoso trappola
+Trap Obsidian=
+Trap Obsidian Glass=
+Trap Sandstone=
+Trap Stone=Pietra trappola
+Trap Super Glow Glass=Super vetro luminoso trappola
+Wooden Tile=Mattonella in legno
+Offset Wooden Tile=
+Downwards Wooden Tile=
+Leftwards Wooden Tile=
+Rightwards Wooden Tile=
+
+#: ownership.lua
+
+Sorry, @1 owns that spot.=Spiacente, quel punto è di proprietà di @1
+someone=qualcuno
+
+#: stairsplus/common.lua
+
+@1 Microblock=Microblocco @1
+@1 Slab=Lastra - @1
+@1 Slope=
+@1 Panel=Pannello - @1
+@1 Stairs=Scale - @1
+    permissions: # textdomain: moreblocks
+
+# Polish translation for More Blocks.
+# Copyright © 2011-2020 Hugo Locurcio and contributors
+# This file is distributed under the same license as the More Blocks package.
+# mat9117, 2019
+# CodeXP <codexp@gmx.net>, 2018.
+
+#: circular_saw.lua
+
+Circular Saw=Piła tarczowa
+Input material=wejście@nmateriał
+Left-over=Resztki
+Max=Maks
+Recycle output=Przetwarzanie@nWyjście
+Set=Ustaw
+owned by @1=Należy do @1
+Circular Saw is empty=Piła tarczowa jest pusta
+Circular Saw is working on @1=Piła tarczowa pracuje na @1
+
+#: init.lua
+
+[moreblocks] loaded.=[moreblocks] załadowane.
+
+#: nodes.lua
+
+Deprecated=Przestarzałe
+All-faces Acacia Tree=Wielostronna tekstura akacji
+All-faces Aspen Tree=Wielostronna tekstura osiki
+All-faces Jungle Tree=Wielostronna tekstura drzewa dżunglowego
+All-faces Pine Tree=Wielostronna tekstura sosny
+All-faces Tree=Wielostronna tekstura drzewa
+Cactus Brick=Kaktusowa cegła
+Cactus Checker=Kaktusowa szachownica
+Centered Wooden Tile=Wyśrodkowany drewniany kafelek
+Checker Stone Tile=Kamienna szachownica
+Circle Stone Bricks=Okrągłe kamienne cegły
+Clean Glass=Czyste szkło
+Coal Checker=Węglowa szachownica
+Coal Glass=Szkło węglowe
+Clean Super Glow Glass=
+Trap Clean Super Glow Glass=
+Trap Clean Glass=
+Clean Glow Glass=
+Trap Clean Glow Glass=
+Coal Stone=Kamień węglowy
+Coal Stone Bricks=Węglowe kamienne cegły
+Compressed Cobblestone=Skompresowany bruk
+Compressed Desert Cobblestone=
+Compressed Dirt=Skompresowana ziemia
+Copper Patina Block=Blok patynowanej miedzi
+Empty Shelf=Pusta półka
+Full Wooden Tile=Pełny drewniany kafelek
+Glow Glass=Świecące szkło
+Iron Checker=Żelazna szachownica
+Iron Glass=Żelazne szkło
+Iron Stone=Żelazny kamień
+Iron Stone Bricks=Żelazne kamienne cegły
+Plankstone=Deskokamień
+Rope=Lina
+Split Stone Tile=Kamienny blok kafelkowy
+Stone Bricks=Kamienne cegły
+Stone Tile=Kamienny kafelek
+Super Glow Glass=Super świecące szkło
+Sweeper=Miotła
+Tar=Smoła
+Trap Desert Stone=Pułapka z pustynnego kamienia
+Trap Glass=Szklana pułapka
+Trap Glow Glass=Pułapka ze świecącego szkłą
+Trap Obsidian=Obsydianowa pułapka
+Trap Obsidian Glass=Pułapka z obsydianowego szkła
+Trap Sandstone=Pułapka z piaskowca
+Trap Stone=Kamienna pułapka
+Trap Super Glow Glass=Pułapka z super świecącego szkła
+Wooden Tile=Drewniany kafelek
+Offset Wooden Tile=
+Downwards Wooden Tile=Dolny drewniany kafelek
+# @deprecated
+Leftwards Wooden Tile=Lewy drewniany kafelek
+# @deprecated
+Rightwards Wooden Tile=Prawy drewniany kafelek
+
+#: ownership.lua
+Sorry, @1 owns that spot.=Przykro mi, to miejsce należy do @1
+someone=ktoś
+
+#: stairsplus/common.lua
+
+@1 Microblock=@1 Mikroblok
+@1 Slab=@1 Płyta
+@1 Slope=@1 Spad
+@1 Panel=@1 Panel
+@1 Stairs=@1 Schody
+      contents: read # for actions/checkout to fetch code
+      security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
+      actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
+    name: Analyze
+    runs-on: windows-latest
+
+    steps: # textdomain: moreblocks
+
+# Portuguese_Brazil translation for More Blocks.
+# Copyright © 2011-2020 Hugo Locurcio and contributors
+# This file is distributed under the same license as the More Blocks package.
+# Jose Anastacio 2020.
+
+#: circular_saw.lua
+
+Circular Saw=Serra Circular
+Input material=Material de entrada
+Left-over=Sobra
+Max=Máximo
+Recycle output=Saida reciclagem
+Set=Defina
+owned by @1=propriedade de @1
+Circular Saw is empty=Serra Circular está vazia
+Circular Saw is working on @1=Serra Circular está trabalhando em @1
+
+#: nodes.lua
+
+Deprecated=Descontinuado
+All-faces Acacia Tree=Árvore de Acácia multifacetada
+All-faces Aspen Tree=Árvore Aspen multifacetada
+All-faces Jungle Tree=Árvore da Selva multifacetada
+All-faces Pine Tree=Pinheiro multifacetado
+All-faces Tree=Tronco de árvore
+Cactus Brick=Tijolos de Cacto
+Cactus Checker=Xadrez de Cacto
+Centered Wooden Tile=Tijolos Centrado de Madeira
+Checker Stone Tile=Xadrez Centrado de Pedra
+Circle Stone Bricks=Tijolos de Pedra Cricular
+Clean Glass=Vidro Limpo
+Coal Checker=Xadrez de Carvão
+Coal Glass=Vidro com Carvao
+Clean Super Glow Glass=Cristal Limpo Super brilhante
+Trap Clean Super Glow Glass=Vidro Limpo Super brilhante
+Trap Clean Glass=Cristal Falso Limpo
+Clean Glow Glass=Cristal Brillante Limpo
+Trap Clean Glow Glass=Cristal Brillante Limpo Falso
+Coal Stone=Pedra de carvão
+Coal Stone Bricks=Tijolos de Carvão
+Compressed Cobblestone=Pedregulho Comprimido
+Compressed Desert Cobblestone=Pedregulho do Deserto Comprimido
+Compressed Dirt=Terra Comprimida
+Copper Patina Block=Bloco pátina de cobre
+Empty Shelf=Prateleira Vazia
+Full Wooden Tile=Xadrez de Madeira completo
+Glow Glass=Vidro brilhante
+Iron Checker=Xadrez de Ferro
+Iron Glass=Cristal com ferro
+Iron Stone=Ferro e Pedra
+Iron Stone Bricks=Tijolos de Ferro
+Plankstone=Prancha de Pedra
+Rope=Corda
+Split Stone Tile=Xadrez de Pedra Dividido
+Stone Bricks=Tijolos de Pedra
+Stone Tile=Xadrez de Pedra
+Super Glow Glass=Cristal Súper Brillante
+Sweeper=Limpiador
+Tar=Alquitrán
+Trap Desert Stone=Pedra del Desierto Falsa
+Trap Glass=Cristal Falso
+Trap Glow Glass=Cristal Brillante Falso
+Trap Obsidian=Obsidiana Falsa
+Trap Obsidian Glass=Vidrio de Obsidiana Falso
+Trap Sandstone=Arenisca Falsa
+Trap Stone=Piedra Falsa
+Trap Super Glow Glass=Cristal Súper Brillante Falso
+Wooden Tile=Xadrez de Madeira
+Offset Wooden Tile=Xadrez de Madeira compensada
+Downwards Wooden Tile=Xadrez de Madeira para baixo
+Leftwards Wooden Tile=Xadrez de Madeira para a esquerda
+Rightwards Wooden Tile=Xadrez de Madeira para a direita
+
+
+#: ownership.lua
+
+Sorry, @1 owns that spot.=Desculpe, @1 é o dono desse lugar.
+someone=alguem
+
+#: stairsplus/common.lua
+
+@1 Microblock=Microbloco de @1
+@1 Slab=Laje de @1
+@1 Slope=Declive de @1
+@1 Painel=Panel de @1
+@1 Stairs=Escadas de @1
+
+#: stairsplus/registrations.lua
+
+Concrete=Concreto
+Cement=Cimento
+Brass Block=Bloco de latão
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure CMake
+        run: cmake -B ${{ # textdomain: moreblocks
+
+# Russian translation for MOREBLOCKS minetest mod.
+# Copyright (C) 2018 Hugo Locurcio and contributors
+# This file is distributed under the same license as the MOREBLOCKS package.
+# CodeXP <codexp@gmx.net>, 2018.
+#
+#, fuzzy
+
+#: circular_saw.lua
+
+Circular Saw=циркулярная пила
+Input material=Входной@nматериал
+Left-over=Остатки
+Max=Кол.
+Recycle output=Пере-@nобработка
+Set=ОК
+owned by @1=принадлежит @1
+Circular Saw is empty=циркулярная пила пустая
+Circular Saw is working on @1=циркулярная пила, @1 в обработке
+
+#: init.lua
+
+[MOD] moreblocks loaded.=[MOD] moreblocks загружен.
+
+#: nodes.lua
+
+Deprecated=устаревший
+All-faces Acacia Tree=всестороннее бревно акации
+All-faces Aspen Tree=всестороннее бревно осины
+All-faces Jungle Tree=всестороннее бревно дерева джунглей
+All-faces Pine Tree=всестороннее бревно сосновое
+All-faces Tree=всестороннее бревно дерева
+Cactus Brick=кирпич из кактуса
+Cactus Checker=мозаика из кактуса
+Centered Wooden Tile=деревянная мозаика (центр)
+Checker Stone Tile=каменная мозаика
+Circle Stone Bricks=кольцевой камень
+Clean Glass=чистое стекло
+Coal Checker=угольная мозаика
+Coal Glass=угольное стекло
+Clean Super Glow Glass=
+Trap Clean Super Glow Glass=
+Trap Clean Glass=
+Clean Glow Glass=
+Trap Clean Glow Glass=
+Coal Stone=угольный камень
+Coal Stone Bricks=угольно-каменный кирпич
+Compressed Cobblestone=прессованный булыжник
+Compressed Desert Cobblestone=
+Compressed Dirt=прессованная земля
+Copper Patina Block=медный патинированный блок
+Empty Shelf=пустые полки
+Full Wooden Tile=деревянная мозаика
+Glow Glass=светящееся стекло
+Iron Checker=стальная мозаика
+Iron Glass=металлизированное стекло
+Iron Stone=железный камень
+Iron Stone Bricks=железно-каменный кирпич
+Plankstone=дерево-каменная мозаика
+Rope=верёвка
+Split Stone Tile=каменная мозаика
+Stone Bricks=каменный кирпич
+Stone Tile=каменная плитка
+Super Glow Glass=супер светящееся стекло
+Sweeper=метёлка
+Tar=смола
+Trap Desert Stone=мнимый пустынный камень
+Trap Glass=мнимое стекло
+Trap Glow Glass=мнимое светящееся стекло
+Trap Obsidian=мнимый обсидиан
+Trap Obsidian Glass=мнимое обсидиановое стекло
+Trap Sandstone=мнимый песчаник
+Trap Stone=мнимый камень
+Trap Super Glow Glass=мнимое супер светящееся стекло
+Wooden Tile=деревянная мозаика
+Offset Wooden Tile=деревянная мозаика (сверху)
+# @deprecated
+Downwards Wooden Tile=деревянная мозаика (снизу)
+# @deprecated
+Leftwards Wooden Tile=деревянная мозаика (слева)
+# @deprecated
+Rightwards Wooden Tile=деревянная мозаика (справа)
+
+#: ownership.lua
+Sorry, @1 owns that spot.=Извините, это принадлежит @1.
+someone=кому-то
+
+#: stairsplus/common.lua
+
+@1 Microblock=@1 (микроблок)
+@1 Slab=@1 (плита)
+@1 Slope=@1 (наклон)
+@1 Panel=@1 (панель)
+@1 Stairs=@1 (лестница) }}
+
+      # Build is not required unless generated source files are used
+      # - name: Build CMake
+      #   run: cmake --build ${{ env.build }}
+
+      - name: Initialize MSVC Code Analysis
+        uses: microsoft/msvc-code-analysis-action@04825f6d9e00f87422d6bf04e1a38b1f3ed60d99
+        # Provide a unique ID to access the sarif output path
+        id: run-analysis
+        with: # textdomain: moreblocks
+
+#: circular_saw.lua
+
+Circular Saw=
+Input material=
+Left-over=
+Max=
+Recycle output=
+Set=
+owned by @1=
+Circular Saw is empty=
+Circular Saw is working on @1=
+
+#: nodes.lua
+
+Deprecated=
+All-faces Acacia Tree=
+All-faces Aspen Tree=
+All-faces Jungle Tree=
+All-faces Pine Tree=
+All-faces Tree=
+Cactus Brick=
+Cactus Checker=
+Centered Wooden Tile=
+Checker Stone Tile=
+Circle Stone Bricks=
+Clean Glass=
+Coal Checker=
+Coal Glass=
+Clean Super Glow Glass=
+Trap Clean Super Glow Glass=
+Trap Clean Glass=
+Clean Glow Glass=
+Trap Clean Glow Glass=
+Coal Stone=
+Coal Stone Bricks=
+Compressed Cobblestone=
+Compressed Desert Cobblestone=
+Compressed Dirt=
+Copper Patina Block=
+Empty Shelf=
+Full Wooden Tile=
+Glow Glass=
+Iron Checker=
+Iron Glass=
+Iron Stone=
+Iron Stone Bricks=
+Plankstone=
+Rope=
+Split Stone Tile=
+Stone Bricks=
+Stone Tile=
+Super Glow Glass=
+Sweeper=
+Tar=
+Trap Desert Stone=
+Trap Glass=
+Trap Glow Glass=
+Trap Obsidian=
+Trap Obsidian Glass=
+Trap Sandstone=
+Trap Stone=
+Trap Super Glow Glass=
+Wooden Tile=
+Offset Wooden Tile=
+Downwards Wooden Tile=
+Leftwards Wooden Tile=
+Rightwards Wooden Tile=
+
+
+#: ownership.lua
+
+Sorry, @1 owns that spot.=
+someone=
+
+#: stairsplus/common.lua
+
+@1 Microblock=
+@1 Slab=
+@1 Slope=
+@1 Panel=
+@1 Stairs=
+
+#: stairsplus/registrations.lua
+
+Concrete=
+Cement=
+Brass Block=
+          cmakeBuildDirectory: ${{ # textdomain: moreblocks
+
+# zh_CN translation for More Blocks.
+# Copyright © 2011-2020 Hugo Locurcio and contributors
+# This file is distributed under the same license as the More Blocks package.
+# IFRFSX <IFRFSX@protonmail.com>, 2020.
+
+#: circular_saw.lua
+
+Circular Saw=圆锯
+Input material=输入@n材料
+Left-over=剩余材料
+Max=最大值
+Recycle output=回收@n输出物
+Set=设置
+owned by @1=属于@1所有
+Circular Saw is empty=圆锯是空的
+Circular Saw is working on @1=圆锯正在加工@1
+
+#: nodes.lua
+
+Deprecated=弃用
+All-faces Acacia Tree=全切面相思树木方块
+All-faces Aspen Tree=全切面白杨树木方块
+All-faces Jungle Tree=全切面丛林树木方块
+All-faces Pine Tree=全切面松树木方块
+All-faces Tree=全切面树木方块
+Cactus Brick=仙人掌砖
+Cactus Checker=仙人掌棋盘方块
+Centered Wooden Tile=居中的木瓦
+Checker Stone Tile=棋盘石瓦
+Circle Stone Bricks=圆石砖
+Clean Glass=干净的玻璃
+Coal Checker=棋盘煤块
+Coal Glass=煤玻璃
+Clean Super Glow Glass=
+Trap Clean Super Glow Glass=
+Trap Clean Glass=
+Clean Glow Glass=
+Trap Clean Glow Glass=
+Coal Stone=煤炭石
+Coal Stone Bricks=煤炭石砖
+Compressed Cobblestone=压缩圆石
+Compressed Desert Cobblestone=
+Compressed Dirt=压缩土
+Copper Patina Block=铜绿方块
+Empty Shelf=空书架
+Full Wooden Tile=全木瓦
+Glow Glass=发光玻璃
+Iron Checker=棋盘铁方块
+Iron Glass=铁玻璃
+Iron Stone=铁石
+Iron Stone Bricks=铁石砖
+Plankstone=板石
+Rope=绳子
+Split Stone Tile=裂石砖
+Stone Bricks=石砖
+Stone Tile=石瓦
+Super Glow Glass=超级发光玻璃
+Sweeper=清扫器
+Tar=焦油
+Trap Desert Stone=陷阱沙漠石
+Trap Glass=陷阱玻璃
+Trap Glow Glass=陷阱发光玻璃
+Trap Obsidian=陷阱黑耀石
+Trap Obsidian Glass=陷阱黑耀石玻璃
+Trap Sandstone=陷阱沙石
+Trap Stone=陷阱石
+Trap Super Glow Glass=陷阱超级发光玻璃
+Wooden Tile=木瓦
+Offset Wooden Tile=胶合木瓦
+Downwards Wooden Tile=向下的木瓦
+Leftwards Wooden Tile=向左的木瓦
+Rightwards Wooden Tile=向右的木瓦
+
+
+#: ownership.lua
+
+Sorry, @1 owns that spot.=抱歉，那个位置是@1的。
+someone=某人
+
+#: stairsplus/common.lua
+
+@1 Microblock=@1小方块
+@1 Slab=@1台阶
+@1 Slope=@1斜坡
+@1 Panel=@1嵌板
+@1 Stairs=@1楼梯
+
+#: stairsplus/registrations.lua
+
+Concrete=
+Cement=
+Brass Block= }}
+          # Ruleset file that will determine what checks will be run
+          ruleset: NativeRecommendedRules.ruleset
+
+      # Upload SARIF file to GitHub Code Scanning Alerts
+      - name: Upload SARIF to GitHub
+        uses: github/codeql-action/upload-sarif@v2
+        with: # textdomain: moreblocks
+
+# zh_TW translation for More Blocks.
+# Copyright © 2011-2020 Hugo Locurcio and contributors
+# This file is distributed under the same license as the More Blocks package.
+# IFRFSX <IFRFSX@protonmail.com>, 2020.
+
+#: circular_saw.lua
+
+Circular Saw=圓鋸
+Input material=輸入@n材料
+Left-over=剩餘材料
+Max=最大值
+Recycle output=回收@n輸出物
+Set=設置
+owned by @1=屬於@1所有
+Circular Saw is empty=圓鋸是空的
+Circular Saw is working on @1=圓鋸正在加工@1
+
+#: nodes.lua
+
+Deprecated=棄用
+All-faces Acacia Tree=全切面相思樹木方塊
+All-faces Aspen Tree=全切面白楊樹木方塊
+All-faces Jungle Tree=全切面叢林樹木方塊
+All-faces Pine Tree=全切面松樹木方塊
+All-faces Tree=全切面樹木方塊
+Cactus Brick=仙人掌磚
+Cactus Checker=仙人掌棋盤方塊
+Centered Wooden Tile=居中的木瓦
+Checker Stone Tile=棋盤石瓦
+Circle Stone Bricks=圓石磚
+Clean Glass=乾淨的玻璃
+Coal Checker=棋盤煤塊
+Coal Glass=煤玻璃
+Clean Super Glow Glass=
+Trap Clean Super Glow Glass=
+Trap Clean Glass=
+Clean Glow Glass=
+Trap Clean Glow Glass=
+Coal Stone=煤炭石
+Coal Stone Bricks=煤炭石磚
+Compressed Cobblestone=壓縮圓石
+Compressed Desert Cobblestone=
+Compressed Dirt=壓縮土
+Copper Patina Block=銅綠方塊
+Empty Shelf=空書架
+Full Wooden Tile=全木瓦
+Glow Glass=發光玻璃
+Iron Checker=棋盤鐵方塊
+Iron Glass=鐵玻璃
+Iron Stone=鐵石
+Iron Stone Bricks=鐵石磚
+Plankstone=板石
+Rope=繩子
+Split Stone Tile=裂石磚
+Stone Bricks=石磚
+Stone Tile=石瓦
+Super Glow Glass=超級發光玻璃
+Sweeper=清掃器
+Tar=焦油
+Trap Desert Stone=陷阱沙漠石
+Trap Glass=陷阱玻璃
+Trap Glow Glass=陷阱發光玻璃
+Trap Obsidian=陷阱黑耀石
+Trap Obsidian Glass=陷阱黑耀石玻璃
+Trap Sandstone=陷阱沙石
+Trap Stone=陷阱石
+Trap Super Glow Glass=陷阱超級發光玻璃
+Wooden Tile=木瓦
+Offset Wooden Tile=膠合木瓦
+Downwards Wooden Tile=向下的木瓦
+Leftwards Wooden Tile=向左的木瓦
+Rightwards Wooden Tile=向右的木瓦
+
+
+#: ownership.lua
+
+Sorry, @1 owns that spot.=抱歉，那個位置是@1的。
+someone=某人
+
+#: stairsplus/common.lua
+
+@1 Microblock=@1小方塊
+@1 Slab=@1臺階
+@1 Slope=@1斜坡
+@1 Panel=@1嵌板
+@1 Stairs=@1樓梯
+
+#: stairsplus/registrations.lua
+
+Concrete=
+Cement=
+Brass Block=
+          sarif_file: /*
+ *
+ *  Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ *  Not a Contribution, Apache license notifications and license are retained
+ *  for attribution purposes only.
+ *
+ * Copyright (C) 2012 The Android Open Source Project
+ * Copyright (C) 2018-2019 The LineageOS Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#ifndef _BDROID_BUILDCFG_H
+#define _BDROID_BUILDCFG_H
+
+// Disables read remote device feature
+#define MAX_ACL_CONNECTIONS   16
+#define MAX_L2CAP_CHANNELS    32
+#define BLE_VND_INCLUDED   TRUE
+#define GATT_MAX_PHY_CHANNEL  10
+
+// Increasing SEPs to 12 from 6 to support SHO/MCast i.e. two streams per codec
+#define AVDT_NUM_SEPS 35
+
+#endif 
+
+      # Upload SARIF file as an Artifact to download and view
+      # - name: Upload SARIF as an Artifact
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: sarif-file
+      #     path: ${{ steps.run-analysis.outputs.sarif }}
