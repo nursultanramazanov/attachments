@@ -15,190 +15,471 @@
 
 name: Pyre
 
-on: import os
-import uuid
-import time
-import random
-import urllib
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys  # 键盘类
+on: {
+  "presets": [
+    "es2015",
+    "stage-0"
+  ],
+  "plugins": [
+    "babel-plugin-transform-decorators-legacy"
+  ]
+}
+  workflow_dispatch: function dec(id) {
+  console.log('evaluated', id);
+  return () => console.log('executed', id);
+}
 
-def send_param_to_baidu(name, browser):
-    '''
-    :param name:    str
-    :param browser: webdriver.Chrome 实际应该是全局变量的
-    :return:        将要输入的 关键字 输入百度图片
-    '''
-    # 采用id进行xpath选择，id一般唯一
-    inputs = browser.find_element_by_xpath('//input[@id="kw"]')
-    inputs.clear()
-    inputs.send_keys(name)
-    time.sleep(1)
-    inputs.send_keys(Keys.ENTER)
-    time.sleep(1)
+class Example {
+  @dec(1)
+  @dec(2)
+  method() { }
+}
 
-    return
-
-def download_baidu_images(save_path, img_num, browser):
-    ''' 此函数应在
-    :param save_path: 下载路径 str
-    :param img_num:   下载图片数量 int
-    :param browser:   webdriver.Chrome
-    :return:
-    '''
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
-
-    img_link = browser.find_elements_by_xpath('//li/div[@class="imgbox"]/a/img[@class="main_img img-hover"]')
-    img_link[2].click()
-    # 切换窗口
-    windows = browser.window_handles
-    browser.switch_to.window(windows[-1])  # 切换到图像界面
-    time.sleep(random.random())
-
-    for i in range(img_num):
-        img_link_ = browser.find_element_by_xpath('//div/img[@class="currentImg"]')
-        src_link = img_link_.get_attribute('src')
-        print(src_link)
-        # 保存图片，使用urlib
-        img_name = uuid.uuid4()
-        urllib.request.urlretrieve(src_link, os.path.join(save_path, str(img_name) + '.jpg'))
-        # 关闭图像界面，并切换到外观界面
-        time.sleep(random.random())
-
-        # 点击下一张图片
-        browser.find_element_by_xpath('//span[@class="img-next"]').click()
-        time.sleep(random.random())
-
-    # 关闭当前窗口，并选择之前的窗口
-    browser.close()
-    browser.switch_to.window(windows[0])
-
-    return
-
-def main(names, save_root, img_num=[1000,], continue_num=0, is_open_chrome=False):
-    '''
-    :param names: list str
-    :param save_root: str
-    :param img_num: int list or int
-    :param continue_num: int 断点续爬开始索引
-    :param is_open_chrome: 爬虫是否打开浏览器爬取图像 bool default=False
-    :return:
-    '''
-    options = webdriver.ChromeOptions()
-    # 设置是否打开浏览器
-    if not is_open_chrome:
-        options.add_argument('--headless')  # 不打开浏览器
-    else:
-        prefs = {"profile.managed_default_content_settings.images": 2}
-        options.add_experimental_option("prefs", prefs)
-
-    browser = webdriver.Chrome(chrome_options=options)
-    browser.maximize_window()
-    browser.get(r'https://image.baidu.com/')
-    time.sleep(random.random())
-
-    assert type(names) == list, "names参数必须是字符串列表"
-    assert continue_num <= len(names), "中断续爬点需要小于爬虫任务数量"
-
-    if type(img_num) == int:
-        img_num = [img_num] * len(names)
-        print(img_num)
-    elif type(img_num) == list:
-        print(img_num)
-    else:
-        print("None, img_num 必须是int list or int")
-        return
-
-    for i in range(continue_num, len(names)):
-        name = names[i]
-        save_path = os.path.join(save_root, str(names.index(name)))  # 以索引作为文件夹名称
-        send_param_to_baidu(name, browser)
-        download_baidu_images(save_path=save_path, img_num=img_num[i], browser=browser)
-    # 全部关闭
-    browser.quit()
-    return
-
-
-
-if __name__=="__main__":
-
-    # main(names=['施工人员穿反光衣', '反光衣',],\
-    #      save_root=r'F:\Reflective_vests',\
-    #      img_num=500)
-
-    main(names=['森林积雪', '道路积雪', '建筑积雪', '山上积雪', '草原下雪', '小区积雪', '雪人堆', '蓝天白云下的建筑道路积雪'],\
-         save_root=r'F:\DataSets\snow\positive',\
-         img_num=[300, 300, 300, 100, 100, 100, 50, 50],\
-         continue_num=7)
-  workflow_dispatch: import os
-from icrawler.builtin import BaiduImageCrawler
-from icrawler.builtin import BingImageCrawler
-
-def check_path(path):
-    if not os.path.exists(path):
-        os.makedirs(path)
-    return path
-
-def baidu_bing_crwal(key_words=['中国人'], max_nums=[1000], save_root=r'./'):
-
-    assert len(key_words)==len(max_nums), "关键词和数量必须一致"
-    # 2个一起爬虫
-    save_root1 = os.path.join(save_root, 'baidu')
-    # 百度爬虫
-    for i in range(len(key_words)):
-        print('-'*20)
-        image_save_root = os.path.join(save_root1, str(i))
-
-        if not os.path.exists(image_save_root):
-            os.makedirs(image_save_root)
-
-        storage = {'root_dir': image_save_root}
-        crawler = BaiduImageCrawler(storage=storage)
-        crawler.crawl(key_words[i], max_num=max_nums[i])
-
-    # bing爬虫
-    save_root2 = os.path.join(save_root, 'bing')
-    for i in range(len(key_words)):
-        print('-'*20)
-        image_save_root = os.path.join(save_root2, str(i))
-
-        if not os.path.exists(image_save_root):
-            os.makedirs(image_save_root)
-
-        storage = {'root_dir': image_save_root}
-        crawler = BingImageCrawler(storage=storage)
-
-        crawler.crawl(key_words[i], max_num=max_nums[i])
-    return
-
-if __name__ == '__main__':
-    baidu_bing_crwal(key_words=['砂石料场', '河道内的砂石料场', '岸边的木材堆', '化学工厂丢弃的大塑料桶堆'],
-                     max_nums=[1000, 1000, 200, 500],
-                     save_root=r'F:\DataSets')
-  push:
+console.log(Example);
+  push: {
+  "presets": [
+    "es2015",
+    "stage-0"
+  ],
+  "plugins": [
+    "babel-plugin-transform-decorators-legacy"
+  ]
+}
     branches: [ "main" ]
-  pull_request:
+  pull_request: function dec(id) {
+  console.log('evaluated', id);
+  return () => console.log('executed', id);
+}
+
+class Example {
+  @dec(1)
+  @dec(2)
+  method() { }
+}
+
+console.log(Example);
     branches: [ "main" ]
 
-permissions:
+permissions: export { demo } from '../demo';
     contents: read
 
-jobs:
-  pyre:
-    permissions:
+jobs: import { delay } from 'bluebird';
+
+export async function demo(...args) {
+  await delay(100);
+  console.log(...args);
+}
+  pyre: import { demo } from './subdir/subdir2';
+
+demo('it', 'works');
+    permissions: #!/usr/bin/env node
+
+import cc from 'cli-color';
+import execa from 'execa';
+import minimist from 'minimist';
+import path from 'path';
+import pathExists from 'path-exists';
+import pkg from '../../package.json';
+import updateNotifier from 'update-notifier';
+import { clearScreen } from 'ansi-escapes';
+import { debounce } from 'lodash';
+import { tick, cross } from 'figures';
+
+const isMac = /^darwin/.test(process.platform);
+
+process.title = 'esbox';
+
+updateNotifier({ pkg }).notify();
+
+const red = cc.red;
+const black = cc.black;
+const bgWhite = cc.xtermSupported ? cc.bgXterm(250) : cc.bgWhite;
+const brown = cc.xtermSupported ? cc.xterm(137) : cc.yellow;
+const grey = cc.xtermSupported ? cc.xterm(241) : cc.blackBright;
+
+const help = `
+  ${bgWhite('                       ')}
+  ${bgWhite(`  ${isMac ? '📦' : ''}  ${black('ES2016 in a box')}   `)}
+  ${bgWhite(`     ${grey('git.io/esbox')}      `)}
+  ${bgWhite('                       ')}
+
+  ${brown('Usage')}
+    ${grey('>')} esbox ${grey('FILENAME')}
+
+  ${brown('Options')}
+    --cwd=${grey('DIRECTORY')}     run in a different directory
+    --no-watch          only run your script once
+    --no-clear          disable clearing the display before each run
+    --version           show esbox version
+    --poll              poll file system when watching files
+    --babelrc           look for a custom babelrc in FILENAME's dir
+    --babelrc=${grey('DIRECTORY')} use an explicit, custom babelrc`;
+
+// get input from command line
+const { _: input, ...flags } = minimist(process.argv.slice(2), {
+  default: {
+    cwd: null,
+    clear: true,
+    watch: true,
+    help: false,
+    version: false,
+    poll: false,
+    babelrc: false,
+  },
+  string: ['cwd', 'babelrc'],
+  boolean: ['clear', 'watch', 'help', 'version', 'poll'],
+  alias: {
+    v: 'version',
+    h: 'help',
+  },
+});
+
+// output version
+if (flags.version) {
+  console.log(pkg.version);
+  process.exit(0);
+}
+
+// output help
+if (flags.help || input.length !== 1) {
+  console.log(help);
+  process.exit(0);
+}
+
+// unpack flags
+const { clear, watch, babelrc } = flags;
+const cwd = flags.cwd
+  ? path.resolve(flags.cwd)
+  : process.cwd();
+
+// determine the real path to the user's script
+const userScript = (() => {
+  let name = path.resolve(cwd, input[0]);
+
+  // add .js extension if necessary
+  if (!pathExists.sync(name)) name = `${name}.js`;
+
+  // give up if not found
+  if (!pathExists.sync(name)) {
+    console.error(red(`Not found: ${input[0]}`));
+    process.exit(1);
+  }
+  return name;
+})();
+
+
+// function to clear the display and run the user's script
+const run = (() => {
+  const runner = path.resolve(__dirname, 'run.js');
+
+  let childProcess;
+
+  return debounce(() => {
+    if (clear) process.stdout.write(clearScreen);
+
+    console.log(brown(`${isMac ? '📦 ' : 'esbox'} ${path.relative(process.cwd(), userScript)}\n`));
+
+    if (childProcess) childProcess.kill();
+
+    childProcess = execa.spawn('node', [
+      runner,
+      '--file', userScript,
+      '--clear', clear,
+      '--babelrc', babelrc,
+    ], { cwd, stdio: 'inherit' });
+
+    childProcess.on('close', code => {
+      if (code !== null && code !== 143) {
+        console.log(brown(`\n${(code === 0 ? tick : cross)} exited with code ${code}`));
+
+        if (!clear) console.log();
+      }
+    });
+
+    return;
+  }, 10, { maxWait: 1000 });
+})();
+
+// start up
+if (watch) {
+  const sane = require('sane');
+
+  const onFileEvent = (name, root) => {
+    if (!/\.js$/.test(name)) return;
+
+    delete require.cache[path.resolve(root, name)];
+
+    run();
+  };
+
+  const watcher = sane(cwd, { poll: flags.poll });
+
+  watcher.on('add', onFileEvent);
+  watcher.on('change', onFileEvent);
+  watcher.on('delete', onFileEvent);
+
+  watcher.on('ready', run);
+}
+else run();
       actions: read
       contents: read
       security-events: write
     runs-on: ubuntu-latest
-    steps:
+    steps: import cc from 'cli-color';
+import { isNil } from 'lodash';
+
+const grey = cc.xtermSupported ? cc.xterm(241) : cc.blackBright;
+const red = cc.red;
+const bgWhite = cc.bgWhite;
+
+function spaces(count) {
+  return new Array(count).join(' ');
+}
+
+export default function excerpt({ contents, line, column }) {
+  const report = [];
+
+  // add source lines
+  if (!isNil(contents) && !isNil(line)) {
+    const lines = [];
+
+    const sourceSplit = contents.toString().split('\n');
+    let linesToShow = 8;
+    const maxDigits = String(line).length + 1;
+
+    // iterate backwards through the <=8 lines that are in the excerpt
+    let l = Math.min(sourceSplit.length, line + 4) + 1;
+    while (l-- > 1 && linesToShow-- > 0) {
+      const digitGap = spaces(maxDigits - String(l).length);
+
+      const numbering = '  ' + digitGap + l + ' ┃ ';
+      let code = sourceSplit[l - 1];
+      let text;
+
+      if (l === line) {
+        if (column) {
+          code = (
+            code.substring(0, column) +
+            bgWhite(red(code.charAt(column))) +
+            code.substring(column + 1)
+          );
+        }
+
+        text = numbering + code;
+      }
+      else text = grey(numbering + code);
+
+      lines.unshift(text);
+    }
+
+    report.push(lines.join('\n'));
+  }
+
+  // put it together
+  return report.join('\n');
+}
       - uses: actions/checkout@v4
-        with:
+        with: import builtins from 'builtin-modules';
+import cc from 'cli-color';
+import isAbsolute from 'is-absolute';
+import path from 'path';
+import pathExists from 'path-exists';
+import stackTrace from 'stack-trace';
+import subdir from 'subdir';
+import { isString } from 'lodash';
+
+const grey = cc.xtermSupported ? cc.xterm(241) : cc.blackBright;
+
+export default function readableStack(error, options = { cwd: process.cwd() }) {
+  const { cwd } = options;
+
+  if (!(error instanceof Error)) return 'Not an error: ' + error;
+
+  return stackTrace.parse(error).map(call => {
+    const fileName = call.getFileName();
+    const functionName = call.getFunctionName();
+    const lineNumber = call.getLineNumber();
+    const columnNumber = call.getColumnNumber();
+
+    if (isString(fileName)) {
+      const absolute = isAbsolute(fileName);
+      const resolvedFileName = path.resolve(cwd, fileName);
+
+      if (
+        subdir(cwd, fileName) &&
+        !subdir(path.join(cwd, 'node_modules'), resolvedFileName) &&
+        (absolute || (
+          builtins.indexOf(path.basename(fileName, '.js')) === -1 &&
+          pathExists.sync(resolvedFileName)
+        ))
+      ) {
+        // absolute and within CWD (but not in node_modules folder)
+        // - highlight this line
+        return (
+          (functionName ? grey('  at ') + functionName : ' ') +
+          grey(' in ') + path.join('./', path.relative(cwd, fileName)) +
+          (lineNumber ? grey(':' + lineNumber + ':' + columnNumber) : '')
+        );
+      }
+
+      // anywhere else - dim this line
+      return grey(
+        (functionName ? '  at ' + functionName : ' ') +
+        ' in ' + path.relative(cwd, fileName) +
+        (lineNumber ? ':' + lineNumber + ':' + columnNumber : '')
+      );
+    }
+
+    // no filename - dim this line
+    return grey(
+      (functionName ? '  at ' + functionName : ' ') +
+      ' in [unknown]'
+    );
+  }).join('\n');
+}
           submodules: true
 
       - name: Run Pyre
         uses: facebook/pyre-action@60697a7858f7cc8470d8cc494a3cf2ad6b06560d
-        with:
+        with: import 'babel-polyfill';
+
+import builtins from 'builtin-modules';
+import cc from 'cli-color';
+import excerpt from './excerpt';
+import fs from 'fs';
+import isAbsolute from 'is-absolute';
+import minimist from 'minimist';
+import path, { dirname } from 'path';
+import pathExists from 'path-exists';
+import readableStack from './readableStack';
+import stackTrace from 'stack-trace';
+import subdir from 'subdir';
+import { Module } from 'module';
+
+const flags = minimist(process.argv.slice(2));
+
+// register babel require hook
+{
+  // choose optimal config for the current engine
+  const presets = [require('babel-preset-stage-0'), require('babel-preset-react')];
+  const nodeVersion = Number(process.versions.node.split('.')[0]);
+  const shouldUseCustomBabelConfig = (flags.babelrc !== 'false');
+  const customBabelConfigPath = (flags.babelrc === '') ? dirname(flags.file) : flags.babelrc;
+  const customBabelConfigFile = path.resolve(customBabelConfigPath, '.babelrc');
+  const defaultBabelConfig = {
+    ignore: /node_modules/,
+    presets: [],
+  };
+  let effectiveBabelConfig = {};
+
+  if (nodeVersion > 4) presets.push(require('babel-preset-es2015-node5'));
+  else if (nodeVersion === 4) presets.push(require('babel-preset-es2015-node4'));
+  else presets.push(require('babel-preset-es2015'));
+  defaultBabelConfig.presets = presets;
+
+  if (shouldUseCustomBabelConfig) {
+    effectiveBabelConfig = {
+      extends: customBabelConfigFile,
+    };
+  }
+  else {
+    effectiveBabelConfig = defaultBabelConfig;
+  }
+
+  require('babel-register')(effectiveBabelConfig);
+}
+
+// make magic imports work
+{
+  const oldNodeModulePaths = Module._nodeModulePaths;
+  const esboxRoot = path.resolve(__dirname, '..', '..');
+  const esboxNodeModules = path.join(esboxRoot, 'node_modules');
+
+  Module._nodeModulePaths = function _modifiedNodeModulePaths(fromWhere, ...args) {
+    const paths = oldNodeModulePaths.call(this, fromWhere, ...args);
+    paths.push(esboxNodeModules);
+    return paths;
+  };
+}
+
+// catch global errors and present them nicely
+process.on('uncaughtException', error => {
+  const cwd = process.cwd();
+
+  let line;
+  let column;
+  let message;
+  let fileName;
+
+  if (error._babel) {
+    [fileName, message] = error.message.split(': ');
+
+    line = error.loc.line;
+    column = error.loc.column;
+  }
+  else {
+    const stack = stackTrace.parse(error);
+    const first = stack[0];
+
+    line = first.getLineNumber();
+    column = first.getColumnNumber();
+    fileName = first.getFileName();
+    message = error.message;
+  }
+
+  const fileRelative = (fileName && subdir(cwd, fileName))
+    ? path.relative(cwd, fileName)
+    : (fileName || '[null]')
+  ;
+
+  if (error._babel) {
+    console.log(
+      `\nCompile error: ${fileRelative}\n` +
+      excerpt({
+        line, column,
+        contents: fs.readFileSync(fileName),
+      }) + '\n' + cc.red(message.trim())
+    );
+  }
+  else {
+    // try to determine if it's a local file (as opposed to a builtin)
+    if (
+      fileName && (
+        isAbsolute(fileName) || (
+          builtins.indexOf(path.basename(fileName, '.js')) === -1 &&
+          pathExists.sync(path.resolve(cwd, fileName))
+        )
+      )
+    ) {
+      console.log(
+        `\nRuntime error: ${fileRelative}\n` +
+        excerpt({
+          line, column,
+          contents: fs.readFileSync(fileName),
+        }) + '\n'
+      );
+    }
+
+    console.log(
+      cc.red(message.trim()) + '\n' +
+      readableStack(error) + '\n'
+    );
+  }
+
+  process.exit(1);
+});
+
+// make sure promise rejections don't get swallowed
+process.on('unhandledRejection', reason => {
+  if (reason && reason instanceof Error) throw reason;
+
+  const error = new Error('Unhandled rejection');
+  error.reason = error;
+  throw error;
+});
+
+// run the user's script
+require(flags.file);
           # To customize these inputs:
           # See https://github.com/facebook/pyre-action#inputs
           repo-directory: './'
