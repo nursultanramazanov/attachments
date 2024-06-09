@@ -1,0 +1,311 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+# This workflow will download a prebuilt Ruby version, install dependencies and run tests with Rake
+# For more information see: https://github.com/marketplace/actions/setup-ruby-jruby-and-truffleruby
+
+name: Ruby
+
+on: //= link_tree ../images
+//= link_directory ../javascripts .js
+//= link_directory ../stylesheets .css
+  push:
+    branches: [ "main" ]
+  pull_request: 
+    branches: [ "main" ]
+
+permissions: // This is a manifest file that'll be compiled into application.js, which will include all the files
+// listed below.
+//
+// Any JavaScript/Coffee file within this directory, lib/assets/javascripts, vendor/assets/javascripts,
+// or any plugin's vendor/assets/javascripts directory can be referenced here using a relative path.
+//
+// It's not advisable to add code directly here, but if you do, it'll appear at the bottom of the
+// compiled file. JavaScript code in this file should be added after the last require_* statement.
+//
+// Read Sprockets README (https://github.com/rails/sprockets#sprockets-directives) for details
+// about supported directives.
+//
+//= require jquery
+//= require tether
+//= require bootstrap-sprockets
+//= require jquery_ujs
+//= require turbolinks
+//= require_tree .
+
+document.addEventListener("turbolinks:load", function() {
+  tinymce.remove();
+  tinymce.init({
+    height: '475',
+    selector:'textarea#post_body',
+    plugins: "codesample image media link code",
+    toolbar: "undo redo | styleselect | bold italic link | codesample image media | code"
+  });
+})
+  contents: read
+
+jobs: // Action Cable provides the framework to deal with WebSockets in Rails.
+// You can generate new channels where WebSocket features live using the rails generate channel command.
+//
+//= require action_cable
+//= require_self
+//= require_tree ./channels
+
+(function() {
+  this.App || (this.App = {});
+
+  App.cable = ActionCable.createConsumer();
+
+}).call(this);
+  test: # Place all the behaviors and hooks related to the matching controller here.
+# All this logic will automatically be available in application.js.
+# You can use CoffeeScript in this file: http://coffeescript.org/
+
+    runs-on: ubuntu-latest
+    strategy: body {
+  background-color: $light-gray;
+}
+
+h1, h2, h3, h4, h5, h6, p {
+  color: $primary-text-color;
+}
+
+h1, .card-title {
+  font-weight: bold;
+}
+
+h6 {
+  color: $secondary-text-color;
+  font-weight: 300;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Montserrat', sans-serif;
+}
+
+p, p span {
+  font-family: 'Merriweather', serif !important;
+  font-size: 20px;
+}
+      matrix: $light-gray: #f7f7f9;
+
+$primary-color-dark:   #1976D2;
+$primary-color:        #2196F3;
+$primary-color-light:  #BBDEFB;
+$primary-color-text:   #FFFFFF;
+$accent-color:         #CDDC39;
+$primary-text-color:   #212121;
+$secondary-text-color: #757575;
+$divider-color:        #BDBDBD;
+        ruby-version: ['2.6', '2.7', '3.0']
+
+    steps: .navbar {
+    border-radius: 0;
+    margin-bottom: 20px;
+    background-color: $primary-color;
+    .navbar-brand {
+        font-weight: bolder;
+        color: $accent-color;
+        .light {
+            font-weight: 300;
+            color: $primary-color-text;
+        }
+    }
+    .navbar-toggler {
+        outline: none;
+    }
+    .nav-link {
+      color: $primary-color-light !important;
+      &.active {
+        color: $primary-color-text !important;
+      }
+    }
+    .nav-item.author-nav {
+      img {
+        height: 30px;
+        width: 30px;
+        border-radius: 50%;
+        border: 1px solid $primary-color-light;
+      }
+    }
+}
+
+.collapse-bg {
+    padding: 0 !important;
+    .card {
+        margin-bottom: 0;
+        border-radius: 0;
+        border: none;
+    }
+}
+
+
+.collapse-bg .card .list-group-item {
+    padding: 0;
+    border-radius: 0 !important;
+    border-color: black;
+    a {
+        background-color: #1a1a1a;
+        color: #bdc3c7;
+        width: 100%;
+        height: 100%;
+        padding: 10px;
+        &:active {
+            color: white;
+            border-bottom: none;
+        }
+    }
+}
+    - uses: actions/checkout@v4
+    - name: Set up Ruby
+    # To automatically get bug fixes and new Ruby versions for ruby/setup-ruby,
+    # change this to (see https://github.com/ruby/setup-ruby#versioning):
+    # uses: ruby/setup-ruby@v1
+      uses: ruby/setup-ruby@55283cc23133118229fd3f97f9336ee23a179fcf # v1.146.0
+      with: .posts.index {
+  .card {
+    border: none;
+    border-radius: 0;
+    height: 400px;
+    margin-bottom: 20px;
+    background-color: white;
+    .card-topper {
+      height: 200px;
+      width: 100%;
+      background-size: cover;
+      background-position: center;
+    }
+    .card-block {
+      padding: 10px;
+      .card-title {
+        font-size: 1.3rem;
+        margin-bottom: 0;
+        a {
+          color: black;
+          text-decoration: none;
+        }
+      }
+      .tags {
+        margin-bottom: 0;
+        a {
+          font-family: 'Montserrat', sans-serif;
+          font-size: 12px;
+        }
+      }
+      .published-date {
+        font-size: 0.8rem;
+        color: #787878;
+        font-weight: 300;
+        margin-top: 0.3rem;
+        margin-bottom: 0.3rem;
+      }
+      .card-text {
+        font-size: 0.9rem;
+        color: black;
+      }
+
+    }
+  }
+}
+
+.posts.edit, .posts.new {
+  .card {
+    .card-block {
+      background-color: $light-gray;
+    }
+    .card-title {
+      margin-bottom: 0;
+      font-size: 18px;
+    }
+    .list-group-item {
+      padding: 10px;
+      border-left: 0;
+      border-right: 0;
+      input[type='text'], textarea {
+        font-size: 14px;
+        background-color: $light-gray;
+      }
+      textarea {
+        height: 100px;
+      }
+      &:last-child {
+        background-color: $light-gray;
+      }
+    }
+  }
+}
+
+.posts.show {
+  .author-bio {
+    background-color: white;
+    padding: 15px 45px;
+    margin: 30px 0;
+    img {
+      border-radius: 50%;
+    }
+    img, h4 {
+      margin-bottom: 10px;
+    }
+    h4 {
+      font-weight: bold;
+      font-size: 22px;
+    }
+    h6 {
+      font-weight: 300;
+      font-size: 16px
+    }
+  }
+}
+
+@media screen and (min-width: 34em) {
+  .posts.index .card {
+    height: 440px;
+  }
+}
+
+/* Medium. Above 48em (768px) */
+@media screen and (min-width: 48em) {
+  .posts.index .card {
+    height: 420px;
+  }
+}
+
+/* Extra large. Above 75em (1200px) */
+@media screen and (min-width: 75em) {
+  .posts.index .card {
+    height: 415px;
+  }
+}
+        ruby-version: ${{ .thin-text { font-weight: 300; }
+
+.apple_pagination {
+  background: #f1f1f1;
+  border: 1px solid #e5e5e5;
+  text-align: center;
+  padding: 1em;
+  cursor: default; }
+  .apple_pagination a, .apple_pagination span {
+    padding: 0.2em 0.3em; }
+  .apple_pagination .disabled {
+    color: #aaaaaa; }
+  .apple_pagination .current {
+    font-style: normal;
+    font-weight: bold;
+    background-color: #bebebe;
+    display: inline-block;
+    width: 1.4em;
+    height: 1.4em;
+    line-height: 1.5;
+    -moz-border-radius: 1em;
+    -webkit-border-radius: 1em;
+    border-radius: 1em;
+    text-shadow: rgba(255, 255, 255, 0.8) 1px 1px 1px; }
+  .apple_pagination a {
+    text-decoration: none;
+    color: black; }
+    .apple_pagination a:hover, .apple_pagination a:focus {
+      text-decoration: underline; }
+        bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+    - name: Run tests
+      run: bundle exec rake
