@@ -1,0 +1,411 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+#
+# Find more information at:
+# https://github.com/microsoft/msvc-code-analysis-action
+
+name: Microsoft C++ Code Analysis
+
+on: <?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+        <key>CFBundleDevelopmentRegion</key>
+        <string>English</string>
+        <key>CFBundleExecutable</key>
+        <string>CarLiftPrefs</string>
+        <key>CFBundleIdentifier</key>
+        <string>com.itzhouze.CarLiftPrefs</string>
+        <key>CFBundleInfoDictionaryVersion</key>
+        <string>6.0</string>
+        <key>CFBundlePackageType</key>
+        <string>BNDL</string>
+        <key>CFBundleShortVersionString</key>
+        <string>1.0.0</string>
+        <key>CFBundleSignature</key>
+        <string>????</string>
+        <key>CFBundleVersion</key>
+        <string>1.0</string>
+        <key>NSPrincipalClass</key>
+        <string>TSPRootListController</string>
+</dict>
+</plist>
+  push: <?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+        <key>items</key>
+        <array>
+                <dict>
+            <key>cell</key>
+            <string>PSGroupCell</string>
+            <key>headerCellClass</key>
+            <string>HBImageTableCell</string>
+            <key>height</key>
+            <integer>209</integer>
+            <key>icon</key>
+            <string>header.png</string>
+                </dict>
+                <dict>
+                        <key>cell</key>
+                        <string>PSGroupCell</string>
+                        <key>footerText</key>
+                        <string>Your screen turns on with every movement or bumb in your cars cell phone holder? Not anymore! Use the new Activator actions to temporarily disable the raise to wake feature. For example, activate it when you're connected to your cars bluetooth. Use the 'Deactivate' activator action to reset the raise to wake settings to default. For example, if you're no longer connected to your cars bluetooth.</string>
+                        <key>isStaticText</key>
+                        <true/>
+                </dict>
+                <dict>
+                        <key>cell</key>
+                        <string>PSSwitchCell</string>
+                        <key>default</key>
+                        <true/>
+                        <key>defaults</key>
+                        <string>com.itzhouze.carliftprefs</string>
+                        <key>key</key>
+                        <string>isEnabled</string>
+                        <key>label</key>
+                        <string>Enabled</string>
+                        <key>PostNotification</key>
+                        <string>com.itzhouze.carliftprefs/ReloadPrefs</string>
+                </dict>
+                <dict>
+                        <key>cell</key>
+                        <string>PSGroupCell</string>
+                  </dict>
+                <dict>
+                        <key>cell</key>
+                        <string>PSButtonCell</string>
+                        <key>action</key>
+                        <string>respringMethod</string>
+                        <key>label</key>
+                        <string>Respring</string>
+                </dict>
+                <dict>
+                        <key>cell</key>
+                        <string>PSButtonCell</string>
+                        <key>label</key>
+                        <string>CarLift on GitHub</string>
+                        <key>action</key>
+                        <string>openGithub</string>
+                </dict>
+                <dict>
+                        <key>cell</key>
+                        <key>PSGroupCell</key>
+                        <key>footerText</key>
+                        <string>Made with 💖 by itzhouze</string>
+                        <key>isStaticText</key>
+                        <true/>
+                        <key>footerAlignment</key>
+                        <real>1</real>
+                </dict>
+                <dict>
+                        <key>cell</key>
+                        <key>PSGroupCell</key>
+                        <key>footerText</key>
+                        <string>CarLift v1.0.1</string>
+                        <key>isStaticText</key>
+                        <true/>
+                        <key>footerAlignment</key>
+                        <real>1</real>
+                </dict>
+        </array>
+        <key>title</key>
+        <string>CarLift</string>
+</dict>
+</plist>
+    branches: [ "main" ]
+  pull_request: ARCHS = arm64 arm64e
+
+include $(THEOS)/makefiles/common.mk
+
+BUNDLE_NAME = CarLiftPrefs
+
+CarLiftPrefs_FILES = $(wildcard *.m)
+CarLiftPrefs_INSTALL_PATH = /Library/PreferenceBundles
+CarLiftPrefs_FRAMEWORKS = UIKit
+CarLiftPrefs_PRIVATE_FRAMEWORKS = Preferences
+CarLiftPrefs_EXTRA_FRAMEWORKS = Cephei CepheiPrefs
+CarLiftPrefs_CFLAGS = -fobjc-arc
+
+include $(THEOS_MAKE_PATH)/bundle.mk
+
+internal-stage::
+        $(ECHO_NOTHING)mkdir -p $(THEOS_STAGING_DIR)/Library/PreferenceLoader/Preferences$(ECHO_END)
+        $(ECHO_NOTHING)cp entry.plist $(THEOS_STAGING_DIR)/Library/PreferenceLoader/Preferences/CarLiftPrefs.plist$(ECHO_END)
+    branches: [ "main" ]
+  schedule: #import <Preferences/PSListController.h>
+#import <Preferences/PSSpecifier.h>
+#import <CepheiPrefs/HBRootListController.h>
+#import <Cephei/HBRespringController.h>
+
+@interface TSPRootListController : HBRootListController
+
+@end
+    - cron: '15 3 * * 4'
+
+env: #include "TSPRootListController.h"
+
+@implementation TSPRootListController
+
+-(NSArray *)specifiers {
+        if (!_specifiers) {
+                _specifiers = [self loadSpecifiersFromPlistName:@"Root" target:self];
+        }
+
+        return _specifiers;
+}
+
+//Add respring method that we call with a PSButtonCell in our root.plist
+-(void)respringMethod {
+        [HBRespringController respring];
+}
+
+//Adds a method to open the github link for the sourcecode
+- (void)openGithub {
+        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://github.com/itzhouze/CarLift"]];
+}
+
+@end
+  # Path to the CMake build directory.
+  build: '${{ #import <Preferences/PSListController.h>
+#import <Preferences/PSListItemsController.h>
+#import <Preferences/PSSpecifier.h>
+#import <CepheiPrefs/HBListController.h>
+
+@interface TSPSubPrefsListController : HBListController
+
+@end }}/build'
+
+permissions: #include "TSPSubPrefsListController.h"
+
+@implementation TSPSubPrefsListController
+
+- (id)specifiers {
+
+    return _specifiers;
+
+}
+
+- (void)loadFromSpecifier:(PSSpecifier *)specifier {
+
+    NSString *sub = [specifier propertyForKey:@"TSPSub"];
+    NSString *title = [specifier name];
+
+    _specifiers = [self loadSpecifiersFromPlistName:sub target:self];
+
+    [self setTitle:title];
+    [self.navigationItem setTitle:title];
+
+}
+
+- (void)setSpecifier:(PSSpecifier *)specifier {
+
+    [self loadFromSpecifier:specifier];
+    [super setSpecifier:specifier];
+}
+
+- (bool)shouldReloadSpecifiersOnResume {
+
+    return false;
+
+}
+
+@end
+  contents: read
+
+jobs: <?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+        <key>entry</key>
+        <dict>
+                <key>bundle</key>
+                <string>CarLiftPrefs</string>
+                <key>cell</key>
+                <string>PSLinkCell</string>
+                <key>detail</key>
+                <string>TSPRootListController</string>
+                <key>icon</key>
+                <string>icon.png</string>
+                <key>isController</key>
+                <true/>
+                <key>label</key>
+                <string>CarLift</string>
+        </dict>
+</dict>
+</plist>
+  analyze: <?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+        <key>compatible-modes</key>
+        <array>
+                <string>springboard</string>
+                <string>application</string>
+                <string>lockscreen</string>
+        </array>
+        <key>description</key>
+        <string>Temp override and disable raise to wake</string>
+        <key>title</key>
+        <string>Activate CarLift</string>
+</dict>
+</plist>
+    permissions: <?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+        <key>compatible-modes</key>
+        <array>
+                <string>springboard</string>
+                <string>application</string>
+                <string>lockscreen</string>
+        </array>
+        <key>description</key>
+        <string>Reset raise to wake to default settings</string>
+        <key>title</key>
+        <string>Deactivate CarLift</string>
+</dict>
+</plist>
+      contents: read # for actions/checkout to fetch code
+      security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
+      actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
+    name: Analyze
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure CMake
+        run: cmake -B ${{ npx lint-staged }}
+
+      # Build is not required unless generated source files are used
+      # - name: Build CMake
+      #   run: cmake --build ${{ env.build }}
+
+      - name: Initialize MSVC Code Analysis
+        uses: microsoft/msvc-code-analysis-action@04825f6d9e00f87422d6bf04e1a38b1f3ed60d99
+        # Provide a unique ID to access the sarif output path
+        id: run-analysis
+        with: { Filter = { Bundles = ( "com.apple.springboard" ); }; }
+          cmakeBuildDirectory: ${{ ARCHS = arm64 arm64e
+
+include $(THEOS)/makefiles/common.mk
+
+TWEAK_NAME = CarLift
+CarLift_FILES = Tweak.x
+CarLift_CFLAGS = -fobjc-arc
+CarLift_LIBRARIES = activator
+CarLift_EXTRA_FRAMEWORKS += Cephei
+CarLift_LDFLAGS = -lactivator
+
+include $(THEOS_MAKE_PATH)/tweak.mk }}
+          # Ruleset file that will determine what checks will be run
+          ruleset: NativeRecommendedRules.ruleset
+
+      # Upload SARIF file to GitHub Code Scanning Alerts
+      - name: Upload SARIF to GitHub
+        uses: github/codeql-action/upload-sarif@v2
+        with: #import <libactivator/libactivator.h>
+#import <Cephei/HBPreferences.h>
+#import <RemoteLog.h>
+
+static BOOL isEnabled = NO;
+static BOOL activatorSwitchActivated = NO;
+
+@interface ActivateNow : NSObject<LAListener> {}
+@end
+@implementation ActivateNow
+
+-(void)activator:(LAActivator *)activator receiveEvent:(LAEvent *)event {
+    @autoreleasepool {
+      activatorSwitchActivated = YES;
+      //RLog(@"CarLift - Activated!");
+    }
+}
+
++(void)load {
+    @autoreleasepool {
+            [LASharedActivator registerListener:[self new] forName:@"com.itzhouze.carlift.activate"];
+    }
+}
+- (NSString *)activator:(LAActivator *)activator requiresLocalizedTitleForListenerName:(NSString *)listenerName {
+        return @"Activate";
+}
+- (NSString *)activator:(LAActivator *)activator requiresLocalizedDescriptionForListenerName:(NSString *)listenerName {
+        return @"Temp override and disable raise to wake";
+}
+- (NSString *)activator:(LAActivator *)activator requiresLocalizedGroupForListenerName:(NSString *)listenerName {
+        return @"CarLift";
+}
+@end
+
+@interface DeactivateNow : NSObject<LAListener> {}
+@end
+@implementation DeactivateNow
+
+-(void)activator:(LAActivator *)activator receiveEvent:(LAEvent *)event {
+    @autoreleasepool {
+      //RLog(@"CarLift - DEACTIVATED!");
+      activatorSwitchActivated = NO;
+    }
+}
+
++(void)load {
+    @autoreleasepool {
+            [LASharedActivator registerListener:[self new] forName:@"com.itzhouze.carlift.deactivate"];
+    }
+}
+
+- (NSString *)activator:(LAActivator *)activator requiresLocalizedTitleForListenerName:(NSString *)listenerName {
+        return @"Deactivate";
+}
+- (NSString *)activator:(LAActivator *)activator requiresLocalizedDescriptionForListenerName:(NSString *)listenerName {
+        return @"Reset raise to wake to default settings";
+}
+- (NSString *)activator:(LAActivator *)activator requiresLocalizedGroupForListenerName:(NSString *)listenerName {
+        return @"CarLift";
+}
+@end
+
+%hook SBLiftToWakeManager
+-(void)liftToWakeController:(id)arg1 didObserveTransition:(long long)arg2 deviceOrientation:(long long)arg3  {
+  if (isEnabled && activatorSwitchActivated)
+  {
+    return;
+  }
+
+  %orig;
+}
+%end
+
+// Thanks to https://github.com/
+%hook HBForceCepheiPrefs
++ (BOOL)forceCepheiPrefsWhichIReallyNeedToAccessAndIKnowWhatImDoingISwear {
+    return YES;
+}
+%end
+
+%ctor {
+  HBPreferences *preferences = [[HBPreferences alloc] initWithIdentifier:@"com.itzhouze.carliftprefs"];
+
+        // MAIN
+  [preferences registerBool:&isEnabled default:YES forKey:@"isEnabled"];
+
+  if (!isEnabled)
+  {
+    return;
+  }
+
+  %init;
+}
+          sarif_file: ${{ steps.run-analysis.outputs.sarif }}
+
+      # Upload SARIF file as an Artifact to download and view
+      # - name: Upload SARIF as an Artifact
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: sarif-file
+      #     path: ${{ steps.run-analysis.outputs.sarif }}
