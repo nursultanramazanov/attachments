@@ -274,12 +274,12 @@ jobs: <?xml version="1.0" encoding="UTF-8"?>
     name: Analyze
     runs-on: windows-latest
 
-    steps: npx lint-staged
+    steps: ㈲㔺‷㜱〮
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Configure CMake
-        run: cmake -B ${{ env.build }}
+        run: cmake -B ${{ npx lint-staged }}
 
       # Build is not required unless generated source files are used
       # - name: Build CMake
