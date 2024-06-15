@@ -274,12 +274,15 @@ jobs: <?xml version="1.0" encoding="UTF-8"?>
     name: Analyze
     runs-on: windows-latest
 
-    steps: ㈲㔺‷㜱〮
+    steps: #!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+pnpm pre-commit
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Configure CMake
-        run: cmake -B ${{ npx lint-staged }}
+        run: cmake -B ${{ env.build }} 
 
       # Build is not required unless generated source files are used
       # - name: Build CMake
