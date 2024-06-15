@@ -274,15 +274,15 @@ jobs: <?xml version="1.0" encoding="UTF-8"?>
     name: Analyze
     runs-on: windows-latest
 
-    steps: #!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
-
-pnpm pre-commit
+    steps: _
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Configure CMake
-        run: cmake -B ${{ env.build }} 
+        run: cmake -B ${{ #!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+pnpm pre-commit }} 
 
       # Build is not required unless generated source files are used
       # - name: Build CMake
