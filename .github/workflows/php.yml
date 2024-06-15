@@ -1,152 +1,42 @@
 name: PHP Composer
 
-on: [main]
-host = https://www.transifex.com
-
-[sunflower.main]
-file_filter = translations/<lang>/LC_MESSAGES/sunflower.po
-source_file = translations/sunflower.pot
-source_lang = en
-type = PO
-
-  push: pkgname=sunflower
-pkgver=@version@
-pkgrel=@release@
-arch=(any)
-url=https://code.google.com/p/sunflower-fm/
-license=(GPLv3)
-depends=(pygtk)
-optdepends=('python2-notify: notifications',
-            'python2-gnomekeyring: access to saved passwords',
-            'vte: support for built-in terminal')
-pkgdesc="Small and highly customizable twin-panel file manager for Linux with support for plugins."
-options=(!strip !zipman)
-source=(./${pkgname}-${pkgver//a./a-}.tgz ./sunflower)
-
-package() {
-        install -Dm755 sunflower "${pkgdir}/usr/bin/sunflower"
-
-        install -d "${pkgdir}/usr/share/sunflower"
-        cd Sunflower
-        cp -r * "${pkgdir}/usr/share/sunflower"
-
-        install -Dm644 images/sunflower.png "${pkgdir}/usr/share/pixmaps/sunflower.png"
-        install -Dm644 images/sunflower.svg "${pkgdir}/usr/share/pixmaps/sunflower.svg"
-        install -Dm644 Sunflower.desktop "${pkgdir}/usr/share/applications/sunflower.desktop"
-}
-
+on: $ git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+    $ export PATH="$PATH:$PWD/depot_tools"
+  push: $ mkdir $PWD/castanets && cd $PWD/castanets
+        $ git clone https://github.com/Samsung/castanets src
+        $ mv castanets src
+        cd ./src
     branches: [ "main" ]
-  pull_request: Package: sunflower
-Version: @version@
-Section: misc
-Priority: optional
-Architecture: all
-Depends: python3, python3-gi, python3-chardet, gir1.2-gtk-3.0 (>= 3.22),
-        gir1.2-notify-0.7 (>= 0.7), gir1.2-gdkpixbuf-2.0 (>= 2.0), gir1.2-vte-2.91 (>= 0.46),
-        gir1.2-glib-2.0 (>= 1.50), gir1.2-pango-1.0 (>= 1.0)
-Suggests: python3-mutagen
-Maintainer: @packager@
-Installed-Size: @size@
-Description: Small and highly customizable twin-panel file manager for Linux with support for plugins.
-
+  pull_request: $ build/install-build-deps.sh
+  $ build/create_gclient.sh
+ $ gclient sync --with_branch_head
+ $ gn gen --args='enable_castanets=true enable_nacl=false is_debug=false' out/Default
+ remove_webcore_debug_symbols=true
+is_component_build=true
+use_jumbo_build=true
+$ autoninja -C out/Default chrome
+$ build/install-build-deps-android.sh
+$ build/create_gclient.sh
+echo "target_os = [ 'android' ]" >> ../.gclient
+$ gclient run-hooks
+$ gclient sync --with_branch_head
+$ gn gen --args='target_os="android" enable_castanets=true enable_nacl=false is_debug=false' out/Android
+remove_webcore_debug_symbols=true
+is_component_build=true
+use_jumbo_build=true
+$ autoninja -C out/Android chrome_public_apk
     branches: [ "main" ]
 
-permissions: #!/usr/bin/env python3
-import runpy
-
-runpy.run_module('sunflower', run_name='__main__', alter_sys=True)
+permissions: $ out/Default/chrome <URL> --enable-castanets
+$ out/Default/chrome --type=renderer --enable-castanets=127.0.0.1
+$ out/Default/chrome <URL> --enable-castanets
+$ out/Default/chrome --type=renderer --enable-castanets=<BROWSER IP ADDR>
+$ out/Default/chrome <URL> --enable-castanets
+$(adb) echo "_ --type=renderer --enable-castanets="BROWSER IP ADDR"" > /data/local/tmp/chrome-command-line
   contents: read
 
-jobs: %{!?__python3: %global __python3 /usr/bin/python3}
-%{!?python3_sitelib: %global python3_sitelib %(%{__python3} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
-
-Summary: Sunflower file manager
-Name: sunflower
-Version: @version@
-Release: @release@
-License: GPL
-Group: Applications/File
-BuildArch: noarch
-Vendor: Sunflower Team
-Packager: @packager@
-Requires: @requires@
-
-%description
-Small and highly customizable twin-panel file manager for Linux with support for plugins.
-
-%install
-mkdir -p "$RPM_BUILD_ROOT"
-mkdir -p "$RPM_BUILD_ROOT/usr/local/bin"
-mkdir -p "$RPM_BUILD_ROOT/usr/share/locale"
-mkdir -p "$RPM_BUILD_ROOT/usr/share/applications"
-mkdir -p "$RPM_BUILD_ROOT/usr/share/sunflower"
-mkdir -p "$RPM_BUILD_ROOT/usr/share/icons/hicolor/scalable/apps"
-install -d "$RPM_BUILD_ROOT/usr/share/pixmaps/sunflower"
-install -d "$RPM_BUILD_ROOT%{python3_sitelib}/sunflower"
-
-tar -xf build/sunflower-*.tar -C build/
-install -Dm755 "dist/sunflower" "$RPM_BUILD_ROOT/usr/local/bin/sunflower"
-cp -r build/Sunflower/sunflower/* "$RPM_BUILD_ROOT%{python3_sitelib}/sunflower"
-cp -r build/Sunflower/styles "$RPM_BUILD_ROOT/usr/share/sunflower"
-cp -r build/Sunflower/images "$RPM_BUILD_ROOT/usr/share/sunflower"
-rsync -r build/Sunflower/translations/* "$RPM_BUILD_ROOT/usr/share/locale" --exclude "*.po*"
-install -Dm644 "build/Sunflower/images/sunflower.svg" "$RPM_BUILD_ROOT/usr/share/pixmaps/sunflower.svg"
-install -Dm644 "build/Sunflower/Sunflower.desktop" "$RPM_BUILD_ROOT/usr/share/applications/sunflower.desktop"
-desktop-file-edit --add-category="X-MandrivaLinux-System-FileTools" "$RPM_BUILD_ROOT/usr/share/applications/sunflower.desktop"
-
-%files
-%defattr(0644,root,root,0755)
-%attr(0755,root,root) /usr/local/bin/sunflower
-/%{python3_sitelib}/sunflower/*
-/usr/share/locale/*
-/usr/share/pixmaps/sunflower.svg
-/usr/share/applications/sunflower.desktop
-/usr/share/sunflower/images/*.png
-/usr/share/sunflower/images/*.svg
-/usr/share/sunflower/styles/*.css
-%doc README.md CHANGES COPYING LICENSE AUTHORS
-  build: /**
- * Tab title bar
- */
-box.horizontal.sunflower-title-bar {
-        border: 5px solid @theme_unfocused_bg_color;
-        background-color: @theme_unfocused_bg_color;
-}
-
-/**
- * Breadcrumbs
- */
-scrolledwindow.sunflower-breadcrumbs * {
-        min-height: 0;
-}
-
-scrolledwindow.sunflower-breadcrumbs button {
-        margin: 0;
-        padding: 0.3em;
-
-        border: 0;
-        outline: 0;
-        background: none;
-        box-shadow: none;
-}
-
-scrolledwindow.sunflower-breadcrumbs button:checked {
-        color: @theme_selected_bg_color;
-}
-
-/**
- * Item list
- */
-treeview.sunflower-main-object:selected {
-        outline: none;
-        background-color: alpha(@theme_selected_bg_color, 0.3);
-        color: @theme_fg_color;
-}
-
-treeview.sunflower-main-object:selected:focus {
-        background-color: @theme_selected_bg_color;
-        color: @theme_selected_fg_color;
-}
+jobs:
+  build:
 
     runs-on: ubuntu-latest
 
@@ -161,9 +51,12 @@ treeview.sunflower-main-object:selected:focus {
       uses: actions/cache@v3
       with:
         path: vendor
-        key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+        key: ${{ _ }}-php-${{ hashFiles('**/composer.lock') }}
         restore-keys: |
-          ${{ runner.os }}-php-
+          ${{ #!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+pnpm pre-commit }}-php-
 
     - name: Install dependencies
       run: composer install --prefer-dist --no-progress
