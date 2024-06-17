@@ -1,46 +1,829 @@
 name: PHP Composer
 
-on: $ git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
-    $ export PATH="$PATH:$PWD/depot_tools"
-  push: $ mkdir $PWD/castanets && cd $PWD/castanets
-        $ git clone https://github.com/Samsung/castanets src
-        $ mv castanets src
-        cd ./src
+on: <?php
+
+// This is the configuration for yiic console application.
+// Any writable CConsoleApplication properties can be configured here.
+return array(
+        'basePath'=>dirname(__FILE__).DIRECTORY_SEPARATOR.'..',
+        'name'=>'My Console Application',
+
+        // preloading 'log' component
+        'preload'=>array('log'),
+
+        'import'=>array(
+                'application.models.*',
+                'application.components.*',
+                'application.vendor.iachilles.eavactiverecord.*',
+                'application.vendor.iachilles.eavactiverecord.datatypes.*',
+                'application.vendor.iachilles.eavactiverecord.helpers.*',
+        ),
+
+        // application components
+        'components'=>array(
+
+                // database settings are configured in database.php
+                'db'=>require(dirname(__FILE__).'/database.php'),
+
+                'log'=>array(
+                        'class'=>'CLogRouter',
+                        'routes'=>array(
+                                array(
+                                        'class'=>'CFileLogRoute',
+                                        'levels'=>'error, warning',
+                                ),
+                        ),
+                ),
+
+        ),
+);
+  push: <?php
+
+// This is the database connection configuration.
+return array(
+
+        'connectionString' => 'mysql:host=localhost;dbname=classifieds',
+        'emulatePrepare' => false,
+        'username' => 'root',
+        'password' => '',
+        'charset' => 'utf8',
+    'tablePrefix' => '',
+    'schemaCachingDuration' => 3600,
+
+);
     branches: [ "main" ]
-  pull_request: $ build/install-build-deps.sh
-  $ build/create_gclient.sh
- $ gclient sync --with_branch_head
- $ gn gen --args='enable_castanets=true enable_nacl=false is_debug=false' out/Default
- remove_webcore_debug_symbols=true
-is_component_build=true
-use_jumbo_build=true
-$ autoninja -C out/Default chrome
-$ build/install-build-deps-android.sh
-$ build/create_gclient.sh
-echo "target_os = [ 'android' ]" >> ../.gclient
-$ gclient run-hooks
-$ gclient sync --with_branch_head
-$ gn gen --args='target_os="android" enable_castanets=true enable_nacl=false is_debug=false' out/Android
-remove_webcore_debug_symbols=true
-is_component_build=true
-use_jumbo_build=true
-$ autoninja -C out/Android chrome_public_apk
+  pull_request: <?php
+
+// uncomment the following to define a path alias
+// Yii::setPathOfAlias('local','path/to/local-folder');
+
+// This is the main Web application configuration. Any writable
+// CWebApplication properties can be configured here.
+return array(
+    'basePath'=>dirname(dirname(__FILE__)),
+        'name'=>'Доска объявлений',
+        'language'=>'ru',
+
+        // preloading 'log' component
+        'preload'=>array('log'),
+
+        // autoloading model and component classes
+        'import'=>array(
+                'application.models.*',
+                'application.components.*',
+                'application.vendor.iachilles.eavactiverecord.*',
+                'application.vendor.iachilles.eavactiverecord.datatypes.*',
+                'application.vendor.iachilles.eavactiverecord.helpers.*',
+        ),
+
+        'modules'=>array(
+                // uncomment the following to enable the Gii tool
+                /*
+                'gii'=>array(
+                        'class'=>'system.gii.GiiModule',
+                        'password'=>'Enter Your Password Here',
+                        // If removed, Gii defaults to localhost only. Edit carefully to taste.
+                        'ipFilters'=>array('127.0.0.1','::1'),
+                ),
+                */
+        ),
+
+        // application components
+        'components'=>array(
+
+                'user'=>array(
+                        // enable cookie-based authentication
+                        'allowAutoLogin'=>true,
+                ),
+
+                'viewRenderer' => array(
+                        'class' => 'application.vendor.yiiext.twig-renderer.ETwigViewRenderer',
+                        'twigPathAlias' => 'application.vendor.twig.twig.lib.Twig',
+                        'fileExtension' => '.twig',
+                ),
+
+                'eavCache' => array(
+                        'class' => 'system.caching.CRedisCache'
+                ),
+
+                'cache' => array(
+                        'class' => 'system.caching.CRedisCache',
+                        'hostname' => '127.0.0.1',
+                        'port' => 6379,
+                        'database' => 0,
+                ),
+
+                // uncomment the following to enable URLs in path-format
+
+                'urlManager'=>array(
+                        'urlFormat'=>'path',
+                        'showScriptName'=>false,
+                        'rules'=>array(
+                                '<controller:\w+>/<id:\d+>'=>'<controller>/view',
+                                '<controller:\w+>/<action:\w+>/<id:\d+>'=>'<controller>/<action>',
+                                '<controller:\w+>/<action:\w+>'=>'<controller>/<action>',
+                        ),
+                ),
+
+
+                // database settings are configured in database.php
+                'db'=>require(dirname(__FILE__).'/database.php'),
+
+                'authManager'=>array(
+            'class'=>'CDbAuthManager',
+            'connectionID'=>'db',
+        ),
+
+                'errorHandler'=>array(
+                        // use 'site/error' action to display errors
+                        'errorAction'=>YII_DEBUG ? null : 'site/error',
+                ),
+
+                'log'=>array(
+                        'class'=>'CLogRouter',
+                        'routes'=>array(
+                                array(
+                                        'class'=>'CFileLogRoute',
+                                        'levels'=>'error, warning',
+                                ),
+                                // uncomment the following to show log messages on web pages
+
+                                /*array(
+                                        'class'=>'CWebLogRoute',
+                                ),*/
+
+                        ),
+                ),
+
+        ),
+
+        // application-level parameters that can be accessed
+        // using Yii::app()->params['paramName']
+        'params'=>array(
+                // this is used in contact page
+                'adminEmail'=>'webmaster@example.com',
+                // configure to match your sphinx configuration,
+                // or comment to disable sphinxsearch
+                'sphinx'=>array(
+                        'dsn'=>'mysql:host=127.0.0.1;port=9306',
+                        'user'=>'root',
+                        'pass'=>'',
+                        'indexes'=>array('rt'=>['rt_ad'], 'disc'=>['ix_ad']),
+                ),
+        ),
+);
     branches: [ "main" ]
 
-permissions: $ out/Default/chrome <URL> --enable-castanets
-$ out/Default/chrome --type=renderer --enable-castanets=127.0.0.1
-$ out/Default/chrome <URL> --enable-castanets
-$ out/Default/chrome --type=renderer --enable-castanets=<BROWSER IP ADDR>
-$ out/Default/chrome <URL> --enable-castanets
-$(adb) echo "_ --type=renderer --enable-castanets="BROWSER IP ADDR"" > /data/local/tmp/chrome-command-line
+permissions: <?php
+
+return CMap::mergeArray(
+        require(dirname(__FILE__).'/main.php'),
+        array(
+                'components'=>array(
+                        'fixture'=>array(
+                                'class'=>'system.test.CDbFixtureManager',
+                        ),
+                        /* uncomment the following to provide test database connection
+                        'db'=>array(
+                                'connectionString'=>'DSN for test database',
+                        ),
+                        */
+                ),
+        )
+);
   contents: read
 
-jobs:
-  build:
+jobs: <?php
+
+class AdController extends Controller
+{
+        /**
+         * @return array action filters
+         */
+        public function filters()
+        {
+                return array(
+                        'accessControl', // perform access control for CRUD operations
+                        'postOnly + delete', // we only allow deletion via POST request
+                );
+        }
+
+        /**
+         * Specifies the access control rules.
+         * This method is used by the 'accessControl' filter.
+         * @return array access control rules
+         */
+        public function accessRules()
+        {
+                return array(
+                        array('allow',  // allow all users to perform 'index' and 'view' actions
+                                'actions'=>array('index','view'),
+                                'users'=>array('*'),
+                        ),
+                        array('allow', // allow authenticated user to perform 'create' and 'update' actions
+                                'actions'=>array('update','new','getcategories','create'),
+                                'users'=>array('@'),
+                        ),
+                        array('allow', // allow admin user to perform 'admin' and 'delete' actions
+                                'actions'=>array('admin','delete'),
+                                'users'=>array('admin'),
+                        ),
+                        array('deny',  // deny all users
+                                'users'=>array('*'),
+                        ),
+                );
+        }
+
+        /**
+         * Displays a particular model.
+         * @param integer $id the ID of the model to be displayed
+         */
+        public function actionView($id)
+        {
+                $this->render('view',array(
+                        'model'=>$this->loadModel($id),
+                ));
+        }
+
+        /**
+         * Displays the page with category selection. When user choose category, redirect
+         * to the 'create' page.
+         */
+        public function actionNew()
+        {
+                $criteria = new CDbCriteria;
+                $criteria->condition = 'level=:level';
+                $criteria->params = array('level'=>1);
+                $models = Category::model()->findAll($criteria);
+                $this->render('new', array('models'=>$models));
+        }
+
+        /*
+         * Responds to ajax request from ad/new page
+         */
+        public function actionGetcategories()
+        {
+                if (!isset($_POST['id'])) {
+                        echo json_encode(array());
+                        Yii::app()->end();
+                }
+                $id = intval($_POST['id']);
+                $parent_cat = Category::model()->findByPk($id);
+                $children = $parent_cat->children()->findAll();
+                if (!$children) {
+                        echo json_encode(array());
+                        Yii::app()->end();
+                }
+                foreach ($children as $child) {
+                        $res[$child->id] = $child->title;
+                }
+                echo json_encode($res);
+        }
+
+        /**
+         * Creates a new model.
+         * If creation is successful, the browser will be redirected to the 'view' page.
+         */
+        public function actionCreate($id)
+        {
+                $regions = Region::getRegionList();
+                $model = new Ad;
+                $model->attachEavSet(Category::model()->findByPk($id)->set_id);
+                $model->category_id = $id;
+
+                $photo = new Photo;
+                if (isset($_POST['Ad'])) {
+                        $model->attributes = $_POST['Ad'];
+                        $model->author_id = Yii::app()->user->id;
+                        $transaction = Yii::app()->db->beginTransaction();
+                        if ($model->saveWithEavAttributes()) {
+                                $images = CUploadedFile::getInstancesByName('images');
+                                if ($images) {
+                                        $wrongImage = Photo::validateMultiple($images, $model->id);
+                                        if (!$wrongImage) {
+                                                foreach ($images as $image) {
+                                                        $photo = new Photo;
+                                                        $photo->image = $image;
+                                                        $photo->name = $photo->image->getName();
+                                                        $photo->ad_id = $model->id;
+                                                        $photo->save(false);
+                                                }
+                                                $transaction->commit();
+                                                $this->redirect(array('view','id'=>$model->id));
+                                        } else {
+                                                $photo = $wrongImage;
+                                                $transaction->rollback();
+                                        }
+                                } else {
+                                        $transaction->commit();
+                                        SphinxService::saveAdToRt($model->id);
+                                        $this->redirect(array('view','id'=>$model->id));
+                                }
+                        }
+                }
+
+                $this->render('create', array(
+                        'model'=>$model,
+                        'photo'=>$photo,
+                        'regions'=>$regions,
+                ));
+        }
+
+
+
+        /**
+         * Updates a particular model.
+         * If update is successful, the browser will be redirected to the 'view' page.
+         * @param integer $id the ID of the model to be updated
+         */
+        /*public function actionUpdate($id)
+        {
+                $model=$this->loadModel($id);
+
+                // Uncomment the following line if AJAX validation is needed
+                // $this->performAjaxValidation($model);
+
+                if(isset($_POST['Ad']))
+                {
+                        $model->attributes=$_POST['Ad'];
+                        if($model->save())
+                                $this->redirect(array('view','id'=>$model->id));
+                }
+
+                $this->render('update',array(
+                        'model'=>$model,
+                ));
+        }*/
+
+        /**
+         * Deletes a particular model.
+         * If deletion is successful, the browser will be redirected to the 'admin' page.
+         * @param integer $id the ID of the model to be deleted
+         */
+        /*public function actionDelete($id)
+        {
+                $this->loadModel($id)->delete();
+
+                // if AJAX request (triggered by deletion via admin grid view), we should not redirect the browser
+                if(!isset($_GET['ajax']))
+                        $this->redirect(isset($_POST['returnUrl']) ? $_POST['returnUrl'] : array('admin'));
+        }*/
+
+        /**
+         * Lists all models.
+         */
+        /*public function actionIndex()
+        {
+                $dataProvider=new CActiveDataProvider('Ad');
+                $this->render('index',array(
+                        'dataProvider'=>$dataProvider,
+                ));
+        }*/
+
+        /**
+         * Manages all models.
+         */
+        /*public function actionAdmin()
+        {
+                $model=new Ad('search');
+                $model->unsetAttributes();  // clear any default values
+                if(isset($_GET['Ad']))
+                        $model->attributes=$_GET['Ad'];
+
+                $this->render('admin',array(
+                        'model'=>$model,
+                ));
+        }*/
+
+        /**
+         * Returns the data model based on the primary key given in the GET variable.
+         * If the data model is not found, an HTTP exception will be raised.
+         * @param integer $id the ID of the model to be loaded
+         * @return Ad the loaded model
+         * @throws CHttpException
+         */
+        public function loadModel($id)
+        {
+                $model = Ad::model()->withEavAttributes()->with(
+                                'author', 'category', 'city', 'photos'
+                        )->findByPk($id);
+                if($model===null)
+                        throw new CHttpException(404,'The requested page does not exist.');
+                return $model;
+        }
+
+        /**
+         * Performs the AJAX validation.
+         * @param Ad $model the model to be validated
+         */
+        protected function performAjaxValidation($model)
+        {
+                if(isset($_POST['ajax']) && $_POST['ajax']==='ad-form')
+                {
+                        echo CActiveForm::validate($model);
+                        Yii::app()->end();
+                }
+        }
+}
+  build: <?php
+
+class SiteController extends Controller
+{
+    /**
+     * Declares class-based actions.
+     */
+    public function actions()
+    {
+        return array(
+            // captcha action renders the CAPTCHA image displayed on the contact page
+            /*'captcha'=>array(
+                'class'=>'CCaptchaAction',
+                'backColor'=>0xFFFFFF,
+            ),*/
+            // page action renders "static" pages stored under 'protected/views/site/pages'
+            // They can be accessed via: index.php?r=site/page&view=FileName
+            /*'page'=>array(
+                'class'=>'CViewAction',
+            ),*/
+        );
+    }
+
+    public function filters()
+    {
+        return array('accessControl');
+    }
+
+    public function accessRules()
+    {
+        return array(
+            array('allow',
+                'actions'=>array('index','view','search', 'error', 'contact',
+                    'login', 'logout', 'cityData', 'getcities'),
+                'users'=>array('*'),
+            ),
+            array('allow',
+                'actions'=>array('logout'),
+                'users'=>array('@'),
+            ),
+            array('deny',
+                'actions'=>array('admin'),
+                'users'=>array('*'),
+            ),
+            array('deny',  // deny all users
+                'users'=>array('*'),
+            ),
+        );
+    }
+
+    /**
+     * This is the default 'index' action that is invoked
+     * when an action is not explicitly requested by users.
+     */
+    public function actionIndex()
+    {
+        $criteria = new CDbCriteria;
+        $criteria->addInCondition('level', array(1,2));
+        $criteria->order = 'root, lft';
+        $categories = Category::model()->findAll($criteria);
+        $form = new SearchForm;
+        $criteria = new CDbCriteria(array(
+            'condition' => 'status="published"',
+            'order' => 'added DESC',
+            'with' => array('photos'),
+            'limit' => 20,
+        ));
+        $models = Ad::model()->withEavAttributes()->findAll($criteria);
+        $dp = new CActiveDataProvider('Ad', array(
+            'data' => $models,
+            'pagination' => false
+        ));
+        $regionList = Region::model()->getRegionList();
+
+        $this->render(
+            'index',
+            array(
+                'categories' => $categories,
+                'form' => $form,
+                'dataProvider' => $dp,
+                'regionList' => $regionList,
+            )
+        );
+    }
+
+    /**
+     * Action to search ads by key words
+     */
+    public function actionSearch($id=null,$word=null,$city_id=null,$page=null)
+    {
+        $criteria = new CDbCriteria;
+        $criteria->condition = "status='published'";
+        $criteria->order = 'added DESC';
+
+        $form = new EavSearchForm();
+        if ($id) {
+            $category = Category::model()->findByPk($id);
+            $childrenIds = ($category) ? $category->getDescendantIds() : null;
+            if ($childrenIds) {
+                $criteria->addInCondition('category_id', $childrenIds);
+            } else {
+                $criteria->addCondition('category_id=:category_id');
+                $criteria->params[':category_id'] = intval($id);
+            }
+            $form->model->attachEavSet($category->set_id);
+            $form->eav = $form->model->getEavAttributes();
+            if (isset($_GET['search'])) {
+                $form->fill();
+                $this->buildEavCriteria($criteria);
+            }
+        }
+        if ($word) {
+            try {
+                $ids = $this->sphinxSearch($word);
+                $criteria->addInCondition('t.id', $ids);
+            } catch(Exception $e) {
+                $criteria->addCondition('title LIKE :word1 OR description LIKE :word2');
+                $criteria->params[':word1'] = "%{$word}%";
+                $criteria->params[':word2'] = "%{$word}%";
+            }
+        }
+        if ($city_id) {
+            $criteria->addCondition('city_id=:city_id');
+            $criteria->params[':city_id'] = intval($city_id);
+        }
+        $regions = Region::model()->getRegionList();
+
+        $dp = new EavActiveDataProvider('Ad', array(
+            'criteria'=>$criteria,
+            'countCriteria'=>array(
+                'condition'=>$criteria->condition,
+                'params'=>$criteria->params),
+            'pagination'=>array('pageSize'=>10),
+            ));
+
+        $this->render(
+            'search',
+            array(
+                'dataProvider'=>$dp,
+                'form'=>$form,
+                'regions'=>$regions,
+            )
+        );
+    }
+
+    /**
+     * This is the action to handle external exceptions.
+     */
+    public function actionError()
+    {
+        if($error=Yii::app()->errorHandler->error)
+        {
+            if(Yii::app()->request->isAjaxRequest)
+                echo $error['message'];
+            else
+                $this->render('error', $error);
+        }
+    }
+
+    /**
+     * Displays the login page
+     */
+    public function actionLogin()
+    {
+        $model=new LoginForm;
+
+        // if it is ajax validation request
+        if(isset($_POST['ajax']) && $_POST['ajax']==='login-form')
+        {
+            echo CActiveForm::validate($model);
+            Yii::app()->end();
+        }
+
+        // collect user input data
+        if(isset($_POST['LoginForm']))
+        {
+            $model->attributes=$_POST['LoginForm'];
+            // validate user input and redirect to the previous page if valid
+            if($model->validate() && $model->login())
+                $this->redirect(Yii::app()->user->returnUrl);
+        }
+        // display the login form
+        $this->render('login',array('model'=>$model));
+    }
+
+    /**
+     * Logs out the current user and redirect to homepage.
+     */
+    public function actionLogout()
+    {
+        Yii::app()->user->logout();
+        $this->redirect(Yii::app()->homeUrl);
+    }
+
+    public function actionGetcities()
+    {
+        if (!isset($_POST['id']) or empty($_POST['id'])) {
+            echo json_encode(false);
+            Yii::app()->end();
+        }
+        $regionId = intval($_POST['id']);
+        $cities = City::model()->findAllByAttributes(array('region_id'=>$regionId));
+        foreach ($cities as $city) {
+            $res[$city->city_id] = $city->name;
+        }
+        echo json_encode($res);
+    }
+
+    protected function buildEavCriteria(CDbCriteria $criteria, $getParam = 'search')
+    {
+        $attributes = Ad::getEavList();
+        foreach ($_GET[$getParam] as $key=>$value) {
+            if (!in_array($key, $attributes)) continue;
+            if (is_array($value)) {
+                if (isset($value['min']) and !empty($value['min'])) {
+                    $criteria->addCondition("::{$key} >= :min_{$key}");
+                    $criteria->params[":min_{$key}"] = $value['min'];
+                }
+                if (isset($value['max']) and !empty($value['max'])) {
+                    $criteria->addCondition("::{$key} <= :max_{$key}");
+                    $criteria->params[":max_{$key}"] = $value['max'];
+                }
+            } else {
+                if (!$value) continue;
+                $criteria->addCondition("::{$key} = :{$key}");
+                $criteria->params[":{$key}"] = $value;
+            }
+        }
+    }
+}
 
     runs-on: ubuntu-latest
 
-    steps:
+    steps: <?php
+
+class UserController extends Controller
+{
+        /**
+         * @return array action filters
+         */
+        public function filters()
+        {
+                return array(
+                        'accessControl', // perform access control for CRUD operations
+                        'postOnly + delete', // we only allow deletion via POST request
+                );
+        }
+
+        /**
+         * Specifies the access control rules.
+         * This method is used by the 'accessControl' filter.
+         * @return array access control rules
+         */
+        public function accessRules()
+        {
+                return array(
+                        array('allow',  // allow all users to perform 'index' and 'view' actions
+                                'actions'=>array('register'),
+                                'users'=>array('*'),
+                        ),
+                        array('allow', // allow authenticated user to perform 'create' and 'update' actions
+                                'actions'=>array('update','view'),
+                                'users'=>array('@'),
+                        ),
+                        array('allow', // allow admin user to perform 'admin' and 'delete' actions
+                                'actions'=>array('admin','delete', 'index'),
+                                'users'=>array('admin'),
+                        ),
+                        array('deny',  // deny all users
+                                'users'=>array('*'),
+                        ),
+                );
+        }
+
+        /**
+         * Displays a particular model.
+         * @param integer $id the ID of the model to be displayed
+         */
+        public function actionView($id)
+        {
+                $this->render('view',array(
+                        'model'=>$this->loadModel($id),
+                ));
+        }
+
+        /**
+         * Creates a new model.
+         * If creation is successful, the browser will be redirected to the 'view' page.
+         */
+        public function actionRegister()
+        {
+                $model = new User;
+                $this->performAjaxValidation($model);
+
+                if(isset($_POST['User']))
+                {
+                        $model->attributes = $_POST['User'];
+                        $model->password = CPasswordHelper::hashPassword($model->password);
+                        if($model->save())
+                                $this->redirect(array('site/login'));
+                }
+
+                $this->render('register',array(
+                        'model'=>$model,
+                ));
+        }
+
+        /**
+         * Updates a particular model.
+         * If update is successful, the browser will be redirected to the 'view' page.
+         * @param integer $id the ID of the model to be updated
+         */
+        /*public function actionUpdate($id)
+        {
+                $model=$this->loadModel($id);
+
+                // Uncomment the following line if AJAX validation is needed
+                // $this->performAjaxValidation($model);
+
+                if(isset($_POST['User']))
+                {
+                        $model->attributes=$_POST['User'];
+                        if($model->save())
+                                $this->redirect(array('view','id'=>$model->id));
+                }
+
+                $this->render('update',array(
+                        'model'=>$model,
+                ));
+        }*/
+
+        /**
+         * Deletes a particular model.
+         * If deletion is successful, the browser will be redirected to the 'admin' page.
+         * @param integer $id the ID of the model to be deleted
+         */
+        /*public function actionDelete($id)
+        {
+                $this->loadModel($id)->delete();
+
+                // if AJAX request (triggered by deletion via admin grid view), we should not redirect the browser
+                if(!isset($_GET['ajax']))
+                        $this->redirect(isset($_POST['returnUrl']) ? $_POST['returnUrl'] : array('admin'));
+        }*/
+
+        /**
+         * Lists all models.
+         */
+        /*public function actionIndex()
+        {
+                $dataProvider=new CActiveDataProvider('User');
+                $this->render('index',array(
+                        'dataProvider'=>$dataProvider,
+                ));
+        }*/
+
+        /**
+         * Manages all models.
+         */
+        /*public function actionAdmin()
+        {
+                $model=new User('search');
+                $model->unsetAttributes();  // clear any default values
+                if(isset($_GET['User']))
+                        $model->attributes=$_GET['User'];
+
+                $this->render('admin',array(
+                        'model'=>$model,
+                ));
+        }*/
+
+        /**
+         * Returns the data model based on the primary key given in the GET variable.
+         * If the data model is not found, an HTTP exception will be raised.
+         * @param integer $id the ID of the model to be loaded
+         * @return User the loaded model
+         * @throws CHttpException
+         */
+        public function loadModel($id)
+        {
+                $model=User::model()->findByPk($id);
+                if($model===null)
+                        throw new CHttpException(404,'The requested page does not exist.');
+                return $model;
+        }
+
+        /**
+         * Performs the AJAX validation.
+         * @param User $model the model to be validated
+         */
+        protected function performAjaxValidation($model)
+        {
+                if(isset($_POST['ajax']) && $_POST['ajax']==='user-form')
+                {
+                        echo CActiveForm::validate($model);
+                        Yii::app()->end();
+                }
+        }
+}
     - uses: actions/checkout@v4
 
     - name: Validate composer.json and composer.lock
@@ -49,14 +832,207 @@ jobs:
     - name: Cache Composer packages
       id: composer-cache
       uses: actions/cache@v3
-      with:
+      with: _
         path: vendor
-        key: ${{ _ }}-php-${{ hashFiles('**/composer.lock') }}
+        key: ${{ 
+CREATE TABLE `country` (
+  `country_id` int(11) unsigned NOT NULL auto_increment,
+  `city_id` int(11) NOT NULL default 0,
+  `name` varchar(128) NOT NULL default '',
+  PRIMARY KEY (`country_id`),
+  KEY `city_id` (`city_id`)
+);
+
+CREATE TABLE `region` (
+  `region_id` int(10) unsigned NOT NULL auto_increment,
+  `country_id` int(10) unsigned NOT NULL default 0,
+  `city_id` int(10) unsigned NOT NULL default 0,
+  `name` varchar(64) NOT NULL default '',
+  PRIMARY KEY (`region_id`),
+  FOREIGN KEY (`country_id`) REFERENCES `country` (`country_id`),
+  KEY `city_id` (`city_id`)
+);
+
+CREATE TABLE `city` (
+  `city_id` int(11) unsigned NOT NULL auto_increment,
+  `country_id` int(11) unsigned NOT NULL default 0,
+  `region_id` int(10) unsigned NOT NULL default 0,
+  `name` varchar(128) NOT NULL default '',
+  PRIMARY KEY  (`city_id`),
+  FOREIGN KEY (`country_id`) REFERENCES `country` (`country_id`),
+  FOREIGN KEY (`region_id`) REFERENCES `region` (`region_id`)
+);
+
+CREATE TABLE `eav_set` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Primary surrogate key',
+  `name` varchar(255) NOT NULL COMMENT 'Set name',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `eav_attribute` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Primary surrogate key',
+  `type` tinyint(1) unsigned NOT NULL COMMENT '0 if the attribute can have only one value or 1 if the attribute can have multiple values',
+  `data_type` varchar(255) NOT NULL COMMENT 'The attribute data type',
+  `name` varchar(255) NOT NULL COMMENT 'The attribute name',
+  `label` varchar(255) DEFAULT NULL COMMENT 'The attribute label',
+  `data` text COMMENT 'The serialized data',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `un_eav_attribute_name` (`name`) USING BTREE
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `eav_attribute_set` (
+  `eav_attribute_id` int(10) unsigned NOT NULL COMMENT 'Composite primary key',
+  `eav_set_id` int(10) unsigned NOT NULL COMMENT 'Composite primary key',
+  `weight` int(10) NOT NULL COMMENT 'The weight of the attribute',
+  PRIMARY KEY (`eav_attribute_id`,`eav_set_id`),
+  KEY `no_eav_attribute_set_attribute_id` (`eav_attribute_id`) USING BTREE,
+  KEY `no_eav_attribute_set_set_id` (`eav_set_id`) USING BTREE,
+  KEY `no_eav_attribute_set_weight` (`weight`) USING BTREE,
+  CONSTRAINT `fk_eav_attribute_id_eav_attribute_set` FOREIGN KEY (`eav_attribute_id`) REFERENCES `eav_attribute` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_eav_set_id_eav_attribute_set` FOREIGN KEY (`eav_set_id`) REFERENCES `eav_set` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `eav_attribute_date` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Primary surrogate key',
+  `eav_attribute_id` int(10) unsigned NOT NULL COMMENT 'Foreign key references eav_attribute(id)',
+  `entity_id` int(11) NOT NULL COMMENT 'Primary key of an entity',
+  `entity` varchar(255) NOT NULL COMMENT 'The entity name',
+  `value` datetime NOT NULL COMMENT 'The value of the attribute',
+  PRIMARY KEY (`id`),
+  KEY `no_eav_attribute_date_entity_entity_id` (`entity`,`entity_id`) USING BTREE,
+  KEY `no_eav_attribute_date_eav_attribute_id` (`eav_attribute_id`) USING BTREE,
+  KEY `no_eav_attribute_date_value` (`value`) USING BTREE,
+  CONSTRAINT `fk_eav_attribute_id_eav_attribute_date` FOREIGN KEY (`eav_attribute_id`) REFERENCES `eav_attribute` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `eav_attribute_varchar` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Primary surrogate key',
+  `eav_attribute_id` int(10) unsigned NOT NULL COMMENT 'Foreign key references eav_attribute(id)',
+  `entity_id` int(11) NOT NULL COMMENT 'Primary key of an entity',
+  `entity` varchar(255) NOT NULL COMMENT 'The entity name',
+  `value` varchar(255) NOT NULL COMMENT 'The value of the attribute',
+  PRIMARY KEY (`id`),
+  KEY `no_eav_attribute_varchar_entity_entity_id` (`entity`,`entity_id`) USING BTREE,
+  KEY `no_eav_attribute_varchar_eav_attribute_id` (`eav_attribute_id`) USING BTREE,
+  CONSTRAINT `fk_eav_attribute_id_eav_attribute_varchar` FOREIGN KEY (`eav_attribute_id`) REFERENCES `eav_attribute` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `eav_attribute_int` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Primary surrogate key',
+  `eav_attribute_id` int(10) unsigned NOT NULL COMMENT 'Foreign key references eav_attribute(id)',
+  `entity_id` int(11) NOT NULL COMMENT 'Primary key of an entity',
+  `entity` varchar(255) NOT NULL COMMENT 'The entity name',
+  `value` int(11) NOT NULL COMMENT 'The value of the attribute',
+  PRIMARY KEY (`id`),
+  KEY `no_eav_attribute_int_entity_entity_id` (`entity`,`entity_id`) USING BTREE,
+  KEY `no_eav_attribute_int_eav_attribute_id` (`eav_attribute_id`) USING BTREE,
+  KEY `no_eav_attribute_int_value` (`value`) USING BTREE,
+  CONSTRAINT `fk_eav_attribute_id_eav_attribute_int` FOREIGN KEY (`eav_attribute_id`) REFERENCES `eav_attribute` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `eav_attribute_text` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Primary surrogate key',
+  `eav_attribute_id` int(10) unsigned NOT NULL COMMENT 'Foreign key references eav_attribute(id)',
+  `entity_id` int(11) NOT NULL COMMENT 'Primary key of an entity',
+  `entity` varchar(255) NOT NULL COMMENT 'The entity name',
+  `value` text COMMENT 'The value of the attribute',
+  PRIMARY KEY (`id`),
+  KEY `no_eav_attribute_text_entity_entity_id` (`entity`,`entity_id`) USING BTREE,
+  KEY `no_eav_attribute_text_eav_attribute_id` (`eav_attribute_id`) USING BTREE,
+  CONSTRAINT `fk_eav_attribute_id_eav_attribute_text` FOREIGN KEY (`eav_attribute_id`) REFERENCES `eav_attribute` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `eav_attribute_numeric` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Primary surrogate key',
+  `eav_attribute_id` int(10) unsigned NOT NULL COMMENT 'Foreign key references eav_attribute(id)',
+  `entity_id` int(11) NOT NULL COMMENT 'Primary key of an entity',
+  `entity` varchar(255) NOT NULL COMMENT 'The entity name',
+  `value` double NOT NULL COMMENT 'The value of the attribute',
+  PRIMARY KEY (`id`),
+  KEY `no_eav_attribute_numeric_entity_entity_id` (`entity`,`entity_id`) USING BTREE,
+  KEY `no_eav_attribute_numeric_eav_attribute_id` (`eav_attribute_id`) USING BTREE,
+  CONSTRAINT `fk_eav_attribute_id_eav_attribute_numeric` FOREIGN KEY (`eav_attribute_id`) REFERENCES `eav_attribute` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `eav_attribute_money` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Primary surrogate key',
+  `eav_attribute_id` int(10) unsigned NOT NULL COMMENT 'Foreign key references eav_attribute(id)',
+  `entity_id` int(11) NOT NULL COMMENT 'Primary key of an entity',
+  `entity` varchar(255) NOT NULL COMMENT 'The entity name',
+  `value` DECIMAL(13,2) NOT NULL COMMENT 'The value of the attribute',
+  PRIMARY KEY (`id`),
+  KEY `no_eav_attribute_money_entity_entity_id` (`entity`,`entity_id`) USING BTREE,
+  KEY `no_eav_attribute_money_eav_attribute_id` (`eav_attribute_id`) USING BTREE,
+  CONSTRAINT `fk_eav_attribute_id_eav_attribute_money` FOREIGN KEY (`eav_attribute_id`) REFERENCES `eav_attribute` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+
+CREATE TABLE user (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  email VARCHAR(255) NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  name VARCHAR(255),
+  phone VARCHAR(255),
+  vk VARCHAR(255),
+  skype VARCHAR(255),
+  PRIMARY KEY (id),
+  UNIQUE (email)
+);
+
+CREATE TABLE `category` (
+  `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `title` VARCHAR(255) NOT NULL,
+  `root` INT(10) UNSIGNED DEFAULT NULL,
+  `lft` INT(10) UNSIGNED NOT NULL,
+  `rgt` INT(10) UNSIGNED NOT NULL,
+  `level` SMALLINT(5) UNSIGNED NOT NULL,
+  `set_id` INT(10) UNSIGNED,
+  PRIMARY KEY (`id`),
+  KEY `root` (`root`),
+  KEY `lft` (`lft`),
+  KEY `rgt` (`rgt`),
+  KEY `level` (`level`),
+  FOREIGN KEY (`set_id`) REFERENCES `eav_set` (`id`) ON UPDATE CASCADE ON DELETE SET NULL
+);
+
+CREATE TABLE ad (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  title VARCHAR(255) NOT NULL,
+  description TEXT NOT NULL,
+  added TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  author_id INT UNSIGNED NOT NULL,
+  city_id INT UNSIGNED NOT NULL,
+  category_id INT(10) UNSIGNED NOT NULL,
+  visit_counter INT UNSIGNED NOT NULL DEFAULT 0,
+  status ENUM('unpublished', 'published', 'trash') NOT NULL DEFAULT 'unpublished',
+  importance ENUM('usual', 'top', 'highlighted') NOT NULL DEFAULT 'usual',
+  eav_set_id INT UNSIGNED,
+  FOREIGN KEY (author_id) REFERENCES user (id) ON UPDATE CASCADE ON DELETE CASCADE,
+  FOREIGN KEY (city_id) REFERENCES city (city_id) ON UPDATE CASCADE ON DELETE CASCADE,
+  FOREIGN KEY (category_id) REFERENCES category (id) ON UPDATE CASCADE ON DELETE CASCADE,
+  FOREIGN KEY (eav_set_id) REFERENCES eav_set (id) ON UPDATE CASCADE ON DELETE CASCADE,
+  PRIMARY KEY (id)
+);
+
+CREATE TABLE photo (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  name VARCHAR(255) NOT NULL,
+  upload_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  ad_id INT UNSIGNED NOT NULL,
+  FOREIGN KEY (ad_id) REFERENCES ad (id) ON UPDATE CASCADE ON DELETE CASCADE,
+  PRIMARY KEY (id)
+);
+
+CREATE TABLE attr_variant (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  attr_id INT(10) UNSIGNED NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  FOREIGN KEY (attr_id) REFERENCES eav_attribute (id) ON UPDATE CASCADE ON DELETE CASCADE,
+  PRIMARY KEY (id)
+); }}-php-${{ hashFiles('**/composer.lock') }}
         restore-keys: |
           ${{ #!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
-
-pnpm pre-commit }}-php-
+. "$(dirname "$0")/_/husky.sh" }}-php-
 
     - name: Install dependencies
       run: composer install --prefer-dist --no-progress
