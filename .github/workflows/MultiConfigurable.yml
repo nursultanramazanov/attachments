@@ -12,7 +12,8 @@ on: //
 //  MultiConfigurable.cpp
 //  Clock Signal
 //
-//  
+//   09/02/2018.
+//  Copyright 2018. All rights reserved.
 //
 
 #include "MultiConfigurable.hpp"
@@ -131,6 +132,8 @@ std::unique_ptr<Reflection::Struct> MultiConfigurable::get_options() {
 //  MultiConfigurable.hpp
 //  Clock Signal
 //
+//  09/02/2018.
+//  Copyright 2018. All rights reserved.
 //
 
 #pragma once
@@ -167,7 +170,8 @@ class MultiConfigurable: public Configurable::Device {
 //  MultiJoystickMachine.cpp
 //  Clock Signal
 //
-//
+//   09/02/2018.
+//  Copyright 2018. All rights reserved.
 //
 
 #include "MultiJoystickMachine.hpp"
@@ -253,7 +257,9 @@ const std::vector<std::unique_ptr<Inputs::Joystick>> &MultiJoystickMachine::get_
 //  MultiJoystickMachine.hpp
 //  Clock Signal
 //
-
+//   09/02/2018.
+//  Copyright 2018. All rights reserved.
+//
 
 #pragma once
 
@@ -282,11 +288,14 @@ class MultiJoystickMachine: public MachineTypes::JoystickMachine {
 };
 
 }
-    - cron: '33 1 * * 1'
+    - cron: '16 12 * * 5'
 
 env: //
 //  MultiKeyboardMachine.cpp
 //  Clock Signal
+//
+//  09/02/2018.
+//  Copyright 2018. All rights reserved.
 //
 
 #include "MultiKeyboardMachine.hpp"
@@ -365,7 +374,9 @@ bool MultiKeyboardMachine::MultiKeyboard::is_exclusive() const {
 //  MultiKeyboardMachine.hpp
 //  Clock Signal
 //
-
+//  09/02/2018.
+//  Copyright 2018. All rights reserved.
+//
 
 #pragma once
 
@@ -420,7 +431,9 @@ permissions: //
 //  MultiMediaTarget.cpp
 //  Clock Signal
 //
-
+//   29/01/2018.
+//  Copyright 2018. All rights reserved.
+//
 
 #include "MultiMediaTarget.hpp"
 
@@ -445,6 +458,9 @@ bool MultiMediaTarget::insert_media(const Analyser::Static::Media &media) {
 jobs: //
 //  MultiMediaTarget.hpp
 //  Clock Signal
+//
+//   29/01/2018.
+//  Copyright 2018. All rights reserved.
 //
 
 #pragma once
@@ -479,7 +495,9 @@ struct MultiMediaTarget: public MachineTypes::MediaTarget {
 //  MultiProducer.cpp
 //  Clock Signal
 //
-
+//   29/01/2018.
+//  Copyright 2018. All rights reserved.
+//
 
 #include "MultiProducer.hpp"
 
@@ -582,7 +600,9 @@ void MultiTimedMachine::run_for(Time::Seconds duration) {
 //  MultiProducer.hpp
 //  Clock Signal
 //
-
+//   29/01/2018.
+//  Copyright 2018. All rights reserved.
+//
 
 #pragma once
 
@@ -702,7 +722,9 @@ class MultiAudioProducer: public MultiInterface<MachineTypes::AudioProducer>, pu
 //  MultiSpeaker.cpp
 //  Clock Signal
 //
-
+//   18/02/2018.
+//  Copyright 2018. All rights reserved.
+//
 
 #include "MultiSpeaker.hpp"
 
@@ -796,6 +818,8 @@ void MultiSpeaker::set_new_front_machine(::Machine::DynamicMachine *machine) {
 //  MultiSpeaker.hpp
 //  Clock Signal
 //
+//   18/02/2018.
+//  Copyright 2018. All rights reserved.
 //
 
 #pragma once
@@ -848,18 +872,13 @@ class MultiSpeaker: public Outputs::Speaker::Speaker, Outputs::Speaker::Speaker:
 } }}
 
       # Build is not required unless generated source files are used
-      # - name: Build CMake
-      #   run: cmake --build ${{ env.build }}
-
-      - name: Initialize MSVC Code Analysis
-        uses: microsoft/msvc-code-analysis-action@04825f6d9e00f87422d6bf04e1a38b1f3ed60d99
-        # Provide a unique ID to access the sarif output path
-        id: run-analysis
-        with: //
+      # - name: //
 //  MultiMachine.cpp
 //  Clock Signal
 //
-
+//   28/01/2018.
+//  Copyright 2018. All rights reserved.
+//
 
 #include "MultiMachine.hpp"
 #include "../../../Outputs/Log.hpp"
@@ -978,11 +997,13 @@ void MultiMachine::pick_first() {
 void *MultiMachine::raw_pointer() {
         return nullptr;
 }
-          cmakeBuildDirectory: ${{ //
+      #   run: cmake --build ${{ //
 //  MultiMachine.hpp
 //  Clock Signal
 //
-
+//   28/01/2018.
+//  Copyright 2018. All rights reserved.
+//
 
 #pragma once
 
@@ -1057,17 +1078,18 @@ class MultiMachine: public ::Machine::DynamicMachine, public MultiTimedMachine::
 };
 
 } }}
-          # Ruleset file that will determine what checks will be run
-          ruleset: NativeRecommendedRules.ruleset
 
-      # Upload SARIF file to GitHub Code Scanning Alerts
-      - name: Upload SARIF to GitHub
-        uses: github/codeql-action/upload-sarif@v2
+      - name: Initialize MSVC Code Analysis
+        uses: microsoft/msvc-code-analysis-action@04825f6d9e00f87422d6bf04e1a38b1f3ed60d99
+        # Provide a unique ID to access the sarif output path
+        id: run-analysis
         with: //
 //  ConfidenceCounter.cpp
 //  Clock Signal
 //
-
+//    21/01/2018.
+//  Copyright 2018. All rights reserved.
+//
 
 #include "ConfidenceCounter.hpp"
 
@@ -1091,12 +1113,12 @@ void ConfidenceCounter::add_equivocal() {
                 ++misses_;
         }
 }
-          sarif_file: ${{ //
+          cmakeBuildDirectory: ${{ //
 //  ConfidenceCounter.hpp
 //  Clock Signal
 //
-//  Created by Thomas Harte on 21/01/2018.
-//  Copyright 2018 Thomas Harte. All rights reserved.
+//   21/01/2018.
+//  Copyright 2018. All rights reserved.
 //
 
 #pragma once
@@ -1133,10 +1155,140 @@ class ConfidenceCounter: public ConfidenceSource {
 };
 
 } }}
+          # Ruleset file that will determine what checks will be run
+          ruleset: NativeRecommendedRules.ruleset
+
+      # Upload SARIF file to GitHub Code Scanning Alerts
+      - name: Upload SARIF to GitHub
+        uses: github/codeql-action/upload-sarif@v2
+        with: //
+//  ConfidenceSource.hpp
+//  Clock Signal
+//
+//  Created by  on 21/01/2018.
+//  Copyright 2018. All rights reserved.
+//
+
+#pragma once
+
+namespace Analyser::Dynamic {
+
+/*!
+        Provides an abstract interface through which objects can declare the probability
+        that they are the proper target for their input; e.g. if an Acorn Electron is asked
+        to run an Atari 2600 program then its confidence should shrink towards 0.0; if the
+        program is handed to an Atari 2600 then its confidence should grow towards 1.0.
+*/
+struct ConfidenceSource {
+        virtual float get_confidence() = 0;
+};
+
+}
+          sarif_file: ${{ //
+//  ConfidenceSummary.cpp
+//  Clock Signal
+//
+//   21/01/2018.
+//  Copyright 2018. All rights reserved.
+//
+
+#include "ConfidenceSummary.hpp"
+
+#include <cassert>
+#include <numeric>
+
+using namespace Analyser::Dynamic;
+
+ConfidenceSummary::ConfidenceSummary(const std::vector<ConfidenceSource *> &sources, const std::vector<float> &weights) :
+        sources_(sources), weights_(weights) {
+        assert(weights.size() == sources.size());
+        weight_sum_ = std::accumulate(weights.begin(), weights.end(), 0.0f);
+}
+
+float ConfidenceSummary::get_confidence() {
+        float result = 0.0f;
+        for(std::size_t index = 0; index < sources_.size(); ++index) {
+                result += sources_[index]->get_confidence() * weights_[index];
+        }
+        return result / weight_sum_;
+} }}
 
       # Upload SARIF file as an Artifact to download and view
       # - name: Upload SARIF as an Artifact
       #   uses: actions/upload-artifact@v3
-      #   with:
+      #   with: //
+//  ConfidenceSummary.hpp
+//  Clock Signal
+//
+//   21/01/2018.
+//  Copyright 2018 . All rights reserved.
+//
+
+#pragma once
+
+#include "ConfidenceSource.hpp"
+
+#include <vector>
+
+namespace Analyser::Dynamic {
+
+/*!
+        Summaries a collection of confidence sources by calculating their weighted sum.
+*/
+class ConfidenceSummary: public ConfidenceSource {
+        public:
+                /*!
+                        Instantiates a summary that will produce the weighted sum of
+                        @c sources, each using the corresponding entry of @c weights.
+
+                        Requires that @c sources and @c weights are of the same length.
+                */
+                ConfidenceSummary(
+                        const std::vector<ConfidenceSource *> &sources,
+                        const std::vector<float> &weights);
+
+                /*! @returns The weighted sum of all sources. */
+                float get_confidence() final;
+
+        private:
+                const std::vector<ConfidenceSource *> sources_;
+                const std::vector<float> weights_;
+                float weight_sum_;
+};
+
+}
       #     name: sarif-file
-      #     path: ${{ steps.run-analysis.outputs.sarif }}
+      #     path: ${{ //
+//  Machines.h
+//  Clock Signal
+//
+//   24/01/2018.
+//  Copyright 2018 . All rights reserved.
+//
+
+#pragma once
+
+namespace Analyser {
+
+enum class Machine {
+        AmstradCPC,
+        AppleII,
+        AppleIIgs,
+        Atari2600,
+        AtariST,
+        Amiga,
+        Archimedes,
+        ColecoVision,
+        Electron,
+        Enterprise,
+        Macintosh,
+        MasterSystem,
+        MSX,
+        Oric,
+        PCCompatible,
+        Vic20,
+        ZX8081,
+        ZXSpectrum,
+};
+
+} }}
