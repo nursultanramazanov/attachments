@@ -7,305 +7,220 @@
 
 name: Ruby
 
-on: //= link_tree ../images
-//= link_directory ../javascripts .js
-//= link_directory ../stylesheets .css
-  push:
+on: keyword = "apache"
+template = """
+parse "* - * [*] \\"* * *\\" * *" as ip, name, timestamp, method, url, protocol, status, contentlength
+"""
+  push: keyword = "k8singressnginx"
+template = """
+parse "* - * [*] \\"* * *\\" * * \\"*\\" \\"*\\" * * [*] [*] * * * * *" as remote_addr, remote_user, timestamp, method, url, protocol, status, body_bytes_sent, http_referer, http_user_agent, request_length, request_time, proxy_upstream_name, proxy_alternative_upstream_name, upstream_addr, upstream_response_length, upstream_response_time, upstream_status, req_id
+"""
     branches: [ "main" ]
-  pull_request: 
+  pull_request: keyword = "testmultioperator"
+template = """
+json | count
+"""
     branches: [ "main" ]
 
-permissions: // This is a manifest file that'll be compiled into application.js, which will include all the files
-// listed below.
-//
-// Any JavaScript/Coffee file within this directory, lib/assets/javascripts, vendor/assets/javascripts,
-// or any plugin's vendor/assets/javascripts directory can be referenced here using a relative path.
-//
-// It's not advisable to add code directly here, but if you do, it'll appear at the bottom of the
-// compiled file. JavaScript code in this file should be added after the last require_* statement.
-//
-// Read Sprockets README (https://github.com/rails/sprockets#sprockets-directives) for details
-// about supported directives.
-//
-//= require jquery
-//= require tether
-//= require bootstrap-sprockets
-//= require jquery_ujs
-//= require turbolinks
-//= require_tree .
-
-document.addEventListener("turbolinks:load", function() {
-  tinymce.remove();
-  tinymce.init({
-    height: '475',
-    selector:'textarea#post_body',
-    plugins: "codesample image media link code",
-    toolbar: "undo redo | styleselect | bold italic link | codesample image media | code"
-  });
-})
+permissions: keyword = "nginx"
+template = """
+parse "* - * [*] \\"* * *\\" * * \\"*\\" \\"*\\" \\"*\\"" as addr, user, timestamp, method, url, protocol, status, bytes_sent, http_referer, http_user_agent, gzip_ratio
+"""
   contents: read
 
-jobs: // Action Cable provides the framework to deal with WebSockets in Rails.
-// You can generate new channels where WebSocket features live using the rails generate channel command.
-//
-//= require action_cable
-//= require_self
-//= require_tree ./channels
+jobs: use ag::pipeline::{ErrorReporter, OutputMode, Pipeline, QueryContainer};
+use annotate_snippets::snippet::Snippet;
+use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
+use std::fs::File;
+use std::io::{BufRead, BufReader, Write};
+use std::time::Duration;
 
-(function() {
-  this.App || (this.App = {});
+/// An ErrorReporter that writes errors related to the query string to the terminal
+struct NopErrorReporter {}
 
-  App.cable = ActionCable.createConsumer();
+impl ErrorReporter for NopErrorReporter {
+    fn handle_error(&self, _snippet: Snippet) {}
+}
 
-}).call(this);
-  test: # Place all the behaviors and hooks related to the matching controller here.
-# All this logic will automatically be available in application.js.
-# You can use CoffeeScript in this file: http://coffeescript.org/
+struct NopWriter {}
+
+impl Write for NopWriter {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error> {
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> Result<(), std::io::Error> {
+        Ok(())
+    }
+}
+
+struct E2eTest {
+    name: String,
+    query: String,
+    file: String,
+}
+
+pub fn criterion_benchmark(c: &mut Criterion) {
+    let tests = vec![
+        E2eTest {
+            name: "star".to_owned(),
+            query: "*".to_owned(),
+            file: "benches/10k.inp".to_owned(),
+        },
+        E2eTest {
+            name: "star-parse-count".to_owned(),
+            query: "* | parse '*' as k | count by k".to_owned(),
+            file: "benches/10k.inp".to_owned(),
+        },
+        E2eTest {
+            name: "star-count-parse-count".to_owned(),
+            query: "* | count | parse '*' as k | count by k".to_owned(),
+            file: "benches/1k.inp".to_owned(),
+        },
+    ];
+    tests.into_iter().for_each(|test| {
+        let query_container = QueryContainer::new(test.query, Box::new(NopErrorReporter {}));
+        let mut group = c.benchmark_group("e2e_query");
+        let num_elems = BufReader::new(File::open(&test.file).unwrap())
+            .lines()
+            .count();
+        group.measurement_time(Duration::from_secs(25));
+        group.throughput(Throughput::Elements(num_elems as u64));
+
+        let name = test.name;
+        let file = &test.file;
+        group.bench_function(name, |b| {
+            b.iter(|| {
+                let pipeline =
+                    Pipeline::new(&query_container, NopWriter {}, OutputMode::Legacy).unwrap();
+                let f = File::open(file).unwrap();
+                pipeline.process(black_box(BufReader::new(f)))
+            })
+        });
+        group.finish();
+    })
+}
+
+criterion_group!(benches, criterion_benchmark);
+criterion_main!(benches);
+  test: use ag::data::Record;
+use ag::lang::Keyword;
+use ag::operator::UnaryPreAggFunction;
+
+use ag::operator::parse::{Parse, ParseOptions};
+use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughput};
+
+pub fn criterion_benchmark(c: &mut Criterion) {
+    let parser = Parse::new(
+        Keyword::new_wildcard("IP * > \"*\": * length *".to_string()).to_regex(),
+        vec![
+            "sender".to_string(),
+            "recip".to_string(),
+            "ignore".to_string(),
+            "length".to_string(),
+        ],
+        None,
+        ParseOptions {
+            drop_nonmatching: true,
+        },
+    );
+    let mut group = c.benchmark_group("parse_operator");
+    group.throughput(Throughput::Elements(1));
+    group.bench_function("ip query", |b| {
+        b.iter_batched(
+            || {
+                Record::new(
+                    "17:12:14.214111 IP 10.0.2.243.53938 > \"taotie.canonical.com.http\": \
+             Flags [.], ack 56575, win 2375, options [nop,nop,TS val 13651369 ecr 169698010], \
+             length 99",
+                )
+            },
+            |rec| parser.process(rec),
+            BatchSize::SmallInput,
+        )
+    });
+    group.finish();
+}
+
+criterion_group!(benches, criterion_benchmark);
+criterion_main!(benches);
 
     runs-on: ubuntu-latest
-    strategy: body {
-  background-color: $light-gray;
-}
+    strategy: #!/usr/bin/env bash
+# Script for building your rust projects.
+set -e
 
-h1, h2, h3, h4, h5, h6, p {
-  color: $primary-text-color;
-}
+source ci/common.bash
 
-h1, .card-title {
-  font-weight: bold;
-}
+# $1 {path} = Path to cross/cargo executable
+CROSS=$1
+# $1 {string} = <Target Triple> e.g. x86_64-pc-windows-msvc
+TARGET_TRIPLE=$2
+# $3 {boolean} = Are we building for deployment? 
+RELEASE_BUILD=$3
 
-h6 {
-  color: $secondary-text-color;
-  font-weight: 300;
-}
+required_arg $CROSS 'CROSS'
+required_arg $TARGET_TRIPLE '<Target Triple>'
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: 'Montserrat', sans-serif;
-}
+if [ -z "$RELEASE_BUILD" ]; then
+    $CROSS build --target $TARGET_TRIPLE
+    $CROSS build --target $TARGET_TRIPLE --all-features
+else
+    $CROSS build --target $TARGET_TRIPLE --all-features --release
+fi
 
-p, p span {
-  font-family: 'Merriweather', serif !important;
-  font-size: 20px;
+      matrix: required_arg() {
+    if [ -z "$1" ]; then
+        echo "Required argument $2 missing"
+        exit 1
+    fi
 }
-      matrix: $light-gray: #f7f7f9;
-
-$primary-color-dark:   #1976D2;
-$primary-color:        #2196F3;
-$primary-color-light:  #BBDEFB;
-$primary-color-text:   #FFFFFF;
-$accent-color:         #CDDC39;
-$primary-text-color:   #212121;
-$secondary-text-color: #757575;
-$divider-color:        #BDBDBD;
         ruby-version: ['2.6', '2.7', '3.0']
 
-    steps: .navbar {
-    border-radius: 0;
-    margin-bottom: 20px;
-    background-color: $primary-color;
-    .navbar-brand {
-        font-weight: bolder;
-        color: $accent-color;
-        .light {
-            font-weight: 300;
-            color: $primary-color-text;
-        }
-    }
-    .navbar-toggler {
-        outline: none;
-    }
-    .nav-link {
-      color: $primary-color-light !important;
-      &.active {
-        color: $primary-color-text !important;
-      }
-    }
-    .nav-item.author-nav {
-      img {
-        height: 30px;
-        width: 30px;
-        border-radius: 50%;
-        border: 1px solid $primary-color-light;
-      }
-    }
-}
-
-.collapse-bg {
-    padding: 0 !important;
-    .card {
-        margin-bottom: 0;
-        border-radius: 0;
-        border: none;
-    }
-}
-
-
-.collapse-bg .card .list-group-item {
-    padding: 0;
-    border-radius: 0 !important;
-    border-color: black;
-    a {
-        background-color: #1a1a1a;
-        color: #bdc3c7;
-        width: 100%;
-        height: 100%;
-        padding: 10px;
-        &:active {
-            color: white;
-            border-bottom: none;
-        }
-    }
-}
+    steps: #!/usr/bin/env bash
+set -e
+rustup default $1
+rustup target add $2
     - uses: actions/checkout@v4
     - name: Set up Ruby
     # To automatically get bug fixes and new Ruby versions for ruby/setup-ruby,
     # change this to (see https://github.com/ruby/setup-ruby#versioning):
     # uses: ruby/setup-ruby@v1
       uses: ruby/setup-ruby@55283cc23133118229fd3f97f9336ee23a179fcf # v1.146.0
-      with: .posts.index {
-  .card {
-    border: none;
-    border-radius: 0;
-    height: 400px;
-    margin-bottom: 20px;
-    background-color: white;
-    .card-topper {
-      height: 200px;
-      width: 100%;
-      background-size: cover;
-      background-position: center;
-    }
-    .card-block {
-      padding: 10px;
-      .card-title {
-        font-size: 1.3rem;
-        margin-bottom: 0;
-        a {
-          color: black;
-          text-decoration: none;
-        }
-      }
-      .tags {
-        margin-bottom: 0;
-        a {
-          font-family: 'Montserrat', sans-serif;
-          font-size: 12px;
-        }
-      }
-      .published-date {
-        font-size: 0.8rem;
-        color: #787878;
-        font-weight: 300;
-        margin-top: 0.3rem;
-        margin-bottom: 0.3rem;
-      }
-      .card-text {
-        font-size: 0.9rem;
-        color: black;
-      }
+      with: #!/usr/bin/env bash
+# Script for building your rust projects.
+set -e
 
-    }
-  }
-}
+source ci/common.bash
 
-.posts.edit, .posts.new {
-  .card {
-    .card-block {
-      background-color: $light-gray;
-    }
-    .card-title {
-      margin-bottom: 0;
-      font-size: 18px;
-    }
-    .list-group-item {
-      padding: 10px;
-      border-left: 0;
-      border-right: 0;
-      input[type='text'], textarea {
-        font-size: 14px;
-        background-color: $light-gray;
-      }
-      textarea {
-        height: 100px;
-      }
-      &:last-child {
-        background-color: $light-gray;
-      }
-    }
-  }
-}
+# $1 {path} = Path to cross/cargo executable
+CROSS=$1
+# $1 {string} = <Target Triple>
+TARGET_TRIPLE=$2
 
-.posts.show {
-  .author-bio {
-    background-color: white;
-    padding: 15px 45px;
-    margin: 30px 0;
-    img {
-      border-radius: 50%;
-    }
-    img, h4 {
-      margin-bottom: 10px;
-    }
-    h4 {
-      font-weight: bold;
-      font-size: 22px;
-    }
-    h6 {
-      font-weight: 300;
-      font-size: 16px
-    }
-  }
-}
+required_arg $CROSS 'CROSS'
+required_arg $TARGET_TRIPLE '<Target Triple>'
 
-@media screen and (min-width: 34em) {
-  .posts.index .card {
-    height: 440px;
-  }
-}
+$CROSS test --target $TARGET_TRIPLE
+$CROSS test --target $TARGET_TRIPLE --all-features
+        ruby-version: ${{ class AgrindBin < Formula
+  version 'v0.7.3'
+  desc "Slice and dice log files on the command-line"
+  homepage "https://github.com/rcoh/angle-grinder"
 
-/* Medium. Above 48em (768px) */
-@media screen and (min-width: 48em) {
-  .posts.index .card {
-    height: 420px;
-  }
-}
+  if OS.mac?
+      url "https://github.com/rcoh/angle-grinder/releases/download/#{version}/angle_grinder-#{version}-x86_64-apple-darwin.tar.gz"
+      sha256 "d0682656294bc5d764d4110ae93add1442f6420bff49dcc4d49cb635950014fb"
+  elsif OS.linux?
+      url "https://github.com/rcoh/angle-grinder/releases/download/#{version}/angle_grinder-#{version}-x86_64-unknown-linux-musl.tar.gz"
+      sha256 "6dc5438443e653e5d893c6858d0f9279205728314292636c7b5b18706a9aa759"
+  end
 
-/* Extra large. Above 75em (1200px) */
-@media screen and (min-width: 75em) {
-  .posts.index .card {
-    height: 415px;
-  }
-}
-        ruby-version: ${{ .thin-text { font-weight: 300; }
 
-.apple_pagination {
-  background: #f1f1f1;
-  border: 1px solid #e5e5e5;
-  text-align: center;
-  padding: 1em;
-  cursor: default; }
-  .apple_pagination a, .apple_pagination span {
-    padding: 0.2em 0.3em; }
-  .apple_pagination .disabled {
-    color: #aaaaaa; }
-  .apple_pagination .current {
-    font-style: normal;
-    font-weight: bold;
-    background-color: #bebebe;
-    display: inline-block;
-    width: 1.4em;
-    height: 1.4em;
-    line-height: 1.5;
-    -moz-border-radius: 1em;
-    -webkit-border-radius: 1em;
-    border-radius: 1em;
-    text-shadow: rgba(255, 255, 255, 0.8) 1px 1px 1px; }
-  .apple_pagination a {
-    text-decoration: none;
-    color: black; }
-    .apple_pagination a:hover, .apple_pagination a:focus {
-      text-decoration: underline; }
+  def install
+    bin.install "agrind"
+  end
+end }}
         bundler-cache: true # runs 'bundle install' and caches installed gems automatically
     - name: Run tests
       run: bundle exec rake
