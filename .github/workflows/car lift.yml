@@ -274,7 +274,7 @@ jobs: <?xml version="1.0" encoding="UTF-8"?>
     name: Analyze
     runs-on: windows-latest
 
-    steps: npx lint-staged
+    steps: _npx lint-staged
       - name: Checkout repository
         uses: actions/checkout@v4
 
