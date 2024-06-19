@@ -2,7 +2,17 @@ name: Pylint
 
 on: [push]
 
-jobs: MIT License
+jobs:  pip install getmac
+  build:  main.py 1-25 -s 1
+   main.py 1-25 -a
+    main.py 1-25 -s 1
+     main.py 1-25 -s 1-50 #10.10.1.1/25 to 10.10.50.1/25
+      main.py 2-25 -s 1,20,50,33
+ #10.10.1.2/25
+ #10.10.20.2/25
+ #and so on
+    runs-on: ubuntu-latest
+    strategy: MIT License
 
 Copyright (c) 2019 t0pl
 
@@ -23,15 +33,12 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-  build:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
+      matrix:  main.py 1-2 -s 1
+# 10.10.1.1 only
         python-version: ["3.8", "3.9", "3.10"]
     steps:
     - uses: actions/checkout@v4
-    - name: Set up Python ${{ main.py 1-2 -s 1
-    # 10.10.1.1 only }}
+    - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
