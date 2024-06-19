@@ -1,0 +1,165 @@
+# This workflow will upload a Python Package using Twine when a release is created
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python#publishing-to-package-registries
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+name: Upload Python Package
+
+on: from astropy.coordinates import SkyCoord
+from astropy import units as u
+import math
+
+count = 0
+with open("hygdata_v3.csv", "r") as catalog_file, open("../starfield_navigator//cc_hyg.txt", "w") as cc:
+    lines = [line for line in catalog_file]
+    for line in lines[1:]:
+        split = line.split(",")
+        dist_str = split[9]
+        if dist_str == "100000.0000":
+            continue
+
+        dist_ly = float(dist_str) * 3.262
+        if dist_ly > 150.0:
+            continue
+
+        gliese_id = split[4]
+        hip_id = split[1]
+        proper = split[6]
+        mag = split[13]
+        abs_mag = split[14]
+
+        # Filter out the sun, literally
+        if proper == "Sol":
+            continue
+
+        rarad = float(split[23])
+        decrad = float(split[24])
+
+        if hip_id == "" and gliese_id == "":
+            print("empty id")
+
+        id_str = "HIP_{}".format(hip_id)
+        if hip_id == "":
+            # id_str = gliese_id
+            id_str = "GLIESE_{}".format(gliese_id.split()[1])
+
+        c = SkyCoord(rarad*u.radian, decrad*u.radian, frame='icrs',  distance=dist_ly*u.lyr)
+        cc.write("{};{};{};{:.2f};{};{}\n".format(id_str, c.galactic.l.degree, c.galactic.b.degree, c.galactic.distance.to(u.lyr).value, mag, abs_mag))
+        count += 1
+
+print(count)
+  release: from astropy import units as u
+from astropy.coordinates import SkyCoord
+import math
+
+
+# documentation from http://cdsarc.u-strasbg.fr/ftp/cats/I/239/ReadMe
+# Byte-by-byte Description of file: hip_main.dat
+# --------------------------------------------------------------------------------
+#    Bytes Format Units   Label     Explanations
+# --------------------------------------------------------------------------------
+#        1  A1    ---     Catalog   [H] Catalogue (H=Hipparcos)               (H0)
+#    9- 14  I6    ---     HIP       Identifier (HIP number)                   (H1)
+#   42- 46  F5.2  mag     Vmag      ? Magnitude in Johnson V                  (H5)
+#   52- 63  F12.8 deg     RAdeg    *? alpha, degrees (ICRS, Epoch=J1991.25)   (H8)
+#   65- 76  F12.8 deg     DEdeg    *? delta, degrees (ICRS, Epoch=J1991.25)   (H9)
+#   80- 86  F7.2  mas     Plx       ? Trigonometric parallax                 (H11)
+
+with open("hip_main.dat", "r") as catalog_file, open("cc_hip1997.txt", "w") as cc:
+    for line in catalog_file:
+        hip = line[8:14].strip()
+        mag = line[41:46]
+
+        # filter empty position entries
+        asc_str = line[51:63].strip()
+        dec_str = line[64:76].strip()
+        if asc_str == "" or dec_str == "":
+            continue
+
+        # filter negative parallaxes
+        parallax = line[79:86]
+        if float(parallax) < 0:
+            continue
+
+        # filter super-small parallax
+        if float(parallax) < 0.01:
+            continue
+
+        # filter too far away stars
+        distance_pc = 1000.0 / float(parallax)
+        distance_ly = distance_pc * 3.26156
+        if distance_ly > 70.0:
+            continue
+
+        c = SkyCoord(float(asc_str)*u.degree, float(dec_str)*u.degree, frame='icrs',  distance=distance_pc*u.pc)
+        cc.write("{};{};{};{:.2f};{}\n".format(hip, c.galactic.l.degree, c.galactic.b.degree, c.galactic.distance.to(u.lyr).value, mag))
+
+# from https://cdsarc.cds.unistra.fr/ftp/I/311/ReadMe
+# Byte-by-byte Description of file: hip2.dat
+# --------------------------------------------------------------------------------
+#    Bytes Format Units    Label   Explanations
+# --------------------------------------------------------------------------------
+#    1-  6  I6    ---      HIP     Hipparcos identifier
+#   16- 28 F13.10 rad      RArad   Right Ascension in ICRS, Ep=1991.25
+#   30- 42 F13.10 rad      DErad   Declination in ICRS, Ep=1991.25
+#   44- 50  F7.2  mas      Plx     Parallax
+#  130-136  F7.4  mag      Hpmag   Hipparcos magnitude
+
+with open("hip2.dat", "r") as catalog_file, open("cc_hip2007.txt", "w") as cc:
+    for line in catalog_file:
+        hip = line[0:6].strip()
+        mag = line[129:136]
+
+        # filter empty position entries
+        asc_str = line[15:28].strip()
+        dec_str = line[29:42].strip()
+        if asc_str == "" or dec_str == "":
+            continue
+
+        # filter negative parallaxes
+        parallax = line[43:50]
+        if float(parallax) < 0:
+            continue
+
+        # filter super-small parallax
+        if float(parallax) < 0.01:
+            continue
+
+        # filter too far away stars
+        distance_pc = 1000.0 / float(parallax)
+        distance_ly = distance_pc * 3.26156
+        if distance_ly > 70.0:
+            continue
+
+        c = SkyCoord(math.degrees(float(asc_str))*u.degree, math.degrees(float(dec_str))*u.degree, frame='icrs',  distance=distance_pc*u.pc)
+        cc.write("{};{};{};{:.2f};{}\n".format(hip, c.galactic.l.degree, c.galactic.b.degree, c.galactic.distance.to(u.lyr).value, mag))
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.x'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build
+    - name: Build package
+      run: python -m build
+    - name: Publish package
+      uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
+      with:
+        user: __token__
+        password: ${{ secrets.PYPI_API_TOKEN }}
