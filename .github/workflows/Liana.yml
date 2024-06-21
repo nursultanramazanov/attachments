@@ -1,0 +1,4157 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+#
+# See https://github.com/r-lib/actions/tree/master/examples#readme for
+# additional example workflows available for the R community.
+
+name: R
+
+on: #' Run CellChat with OmniPath function [[DEPRECATED]]
+#'
+#' @param op_resource OmniPath Intercell Resource DN
+#' @param sce Seurat object as input
+#' @param exclude_anns Annotation criteria to be excluded
+#' @param nboot number of bootstraps to calculate p-value
+#' @param .format bool whether to format output
+#' @param .normalize # bool whether to normalize non-normalized data with
+#' @param .raw_use whether use the raw data or gene expression data projectected
+#'    to a ppi (should be kept to TRUE)
+#' @param expr_prop minimum proportion of gene expression per cell type (0 by default),
+#'  yet perhaps one should consider setting this to an appropriate value between 0 and 1,
+#'  as an assumptions of these method is that communication is coordinated at the cluster level.
+#' @param organism Obtain CellChatDB for which organism ('mouse' or 'human')
+#' @param de_thresh diff expression of genes p-value
+#' @param assay assay name (RNA by default)
+#' @param .seed random seed
+#' @param .do_parallel whether to parallelize or not
+#' @param thresh p-value threshold (1 by default)
+#' @inheritDotParams CellChat::subsetCommunication
+#'
+#' @return A DF of intercellular communication network
+#'
+#' @importFrom SeuratObject Idents GetAssayData
+#' @importFrom purrr pmap
+#' @importFrom magrittr %>% %<>%
+#' @importFrom dplyr select mutate mutate_at distinct_at filter
+#' @importFrom tibble column_to_rownames enframe tibble
+#' @importFrom tidyr unite unnest separate
+#'
+#' @export
+#'
+#' @details CellChat's objects are not lazily documented/exported thus the
+#'   whole package has to be imported.
+call_cellchat <- function(sce,
+                          op_resource,
+                          .format = TRUE,
+                          exclude_anns = c(),
+                          nboot = 100,
+                          assay = "RNA",
+                          .seed = 1004,
+                          .normalize = FALSE,
+                          .do_parallel = FALSE,
+                          .raw_use = TRUE,
+                          expr_prop = 0,
+                          organism = "human",
+                          thresh = 1,
+                          de_thresh = 0.05,
+                          ...
+                          ){
+    stringsAsFactors <- options('stringsAsFactors')[[1]]
+    options(stringsAsFactors = FALSE)
+
+    # Convert sce to seurat
+    if(class(sce) == "SingleCellExperiment"){
+        sce %<>% .liana_convert(., assay=assay)
+    }
+
+    # create a dataframe of the cell labels
+    labels <- Seurat::Idents(sce)
+    meta <- data.frame(group = labels, row.names = names(labels))
+
+    cellchat.omni <- CellChat::createCellChat(
+        object = `if`(!.normalize,
+                      GetAssayData(sce,
+                                   assay = assay,
+                                   slot = "data"), # works with lognorm data
+                      CellChat::normalizeData(
+                          GetAssayData(sce,
+                                       assay = assay,
+                                       slot = "data"))
+                      ),
+        meta = meta,
+        group.by = "group")
+    cellchat.omni <- CellChat::addMeta(cellchat.omni,
+                                       meta = meta)
+    cellchat.omni <- CellChat::setIdent(cellchat.omni,
+                                        ident.use = "group")
+
+    if(.do_parallel){
+        future::plan("multiprocess")
+    }
+
+    # load CellChatDB
+    if(organism == "human"){
+        ccDB <- CellChat::CellChatDB.human
+    } else if(organism == "mouse") {
+        ccDB <- CellChat::CellChatDB.mouse
+    }
+
+    if(!is.null(op_resource)){ # OmniPath resource conversion
+        ccDB <- cellchat_formatDB(ccDB,
+                                  op_resource,
+                                  exclude_anns)
+
+    } else{ # default CellChatDB
+        ccDB$interaction <- ccDB$interaction %>%
+            filter(!(annotation %in% exclude_anns))
+    }
+
+    ## set the used database in the object
+    cellchat.omni@DB <- ccDB
+
+    ## subset the expression data of signaling genes
+    cellchat.omni <- CellChat::subsetData(cellchat.omni)
+
+    # Infer the cell state-specific communications
+    cellchat.omni <-
+        CellChat::identifyOverExpressedGenes(cellchat.omni,
+                                             thresh.pc = expr_prop,
+                                             thresh.p = de_thresh)
+    cellchat.omni <- CellChat::identifyOverExpressedInteractions(cellchat.omni)
+
+    ## Compute the communication probability and infer cellular communication network
+    if(!.raw_use){
+        cellchat.omni <- CellChat::projectData(cellchat.omni,
+                                               CellChat::PPI.human)
+    }
+
+    cellchat.omni <- CellChat::computeCommunProb(cellchat.omni,
+                                                 raw.use = .raw_use,
+                                                 seed.use = .seed,
+                                                 nboot = nboot)
+
+    # Filter out the cell-cell communication if there are only few number of cells in certain cell groups
+    cellchat.omni <- CellChat::filterCommunication(cellchat.omni, min.cells = 1)
+
+    # Extract the inferred cellular communication network
+    df.omni <- CellChat::subsetCommunication(cellchat.omni, thresh = thresh, ...)
+
+    if(.format){
+        df.omni <- df.omni %>%
+            select(source,
+                   target,
+                   ligand,
+                   receptor,
+                   prob,
+                   pval) %>%
+            as_tibble()
+    }
+
+    options(stringsAsFactors = stringsAsFactors)
+
+    return(df.omni)
+
+}
+
+
+#' Helper Function to Format CellChatDB
+#'
+#' @param ccDB Inbuilt cellchatDB object
+#'
+#' @inheritParams call_cellchat
+#' @importFrom tibble enframe column_to_rownames
+#' @importFrom magrittr %>%
+#' @importFrom stringr str_glue str_detect str_replace str_replace_all
+#' @importFrom tidyr unite separate
+#' @importFrom dplyr mutate mutate_at select filter
+#' @importFrom tidyselect everything
+#' @importFrom purrr pmap
+#'
+#' @export
+#'
+#' @keywords internal
+cellchat_formatDB <- function(ccDB, op_resource, exclude_anns){
+
+    # Check if op_resource contains all required columns:
+    reqcols <- c("is_directed", "is_stimulation",
+                 "is_inhibition", "co_A_receptor",
+                 "co_I_receptor")
+    # if not add them
+    if(any(!colnames(op_resource) %in% reqcols)){
+        reqcols <- setdiff(reqcols, colnames(op_resource))
+
+        op_resource %<>%
+            # add cols
+            add_column(., !!! reqcols, .name_repair="universal") %>%
+            # fix names
+            `colnames<-`(map_chr(colnames(.), function(x) gsub("\\.", "", x))) %>%
+            # assign nums to cols
+            mutate(across(all_of(reqcols), ~ 1))
+    }
+
+    # get complexes and interactions from omnipath
+    complex_interactions <- op_resource %>%
+        select(
+            "ligand" = source_genesymbol,
+            "receptor" = target_genesymbol,
+            "evidence" = sources,
+            category_intercell_source,
+            category_intercell_target,
+            is_directed,
+            is_stimulation,
+            is_inhibition
+        ) %>%
+        unite("annotation",
+              c(category_intercell_source, category_intercell_target),
+              sep="-") %>%
+        unite("interaction_name", c(ligand, receptor), remove = FALSE) %>%
+        mutate(pathway_name = "",
+               agonist = "",
+               antagonist = "",
+               co_A_receptor = "",
+               co_I_receptor = "") %>%
+        mutate_at(vars(everything()), ~ replace(., is.na(.), ""))
+
+    # Get OmniPath directed info
+    omni_directions <- complex_interactions %>%
+        select(interaction_name,
+               is_directed,
+               is_stimulation,
+               is_inhibition,
+               co_A_receptor,
+               co_I_receptor
+        ) %>%
+        mutate(direction = pmap(., function(interaction_name,
+                                            is_directed,
+                                            is_stimulation,
+                                            is_inhibition,
+                                            co_A_receptor,
+                                            co_I_receptor
+        ){
+
+            if(co_A_receptor=="" & co_I_receptor==""){
+
+                if(is_directed==1){
+                    if(is_stimulation==1 & is_inhibition==1){
+                        return("Both")
+                    } else if(is_stimulation==1){
+                        return("Stimulation")
+                    } else if(is_inhibition==1){
+                        return("Inhibition")
+                    }
+                }
+            } else{
+                return(NA)
+            }
+        }
+        )) %>% unnest(direction)
+
+    # get complex type of interaction from OmniPath
+    omni_interactions <- complex_interactions %>%
+        # set LR interactions as rowname
+        left_join(., (omni_directions %>%
+                          select(interaction_name,
+                                 direction)),
+                  by = "interaction_name") %>%
+        mutate_at(vars(everything()), ~ replace(., is.na(.), "")) %>%
+        mutate(co_A_receptor = ifelse(.data$co_A_receptor == "" & (direction == "Stimulation") | (direction == "both"),
+                                      "Stimulation", .data$co_A_receptor),
+               co_I_receptor = ifelse(.data$co_I_receptor == "" & (direction == "Inhibition") | (direction == "both"),
+                                      "Inhibition", .data$co_I_receptor)) %>%
+        # remove duplicates and assign to colnames
+        mutate("interaction_name2" = interaction_name) %>%
+        distinct_at(.vars="interaction_name2", .keep_all = TRUE) %>%
+        column_to_rownames("interaction_name2") %>%
+        # NOTE: ligand - (subunit_1 + subunit_2)
+        mutate(interaction_name_2 = str_glue("{ligand} - {receptor}")) %>%
+        mutate(interaction_name_2 = ifelse(str_detect(.data$receptor, "^COMPLEX"),
+                                           str_glue("{ligand} -", "{str_split(receptor, pattern='_')}"), interaction_name_2)) %>%
+        mutate(interaction_name_2 = ifelse(str_detect(.data$ligand, "^COMPLEX"),
+                                           str_glue("{ligand} -", "{str_split(ligand, pattern='_')}"), interaction_name_2)) %>%
+        mutate(interaction_name_2 = str_replace(interaction_name_2, "c", "")) %>%
+        mutate(interaction_name_2 = str_replace(interaction_name_2, "COMPLEX:", "")) %>%
+        mutate(interaction_name_2 = str_replace(interaction_name_2, "-", "- ")) %>%
+        mutate(interaction_name_2 = str_replace_all(interaction_name_2, ", ", "+")) %>%
+        mutate(interaction_name_2 = str_replace_all(interaction_name_2, '"', ""))
+
+    # Get Omni Complexes
+    omni_complexes <- complex_interactions %>%
+        filter(str_detect(ligand, "_") |
+                   str_detect(receptor, "_")) %>%
+        select(ligand, receptor)
+
+    # Convert to CellChat format
+    omni_complexes <- union(omni_complexes$ligand,
+                            omni_complexes$receptor) %>%
+        enframe() %>%
+        separate(col=value, sep="_",
+                 into = c("subunit_1", "subunit_2",
+                          "subunit_3", "subunit_4", "subunit_5"),
+                 remove=FALSE, extra = "drop", fill="right") %>%
+        mutate_at(vars(everything()), ~ replace(., is.na(.), "")) %>%
+        select(-name) %>%
+        column_to_rownames("value")
+
+    # Replace Default DB with OmniPath Resource
+    ccDB$interaction <- omni_interactions %>%
+        filter(!(annotation %in% exclude_anns))
+
+    ccDB$complex <- omni_complexes
+
+    return(ccDB)
+}
+  push: #' Function to call connectome with databases from OmniPath [[DEPRECATED]]
+#'
+#' @param op_resource OmniPath Intercell Resource DN
+#' @param sce Seurat object as input
+#' @param .format bool whether to format output
+#' @param ... dot params passed to connectome
+#' @param assay assay name
+#'
+#' @return An unfiltered connectome results df
+#'
+#' @details
+#' Stats:
+#' 1) The ‘weight_norm’ edge attribute is derived from the normalized expression
+#'  of the ligand and the receptor in the single-cell data.
+#' 2) The ‘weight_scale’ edge attribute is derived from the z-scores of the ligand
+#'  and the receptor in each edge, and is of higher value when the ligand and receptor
+#'   are more specific to a given pair of cell types
+#' 3) DEG p-values for L and R
+#'
+#' @importFrom magrittr %>% %<>%
+#' @importFrom dplyr arrange select mutate distinct
+#'
+#' @export
+call_connectome <- function(sce,
+                            op_resource = NULL,
+                            .format = TRUE,
+                            assay,
+                            ...){
+
+    # Convert sce to seurat
+    if(class(sce) == "SingleCellExperiment"){
+        sce %<>% .liana_convert(., assay=assay)
+    }
+
+    if(!is.null(op_resource)){
+
+        lr_db <- conn_formatDB(op_resource)
+        lr_symbols <- union(lr_db$source_genesymbol,
+                            lr_db$target_genesymbol)
+
+        conn <- .conn_create(sce,
+                             lr_symbols = lr_symbols,
+                             lr_db,
+                             ...
+                             )
+
+    } else{
+
+        lr_db <- Connectome::ncomms8866_human %>%
+            filter(Pair.Evidence == "literature supported")
+
+        lr_symbols = union(lr_db$Ligand.ApprovedSymbol,
+                           lr_db$Receptor.ApprovedSymbol)
+
+        conn <- .conn_create(sce,
+                            lr_symbols = lr_symbols,
+                            lr_db,
+                            ...
+                            )
+    }
+
+    if(.format){
+        conn %<>% FormatConnectome
+    }
+
+    return(conn)
+}
+
+
+#' Helper function to filter and format connectome
+#'
+#' @param conn connectome object
+#' @import tibble
+#'
+#' @export
+FormatConnectome <- function(conn){
+    conn <- conn %>%
+        Connectome::FilterConnectome(remove.na=TRUE) %>%
+        select(source, target,
+               ligand, receptor,
+               weight_norm,
+               weight_sc,
+               p_val_adj.lig,
+               p_val_adj.rec) %>%
+        as_tibble()
+
+
+}
+
+
+#' Helper Function to convert Omni to Connectome resource Format
+#'
+#' @param op_resource OmniPath resource
+#'
+#' @export
+#'
+#' @keywords internal
+conn_formatDB <- function(op_resource){
+    op_resource %>%
+        select("source_genesymbol", "target_genesymbol") %>%
+        mutate(mode = "UNCAT") %>% # mode refers to interaction categories
+        arrange(.$source_genesymbol) %>%
+        distinct() %>%
+        as.data.frame()
+}
+
+
+
+#' Helper function to create a conn object
+#'
+#' @inheritParams call_connectome
+#' @param lr_symbols ligand-receptor gene symbols
+#' @param lr_db ligand-receptor resource
+#' @param ... arguments passed `CreateConnectome` from `Connectome`
+#'
+#' @noRd
+.conn_create <- function(sce,
+                        lr_symbols,
+                        lr_db,
+                        ...){
+
+    filt_genes <- lr_symbols[lr_symbols %in% rownames(sce)]
+    sce <- Seurat::ScaleData(object = sce,
+                                       features = filt_genes)
+
+    conn <- Connectome::CreateConnectome(sce,
+                                         LR.database = 'custom',
+                                         custom.list = lr_db,
+                                         ...
+                                         )
+    return(conn)
+}
+    branches: [ "main" ]
+  pull_request: #' Compute cross-talk score from a Seurat Object (DEPRECATED)
+#'
+#' @details This function executes all the required functions to extract
+#' and compute the cross-talk scores as defined by the Cytotalk authors.
+#'
+#' @param lr_res liana_pipe results
+#' @param sce SingleCellExperiment object
+#' @param score_col name of the score column
+#' @param assay.type data slot to be used
+#' @param seed random seed
+#' @param ... placeholder
+#'
+#' @keywords internal
+#'
+#' @import SingleCellExperiment tibble tidyr dplyr
+cytotalk_score <- function(lr_res,
+                           sce,
+                           score_col,
+                           assay.type,
+                           seed,
+                           ...){
+
+  # NST - in LIANA wrap
+  nst_scores <- compute_nst_scores(sce = sce,
+                                   ligand_receptor_df = lr_res %>%
+                                     ungroup() %>%
+                                     select(ligand, receptor) %>%
+                                     distinct() %>%
+                                     arrange(ligand, receptor),
+                                   assay.type = assay.type,
+                                   seed = seed)
+
+  lr_res %>%
+    ungroup() %>%
+    left_join(nst_scores, by = c("target" = "celltype", "ligand", "receptor")) %>%
+    dplyr::rename(target.nst = nst_score) %>%
+    left_join(nst_scores, by = c("source" = "celltype", "ligand", "receptor")) %>%
+    dplyr::rename(source.nst = nst_score) %>%
+    # CytoTalk Scores are computed by celltype pairs
+    group_by(source, target) %>%
+    # Expression and Non-self-talk scores
+    mutate(es = (ligand.pem + receptor.pem)/ 2) %>% # calculate Expression Score
+    mutate(nst = (source.nst + target.nst)/ 2) %>% # combine -log10 NST scores
+    # normalize ES and NST
+    mutate(Nes = minmax(es), Nnst = minmax(nst)) %>%
+    # compute cross-talk scores
+    mutate( {{ score_col }} :=
+              if_else(source!=target,
+                      Nes * Nnst, # Paracrine as CytoTalk
+                      Nes * (1-Nnst) # Autocrine we inverse NST
+    )) %>%
+    # set crosstalk to 0 if either pem is 0
+    mutate( {{ score_col }} :=
+              if_else(receptor.pem==0 | ligand.pem==0,
+                      0,
+                      .data[[score_col]])) %>%
+    ungroup() %>%
+    select(source, target,
+           ligand, ligand.complex,
+           receptor, receptor.complex,
+           # ligand.pem, receptor.pem,
+           # es, Nes,
+           # source.nst, target.nst, nst, Nnst,
+           !!score_col,
+           ends_with("prop")) %>%
+    filter(.data[[score_col]] > 0)
+}
+
+#### NST ####
+
+#' Compute non-self talk scores from SingleCellExperiment object
+#'
+#' This function computes the non-self talk scores for all the cell types contained
+#' in a SingleCellExperiment object. It iterates through the ligand-receptor pairs
+#' that are provided as input and calculates these entropy-based measurements for each
+#' cell type using its normalized expression matrix, which should contain log-transformed
+#' values.
+#'
+#' @param sce A SingleCellExperiment object containing log-normalized expression
+#' values and cell type annotations as colLabels
+#' @param ligand_receptor_df A data frame with, at least, two columns named 'ligand'
+#' and 'receptor' containing the ligand-receptor pairs to evaluate
+#' @param assay.type The name of the data slot containing the log-normalized expression
+#' values in the SingleCellExperiment object
+#' @param seed random seed
+#'
+#' @return A data frame with the computed non-self-talk score for each ligand-receptor
+#' pair on each cell-type.
+#'
+#' @keywords internal
+#'
+#' @import SingleCellExperiment dplyr
+compute_nst_scores <- function(sce,
+                               ligand_receptor_df,
+                               assay.type = "logcounts",
+                               seed = 1004) {
+
+  # extract normalized data
+  norm_data <- as.matrix(sce@assays@data[[assay.type]])
+
+  # iterate through cell types, calculating NST for each ligand-receptor
+  cell_types <- levels(colLabels(sce))
+  nst_scores <- lapply(cell_types, function(cell) {
+
+    mat <- norm_data[, colLabels(sce) == cell]
+    nst_tibble <-
+      compute_nst_from_matrix(mat = mat,
+                              ligand_receptor_df = ligand_receptor_df,
+                              seed = seed) %>%
+      mutate(celltype = cell)
+    return(nst_tibble)
+
+  }) %>%
+    bind_rows()
+
+  return(nst_scores)
+
+}
+
+#' Compute non-self talk scores from matrix
+#'
+#' Calculates the non-self talk scores (also refered to as mutual information distances)
+#' for each ligand-receptor pair using the normalized expression matrix for a given
+#' cell type. It expects log-transformed expression values.
+#'
+#' @param mat A matrix containing the log-transformed normalized expression values.
+#' @param ligand_receptor_df A data frame with, at least, two columns named 'ligand'
+#' and 'receptor' containing the ligand-receptor pairs to evaluate
+#' @param seed random seed
+#'
+#' @return A data frame with the non-self-talk score for each pair of genes (ligand-receptors).
+#'
+#' @import dplyr
+#'
+#' @keywords internal
+#'
+compute_nst_from_matrix <- function(mat,
+                                    ligand_receptor_df,
+                                    seed) {
+  # extract number of columns and bins from the gene expression matrix
+  n_cols <- ncol(mat)
+  n_bins <- sqrt(n_cols)
+
+  # add noise
+  is_zero <- rowSums(mat) == 0
+  mat[is_zero,] <- do.call(rbind, lapply(rep(n_cols, sum(is_zero)),
+                                         .gen_noise,
+                                         seed = seed))
+
+  # filter ligand-receptor pairs
+  keep <- pmap(ligand_receptor_df,
+               function(ligand, receptor)
+                 ligand %in% rownames(mat) &
+                 receptor %in% rownames(mat)) %>%
+    as.logical()
+
+  # calculate mi distances
+  nst_score <- pmap(ligand_receptor_df[keep,],
+                    function(ligand, receptor) {
+                      mi_dist <- compute_mi_dist(exp1 = mat[ligand, ],
+                                                 exp2 = mat[receptor, ],
+                                                 n_bins = n_bins)
+    return(mi_dist)
+  }) %>%
+    as.numeric()
+
+  out_df <- data.frame(ligand_receptor_df[keep, ], nst_score) %>%
+    # set negative and NAs PEMs to 0
+    mutate(nst_score = ifelse(nst_score < 0 | is.na(nst_score), 0, nst_score))
+
+  return(out_df)
+
+}
+
+#' Compute mutual information distance from expression vectors
+#'
+#' Given two normalized gene expression vectors, and a given number of bins, this
+#' function uses the entropy package to compute the mutual information between the
+#' two vectors. Values passed to this function should be log-transformed.
+#'
+#' @param exp1 A vector containing the normalized gene expression for the first
+#' gene (ligand)
+#' @param exp2 A vector containing the normalized gene expression for the first
+#' gene (receptor)
+#' @param n_bins Number of bins to discretize the expression values.
+#'
+#' @return The mututal information distance, also refered to as non-self atalk score
+#'
+#' @keywords internal
+#'
+compute_mi_dist <- function(exp1, exp2, n_bins) {
+
+  y2d <- entropy::discretize2d(exp1, exp2, n_bins, n_bins)
+  H1 <- entropy::entropy(rowSums(y2d), method = "MM")
+  H2 <- entropy::entropy(colSums(y2d), method = "MM")
+  H12 <- entropy::entropy(y2d, method = "MM")
+  mi <- H1 + H2 - H12
+
+  norm <- min(c(H1, H2))
+  suppressWarnings(mi_dist <- -log10(mi / norm))
+
+  return(mi_dist)
+
+}
+
+
+#' Helper function to generate random noise for cytotalk scores
+#'
+#' @details generate a vector of length n with a noise value inserted in a
+#' random position of the vector. This is needed to compute the entropy-related
+#' values.
+#'
+#' @param n Length of the vector to generate
+#'
+#' @return A vector of length n with noise in a random position
+#'
+#' @noRd
+.gen_noise <- function(n,
+                       seed) {
+  set.seed(seed)
+  rng <- seq_len(n)
+  (sample(rng, 1) == rng) * 1e-20
+}
+
+
+
+#' Helper min-max function
+#'
+#' @param x vector
+#' @inheritDotParams base::max
+#'
+#' @export
+minmax <- function(x, ...) {
+  (x - min(x, ...)) / (max(x, ...) - min(x, ...))
+}
+
+
+#### PEM ####
+
+#' Compute Preferential Expression Measure scores from SingleCellExperiment object
+#'
+#' @details Uses the information contained in a SingleCellExperiment object to
+#' stratify the expression matrix by cell type, and then computes the PEM scores
+#' from the exponential of the normalized expression values.
+#'
+#' IMPORTANT:
+#' This function expects an object containing log-transformed values (not raw counts).
+#'
+#' @param sce A SingleCellExperiment object containing log-normalized expression
+#' values and cell type annotations as colLabels
+#' @param assay.type The name of the data slot containing the log-normalized expression
+#' values in the SingleCellExperiment object
+#'
+#' @return A matrix containing the computed PEM values
+#'
+#' @import SingleCellExperiment tibble tidyr dplyr
+#'
+#' @keywords internal
+compute_pem_scores <- function(sce, assay.type = "logcounts") {
+
+  # extract normalized data
+  norm_data <- t(as.matrix(sce@assays@data[[assay.type]]))
+
+  # expm1(x) computes exp(x) - 1 accurately also for |x| << 1
+  exp_data <- expm1(norm_data)
+
+  # calculate mean per cell using expm1 data
+  means_per_cell <- exp_data %>%
+    aggregate(., list(colLabels(sce)), FUN = mean) %>%
+    tibble::as_tibble() %>%
+    dplyr::rename(celltype = Group.1) %>%
+    pivot_longer(-celltype, names_to = "gene") %>%
+    tidyr::pivot_wider(names_from = celltype,
+                       id_cols = gene,
+                       values_from = value) %>%
+    column_to_rownames("gene")
+
+  # calculate PEMs from the mean matrix
+  pem_out <- pems_from_means(means_per_cell)
+
+  return(pem_out)
+
+}
+
+#' PEM from mean matrix
+#'
+#' Computes the Preferential Expression Measure (PEM) scores from a matrix containing
+#' genes as rows and cell types as samples. The values in the matrix are supposed
+#' to contain the average expression values of the count matrix per cell, obtained
+#' from the exponential of the log-transformed count matrix.
+#'
+#' @param means_per_cell A matrix containing the mean expression per cell type
+#'
+#' @return A matrix with the computed PEM scores
+#'
+#' @noRd
+#'
+pems_from_means <- function(means_per_cell) {
+
+  # calculate sum of means for rows and columns
+  sums_per_cell <- colSums(means_per_cell)
+  sums_per_gene <- rowSums(means_per_cell)
+  total_sums <- sum(sums_per_cell)
+
+  # will lead to bugs later, could check downstream
+  if (total_sums == Inf) {
+    message("Inf introduced into PEM score, is the data log1p tranformed?")
+    return(1)
+  }
+
+  # what proportion of this cell type's rowmean sum accounts for the whole?
+  cell_type_prop <- sums_per_cell / total_sums
+
+  # gene_proportions
+  gene_prop <- sapply(cell_type_prop, function(x) x * sums_per_gene)
+
+  # calculate PEM scores
+  pem_out <- log10(means_per_cell / gene_prop)
+
+  # set negative and NAs PEMs to 0
+  pem_out[pem_out < 0 | is.na(pem_out)] <- 0
+
+  return(pem_out)
+
+}
+
+
+    branches: [ "main" ]
+
+permissions: #' Helper function that returns the name of each intercell resource in OmniPath
+#'
+#' @return A list of strings for each intercell resource in OmniPath
+#'
+#' @export
+get_lr_resources <- function(){
+    return(
+        list(
+            'Baccin2019',
+            'CellCall',
+            'CellChatDB',
+            'Cellinker',
+            'CellPhoneDB',
+            'CellTalkDB',
+            'connectomeDB2020',
+            'EMBRACE',
+            'Guide2Pharma',
+            'HPMR',
+            'ICELLNET',
+            'iTALK',
+            'Kirouac2010',
+            'LRdb',
+            'Ramilowski2015'
+        )
+    )
+}
+
+# only the ones different from the current defaults:
+op_ic_quality_param <- list( # used for nodes
+    resource = 'OmniPath', # this is just necessary in all the calls
+    loc_consensus_percentile = 51,
+    consensus_percentile = NULL
+)
+
+# used for interactions
+op_ia_quality_param <- list(
+    transmitter_topology = c('secreted',
+                             'plasma_membrane_transmembrane',
+                             'plasma_membrane_peripheral'),
+    receiver_topology = c('plasma_membrane_transmembrane',
+                          'plasma_membrane_peripheral'),
+    min_curation_effort = 1,
+    ligrecextra = FALSE
+)
+
+
+#' Function to get unfiltered intercell resources
+#' For each resource and OmniPath variant compiles tables of ligands,
+#' receptors and interactions
+#'
+#' @details calls on omnipath_intercell, intercell_connections, get_partners,
+#' and intercell_connections
+#'
+#' @param lr_pipeline bool whether to format for lr_pipeline and remove
+#'
+#' duplicate LRs (mainly from composite OmniDB due to category (adhesion vs lr))
+#' @return A list of OmniPath resources formatted according to the method pipes
+#'
+#' @importFrom magrittr %>%
+#' @importFrom purrr pluck map
+#' @importFrom rlang !!! exec
+#'
+#' @keywords internal
+#'
+#' @export
+compile_ligrec <- function(lr_pipeline = TRUE){
+
+    ligrec <-
+        get_lr_resources() %>%
+        map(function(resource){
+            list(transmitters = get_ligands(resource),
+                 receivers = get_receptors(resource),
+                 interactions = intercell_connections(resource))
+        }) %>%
+        setNames(get_lr_resources()) %>%
+        c(list(
+            OmniPath = list(
+                transmitters = exec(get_ligands, !!!op_ic_quality_param),
+                receivers = exec(get_receptors, !!!op_ic_quality_param),
+                interactions = exec(
+                    intercell_connections,
+                    !!!op_ic_quality_param,
+                    !!!op_ia_quality_param
+                )
+            )
+        ))
+
+    # Format OmniPath ----
+    ligrec$OmniPath$interactions %<>%
+        filter(!(entity_type_intercell_source == "complex" |
+                     entity_type_intercell_target == "complex"))  %>%
+        # filter any mediators
+        filter(!(str_detect(category_intercell_source, "cofactor")) &
+                   !(str_detect(category_intercell_target, "cofactor")) &
+                   !(str_detect(category_intercell_source, "ligand_regulator")))%>%
+        # remove ambiguous/non-membrane associated receptor-receptor interactions
+        # as well as others which seem to be misannotated (manually)
+        filter(!(source %in% c("O75462", "Q13261", "P00533", "O00220",
+                               "P06213", "P08254", "Q99835",
+                               "Q9ULT6", "P06213", "Q13467", "P09619")
+                 )) %>%
+        # Filter KEA if it's the only curation
+        filter(!(str_detect(sources, "KEA") & curation_effort==1)) %>%
+        # filter any ion_channel/adp-associated interactions
+        filter(parent_intercell_target != "ion_channel") %>%
+        # interactions need to be reversed
+        mutate(target_genesymbol_new = ifelse(target_genesymbol %in% c("FGF2", "FGF23", "ALOX5",
+                                                                       "CLEC2A", "CLEC2B", "CLEC2D"),
+                                              source_genesymbol,
+                                              target_genesymbol),
+               source_genesymbol_new = ifelse(target_genesymbol %in% c("FGF2", "FGF23", "ALOX5",
+                                                                       "CLEC2A", "CLEC2B", "CLEC2D"),
+                                              target_genesymbol,
+                                              source_genesymbol)) %>%
+        mutate(target_new = ifelse(target_genesymbol %in% c("FGF2", "FGF23", "ALOX5",
+                                                            "CLEC2A", "CLEC2B", "CLEC2D"),
+                                              source,
+                                              target),
+               source_new = ifelse(target_genesymbol %in% c("FGF2", "FGF23", "ALOX5",
+                                                            "CLEC2A", "CLEC2B", "CLEC2D"),
+                                   target,
+                                   source)) %>%
+        mutate(target = target_new,
+               target_genesymbol = target_genesymbol_new,
+               source = source_new,
+               source_genesymbol = source_genesymbol_new) %>%
+        dplyr::select(-ends_with("new")) %>%
+        distinct() %>%
+        select(-starts_with("plasma_membrane")) %>%
+        select(source_genesymbol, target_genesymbol,
+               source, target, everything())
+
+
+    # Format CPDB ----
+    ligrec$CellPhoneDB$interactions %<>%
+        # check if any ambigous interactions (wrongly annotated ligands/receptors) exist
+        rowwise() %>%
+        unite(source, target, col = "interaction", remove = FALSE) %>%
+        unite(target, source, col = "interaction2", remove = FALSE) %>%
+        # identify duplicates
+        mutate(dups = if_else(interaction %in% interaction2 |
+                                  interaction2 %in% interaction,
+                              TRUE,
+                              FALSE)) %>%
+        # ligands which are targets in OmniPath
+        mutate(wrong_transitters = (source %in% ligrec$OmniPath$interactions$target)) %>%
+        # receptors which are ligands in OmniPath
+        mutate(wrong_receivers = (target %in% ligrec$OmniPath$interactions$source)) %>%
+        # filter duplicates which are wrongly annotated
+        filter(!(wrong_transitters & dups)) %>%
+        filter(!(wrong_receivers & dups)) %>%
+        # mismatched transmitters
+        filter(!(target %in% c("P09917"))) %>%
+        select(-starts_with("interaction"), -starts_with("wrong"), -dups)
+
+
+    # CellChatDB Fix (append missing) ----
+    ligrec$CellChatDB$interactions %<>%
+        # append missing OG CellChatDB interactions
+        bind_rows(get_cellchat_missing()) %>%
+        mutate(across(where(is_double), ~replace_na(.x, 1))) %>%
+        mutate(across(where(is_integer), ~replace_na(.x, 1))) %>%
+        mutate(across(where(is_character), ~replace_na(.x, "placeholder")))
+
+
+    # Obtain CellCall from source
+    ligrec$CellCall$interactions <- get_cellcall()
+
+    # Format to pipeline or not
+    ligrec %<>% { if(lr_pipeline) reform_omni(.) else ligrec %>%
+            map(function(ligrec_interactions){
+                ## NOTE!!!
+                # Obtain Transmitters and Receivers from the interactions
+                ligrec_interactions %<>%
+                    assign_ligrecs()
+                })
+    }
+
+    # Generate also Mouse Consensus
+    ligrec$MouseConsensus <- ligrec$Consensus %>%
+        liana::generate_orthologs(target_organism = 10090)
+
+    return(ligrec)
+}
+
+
+
+#' Helper Function to Reformat ligrec for LR Pipeline
+#' @param ligrec OmniPath list returned by compile_ligrec
+#' @return A list of OmniPath resources, including OmniPath composite DB,
+#' A reshuffled OmniPath, and a Default with NULL ( tool pipelines run
+#' using their default resource)
+#' @importFrom purrr pluck map
+#' @importFrom dplyr distinct_at
+#'
+#' @noRd
+reform_omni <- function(ligrec){
+    map(ligrec, function(x) x %>%
+            pluck("interactions") %>%
+            distinct_at(.vars = c("source_genesymbol", # remove duplicate LRs
+                                  "target_genesymbol"),
+                        .keep_all = TRUE)) %>%
+        append(list("Default" = NULL,
+                    "Consensus" = get_curated_omni()),
+               .)
+}
+
+
+
+#' Retrieves intercellular interactions from OmniPath
+#' @inheritParams omnipath_partners
+#' @inheritDotParams OmnipathR::filter_intercell_network
+#' @return A tibble with Intercell interactions from OmniPath
+#'
+#' @importFrom magrittr %>%
+#'
+#' @noRd
+omnipath_intercell <- function(...){
+    OmnipathR::import_intercell_network() %>%
+        OmnipathR::filter_intercell_network(...)
+}
+
+
+
+
+#' Retrieves the interactions from one ligand-receptor resource
+#'
+#' @inheritDotParams OmnipathR::import_post_translational_interactions
+#' @inheritParams get_partners
+#' @import tibble
+#'
+#' @noRd
+intercell_connections <- function(resource, ...){
+
+    if(resource == 'OmniPath'){
+
+        return(omnipath_intercell(...))
+
+    }
+
+    OmnipathR::import_post_translational_interactions(
+        resource = resource,
+        ...
+    ) %>%
+        as_tibble() %>%
+        mutate(category_intercell_source = "ligand",
+               category_intercell_target = "receptor")
+
+}
+
+
+#' Retrieves ligands from one ligand receptor resource
+#' @inheritDotParams intercell_connections
+#' @inheritParams get_partners
+#'
+#' @noRd
+get_ligands <- function(resource, ...){
+
+    get_partners(side = 'ligand', resource = resource, ...)
+
+}
+
+
+#' Retrieves receptors from one ligand-receptor resource
+#'
+#' @inheritDotParams intercell_connections
+#'
+#' @noRd
+get_receptors <- function(resource, ...){
+
+    get_partners(side = 'receptor', resource = resource, ...)
+
+}
+
+
+
+#' Retrieves intercellular communication partners (ligands or receptors) from
+#' one ligand-receptor resource.
+#' @inheritParams omnipath_partners
+#' @param resource Name of current resource (taken from get_lr_resources)
+#' @param ... Inherit dot params from \link{OmnipathR::omnipath_intercell}
+#' @importFrom rlang sym !!!
+#' @importFrom magrittr %>%
+get_partners <- function(side, resource, ...){
+
+    if(resource == 'OmniPath'){
+        return(omnipath_partners(side = side, ...))
+    }
+
+    id_cols <- `if`(
+        side == 'ligand',
+        syms(c('source', 'source_genesymbol')),
+        syms(c('target', 'target_genesymbol'))
+    )
+    up_col <- `if`(
+        side == 'ligand',
+        sym('source'),
+        sym('target')
+    )
+    gs_col <- `if`(
+        side == 'ligand',
+        sym('source_genesymbol'),
+        sym('target_genesymbol')
+    )
+
+    intercell_connections(resource, ...) %>%
+        select(!!!id_cols) %>%
+        distinct() %>%
+        rename(uniprot = !!up_col, genesymbol = !!gs_col)
+
+}
+
+
+
+
+#' Retrieves intercellular communication partners (transmitters or receivers)
+#' from OmniPath
+#'
+#' @param side 'ligand' (trans), 'receptor' (rec) or 'both' (both short or
+#'     long notation can be used)
+#' @inheritDotParams OmnipathR::import_omnipath_intercell
+#'
+#' @importFrom OmnipathR import_omnipath_intercell
+#' @importFrom magrittr %>%
+#'
+#' @keywords internal
+omnipath_partners <- function(side, ...){
+
+    causality <- list(ligand = 'trans', receptor = 'rec')
+
+    OmnipathR::import_omnipath_intercell(
+        causality = causality[[side]],
+        scope = 'generic',
+        source = 'composite',
+        ...
+    )
+
+}
+
+
+#' Function to Generate OmniPath versions
+#'
+#' @param remove_complexes whether to remove complexes
+#' @param simplify whether to simplify according to the mandatory columns needed by different methods in `liana`
+#' @inheritDotParams OmnipathR::filter_intercell_network
+#'
+#' @export
+#'
+#' @return An OmniPath resource
+#'
+#' @noRd
+generate_omni <- function(remove_complexes=TRUE,
+                          simplify = TRUE,
+                          ...){
+    OmnipathR::import_intercell_network() %>%
+        {
+            if(remove_complexes)
+                filter(., !(entity_type_intercell_source == "complex" |
+                                entity_type_intercell_target == "complex"))
+            else .
+
+        } %>%
+        OmnipathR::filter_intercell_network(
+            simplify = FALSE,
+            ...
+        )  %>%
+        distinct_at(.vars = c("source_genesymbol", # remove duplicate LRs
+                              "target_genesymbol"),
+                    .keep_all = TRUE) %>%
+        {
+            if(simplify)
+                select(.,
+                       "source", "target", "source_genesymbol", "target_genesymbol",
+                       "is_directed", "is_stimulation", "is_inhibition",
+                       "consensus_direction","consensus_stimulation", "consensus_inhibition",
+                       "sources","references", "curation_effort",
+                       "n_references", "n_resources",
+                       "category_intercell_source", "category_intercell_target")
+            else .
+        }
+
+}
+
+
+
+#' Function to Obtain the CellCall database
+#'
+#' @keywords internal
+#'
+#' @returns cellcall db converted to LIANA/OP format
+get_cellcall <- function(){
+    # Get UniProt Query DB
+    cellcall <- read.delim(url("https://raw.githubusercontent.com/ShellyCoder/cellcall/master/inst/extdata/new_ligand_receptor_TFs.txt"), header = TRUE) %>%
+        mutate(across(everything(), ~as.character(.x))) %>%
+        # we can also get extended interactions
+        # bind_rows(read.delim(url("https://raw.githubusercontent.com/ShellyCoder/cellcall/master/inst/extdata/new_ligand_receptor_TFs_extended.txt"), header = TRUE) %>%
+        #               mutate(across(everything(), ~as.character(.x)))) %>%
+        dplyr::select(Ligand_ID,
+                      Receptor_ID) %>%
+        filter(Ligand_ID != Receptor_ID) %>%
+        mutate(across(everything(), ~gsub("\\,", "\\_", .x))) %>%
+        distinct()
+
+    up <- UniProt.ws::UniProt.ws(taxId=9606)
+    # Get Dict
+    up_dict <- get_up_dict(cellcall, up)
+
+    # convert to lists for recode
+    up_dict_uniprot <- up_dict %>%
+        dplyr::select(GENEID, uniprot) %>%
+        mutate(across(everything(), ~gsub("\\s", "", .x))) %>%
+        deframe() %>%
+        as.list()
+    up_dict_symbol <- up_dict %>%
+        dplyr::select(GENEID, genesymbol) %>%
+        mutate(genesymbol = gsub("*\\s..*" ,"" , genesymbol)) %>%
+        mutate(across(everything(), ~gsub("\\s", "", .x))) %>%
+        deframe() %>%
+        as.list()
+
+    # translate to Uniprot and format
+    cellcall %>%
+        rowwise() %>%
+        mutate(source = geneid_to_uniprot(Ligand_ID, up_dict_uniprot)) %>%
+        mutate(target = geneid_to_uniprot(Receptor_ID, up_dict_uniprot)) %>%
+        mutate(source_genesymbol = geneid_to_uniprot(Ligand_ID, up_dict_symbol)) %>%
+        mutate(target_genesymbol = geneid_to_uniprot(Receptor_ID, up_dict_symbol)) %>%
+        ungroup() %>%
+        select(-c(Ligand_ID, Receptor_ID)) %>%
+        mutate(is_directed = 1,
+               is_stimulation = 1,
+               is_inhibition = 1,
+               consensus_direction = 1,
+               consensus_stimulation = 1,
+               consensus_inhibition = 1,
+               dip_url = "placeholder",
+               sources = "placeholder",
+               references = "placeholder",
+               curation_effort = "placeholder",
+               n_references = 1,
+               n_resources = 1,
+               category_intercell_source = "placeholder",
+               category_intercell_target = "placeholder"
+        ) %>%
+        mutate(across(c("source", "target",
+                        "source_genesymbol",
+                        "target_genesymbol"),
+                      ~as.character(.x)))
+}
+
+
+#' Helper Function to translate to UniProt
+#' @param st any genesymbol string - to be separate by `_`
+#'
+#' @keywords internal
+genesymbol_to_uniprot <- function(st){
+    st.split <- as.vector(str_split(st, pattern = "_"))[[1]]
+    AnnotationDbi::select(org.Hs.eg.db::org.Hs.eg.db,
+                          keys=st.split,
+                          keytype = "SYMBOL",
+                          columns = c("SYMBOL", "UNIPROT", "EVIDENCE")) %>%
+        arrange(desc(UNIPROT)) %>%
+        distinct_at(c("SYMBOL"), .keep_all = TRUE) %>%
+        pluck("UNIPROT") %>%
+        glue::glue_collapse(sep = "_")
+}
+
+
+#' Helper function to get UniProt dictionary
+#'
+#' @param ligrec_res ligand_receptor resource to translate
+#' @param up uniprot db to be queried
+#' @param key_column1 name of the ligand  column
+#' @param key_column2 name of the receptor column
+#'
+#' @keywords internal
+get_up_dict <- function(ligrec_res,
+                        up,
+                        key_column1 = "Ligand_ID",
+                        key_column2 = "Receptor_ID"){
+
+    keys <- unlist(union(str_split(ligrec_res[[key_column1]], pattern = "_"),
+                         str_split(ligrec_res[[key_column2]], pattern = "_")))
+
+    up_dict <- UniProt.ws::select(up, keytype = c("GENEID"),
+                                  columns = c("UNIPROTKB", "GENES","REVIEWED"),
+                                  keys = keys) %>%
+        filter(REVIEWED == "reviewed") %>%
+        dplyr::select(GENEID,
+                      uniprot = UNIPROTKB,
+                      genesymbol = GENES) %>%
+        # Keep only first gene symbol (i.e. official one)
+        tibble() %>%
+        mutate(GENEID = gsub("\\s", "", GENEID))
+
+    return(up_dict)
+}
+
+#' Helper Function to translate to UniProt
+#'
+#' @param st any genesymbol string - to be separate by `_`
+#' @param dict dictionary with genesymbols and uniprot IDs
+#'
+#' @noRd
+geneid_to_uniprot <- function(st,
+                              dict){
+    st.split <- str_split(st, pattern = "_")[[1]]
+
+    tryCatch(
+        {
+            map(st.split, function(spl){
+                recode(as.character(gsub("\\s", "", spl)), !!!dict)
+            }) %>%
+                glue::glue_collapse(sep = "_")
+
+        },
+        error = function(cond){
+            message(str_glue("{st} had no match!"))
+            return(NA)
+        }
+    )
+}
+
+
+
+#' Helper Function to get Missing Interactions from OG CellChatDB
+#'
+#' @keywords internal
+get_cellchat_missing <- function(){
+    CellChat::CellChatDB.human %>%
+        pluck("interaction") %>%
+        select(source_genesymbol = ligand,
+               target_genesymbol = receptor) %>%
+        mutate(across(everything(), ~stringr::str_to_upper(.x))) %>%
+        mutate(across(everything(), ~gsub("*\\s..*" ,"" , .x))) %>%
+        mutate(across(everything(), ~gsub("\\:" ,"_" , .x))) %>%
+        # Obtain only ITGA1_ITGB1-interactions (they are missing from CellChatDB in Omni)
+        filter(str_detect(target_genesymbol, "ITGA1_ITGB1")) %>%
+        # translate to Uniprot
+        rowwise() %>%
+        mutate(target = genesymbol_to_uniprot(target_genesymbol)) %>%
+        mutate(source = genesymbol_to_uniprot(source_genesymbol)) %>%
+        ungroup()
+}
+
+#' Helper function to obtain distinct transmitter and receiver lists
+#' used in the resource comparison
+#'
+#' @param ligrec_list e.g. ligrec$OmniPath
+#'
+#' @keywords internal
+assign_ligrecs <- function(ligrec_list){
+    ligrec_list[["transmitters"]] <- ligrec_list$interactions %>%
+        select(genesymbol = source_genesymbol,
+               uniprot = source) %>%
+        distinct()
+    ligrec_list[["receivers"]] <- ligrec_list$interactions %>%
+        select(genesymbol = target_genesymbol,
+               uniprot = target) %>%
+        distinct()
+
+    return(ligrec_list)
+}
+
+
+
+#' Helper Function to check if there are dissociated entities which also exist as
+#' complexes.
+#'
+#' @details We count the times that a ligand (check_entity) exists in a combination
+#' with the same receptor (anchor_entity)
+#'
+#' @param complex_omni an OmniPath resource with complexes
+#' @param check_entity the entity to be check for duplicates
+#' @param anchor_entity the anchor entity with which we check for duplicates
+#'
+#' @keywords internal
+check_if_dissociated <- function(complex_omni, check_entity, anchor_entity){
+    check.complex <- str_glue("{check_entity}_complex")
+    anchor.complex <- str_glue("{anchor_entity}_complex")
+
+    complex_omni %>%
+        liana::decomplexify() %>%
+        select(-anchor_entity) %>%
+        distinct() %>%
+        group_by(.data[[check_entity]], .data[[anchor.complex]]) %>%
+        # count the number that the entity exists with the same target
+        mutate(counter = n()) %>%
+        select(check_entity,
+               check.complex, anchor.complex, counter) %>%
+        arrange(desc(counter)) %>%
+        # if exists more than once and is not a complex, then this
+        # check_entity and anchor_entity is duplicated
+        # hence we can remove any non-complex check_entity (since it already exists)
+        filter(counter > 1) %>%
+        filter(!str_detect(.data[[check.complex]], "_")) %>%
+        ungroup() %>%
+        # recomplexify
+        select(-check_entity) %>%
+        dplyr::rename({{check_entity}} := check.complex,
+                      {{anchor_entity}} := anchor.complex)
+}
+
+
+
+#' Function to Generate the Curated (Default) LIANA resource
+#'
+#' @param curated_resources the curated resources from which we wish to obtain interactions.
+#' By default, it includes interactions curated in the context of CCC from CellPhoneDB,
+#' CellChat, ICELLNET, connectomeDB, CellTalkDB, and SignaLink.
+#'
+#' @details Here, we define the curated resources as those that are defined as manually
+#' or expert curated in the context of cell-cell communication.
+#' Albeit, "Guide2Pharma", "HPMR", and "Kirouac2010" are also such resources the remainder
+#' of the resources used to generate Omnipath, use those as sources.
+#' Hence, we assume that the second round of manual curation done in subsequent, more recently published
+#' resources would already contain the high quality interactions of the aforementioned 3.
+#' We also omit Cellinker, as it results in a large mount of ambigous interactions, but
+#' one could consider adding it to the list of curated resources.
+#'
+#' @return a curated OmniPath resource formatted for LIANA
+#'
+#' @export
+#'
+get_curated_omni <- function(curated_resources = c("CellPhoneDB",
+                                                   "CellChatDB",
+                                                   "ICELLNET",
+                                                   "connectomeDB2020",
+                                                   "CellTalkDB")){
+
+
+    # import the OmniPathR intercell network component
+    ligrec <- OmnipathR::import_intercell_network(resources = curated_resources)
+
+    # 1. Distinct and remove odd ligands
+    complex_omni <- ligrec %>%
+        filter(!category_intercell_source %in% c("activating_cofactor",
+                                                 "ligand_antagonist")) %>%
+        # we keep only the distinct LRs
+        # (technically any combination of subunits can exist at this stage)
+        distinct_at(c("source_genesymbol", "target_genesymbol"), .keep_all = TRUE) %>%
+        # we then decomplexify (or split all complexes into subunits)
+        liana::decomplexify(columns = c("source_genesymbol", "target_genesymbol"))
+
+    # 2. Identify resulting duplicates from decomplexify
+    # (keep the false/duplicate interactions alone)
+    duplicated_lrs_only <- complex_omni %>%
+        group_by(source_genesymbol, target_genesymbol) %>%
+        # Iterative counter/ticker
+        mutate(number = 1) %>%
+        mutate(ticker = cumsum(number)) %>%
+        filter(ticker > 1) %>%
+        # which ones are complexes (they are unique)
+        mutate(complex_flag = str_detect(source, pattern = "COMPLEX") |
+                   str_detect(target, pattern = "COMPLEX")) %>%
+        # remove any that are duplicated and not complexes
+        filter(!complex_flag)
+
+    # We anti join the false interactions
+    complex_omni %<>%
+        anti_join(duplicated_lrs_only)
+
+    # 3. Remove duplicated complexes (introduced by expanding them via liana_decomplexify)
+    complex_omni %<>%
+        distinct_at(c("source_genesymbol_complex", "target_genesymbol_complex"), .keep_all = TRUE) %>%
+        select(-c("source_genesymbol", "target_genesymbol")) %>%
+        dplyr::rename(source_genesymbol = source_genesymbol_complex,
+                      target_genesymbol = target_genesymbol_complex)
+
+    # 4. Filter by localisation
+    complex_omni_temp <- complex_omni %>%
+        OmnipathR::filter_intercell_network(loc_consensus_percentile = 33,
+                                            consensus_percentile = NULL,
+                                            transmitter_topology = c('secreted',
+                                                                     'plasma_membrane_transmembrane',
+                                                                     'plasma_membrane_peripheral'),
+                                            receiver_topology = c('plasma_membrane_transmembrane',
+                                                                  'plasma_membrane_peripheral'),
+                                            min_curation_effort = 0,
+                                            min_resources = 1,
+                                            min_references = 0,
+                                            min_provenances = 0,
+                                            simplify = TRUE) %>%
+        select(-starts_with("is"))
+
+    # since complexes are *penalized in terms of loc_consensus due to the fact
+    # that they have multiple subunits the localisation annotations, hence
+    # we don't filter them based on locallisation alone
+    complex_omni_diff <- anti_join(complex_omni, complex_omni_temp) %>%
+        select(colnames(complex_omni_temp)) %>%
+        filter(!str_detect(source_genesymbol, "_") & !str_detect(target_genesymbol, "_"))
+
+    # Filter out interactions (between non-proteins) whose localisation is
+    # not appropriately assigned and/or are not referenced to a specific resource
+    complex_omni %<>%
+        select(colnames(complex_omni_temp)) %>%
+        anti_join(complex_omni_diff)
+
+
+    # 5. Get *curated interactions alone
+    # Here we collected the curated interactions from all resources which contained any.
+    # We defined curated interactions as those which contain a corresponding PubMed ID
+    # Note that  we check for PubMed ID interactions solely as another level of certainty
+    ligrec_curated <- OmnipathR::curated_ligand_receptor_interactions(
+        curated_resources = curated_resources,
+        cellphonedb = TRUE,
+        cellinker = TRUE,
+        talklr = FALSE,
+        signalink = TRUE) %>%
+        liana:::decomplexify(columns = c("source_genesymbol", "target_genesymbol"))
+
+    # Check which curated interactions are missing from OmniPath
+    curated_not_in_omni <- ligrec_curated %>%
+        anti_join(complex_omni %>%
+                      liana:::decomplexify(columns = c("source_genesymbol",
+                                                       "target_genesymbol")),
+                  by=c("source_genesymbol", "target_genesymbol")) %>%
+        distinct_at(c("source_genesymbol", "target_genesymbol"), .keep_all = TRUE) %>%
+        # Filter any ligands that are receptors in the localisation-filtered OmniPath
+        filter(!(source_genesymbol %in% complex_omni$target_genesymbol)) %>%
+        # and vice versa
+        filter(!(target_genesymbol %in% complex_omni$source_genesymbol)) %>%
+        # re-complexify
+        select(-c("source_genesymbol", "target_genesymbol")) %>%
+        dplyr::rename(source_genesymbol = source_genesymbol_complex,
+                      target_genesymbol = target_genesymbol_complex) %>%
+        # remove unneeded columns
+        select(source, target, source_genesymbol, target_genesymbol, sources, references)
+
+    # Bind the missing curated (Pubmed supported) and localisation-corrected interactions
+    complex_omni %<>%
+        bind_rows(curated_not_in_omni)
+
+    # Remove left-over Redundant Subunits from Complex Ligands
+    # (mostly the case when both the ligand and receptor are complexes)
+    complex_omni %<>%
+        # remove redundant ligands
+        anti_join(check_if_dissociated(complex_omni,
+                                       check_entity = "source_genesymbol",
+                                       anchor_entity = "target_genesymbol"),
+                  by = c("source_genesymbol", "target_genesymbol")) %>%
+        # remove redundant receptors
+        anti_join(check_if_dissociated(complex_omni,
+                                       check_entity = "target_genesymbol",
+                                       anchor_entity = "source_genesymbol"),
+                  by = c("source_genesymbol", "target_genesymbol")) %>%
+        mutate(across(everything(), ~replace_na(.x, "")))
+
+    # 6. Check for duplicated/ambigous interactions
+    # These include examples such as L1_R1 and R1_L1 ->
+    # in general, we want to remove these,
+    # unless they are in the context of cell-cell adhesion.
+    duplicated_omni <- complex_omni %>%
+        # check if any ambiguous/duplicated interactions exist
+        rowwise() %>%
+        unite(source, target, col = "interaction", remove = FALSE) %>%
+        unite(target, source, col = "interaction2", remove = FALSE) %>%
+        # identify duplicated interactions
+        mutate(dups = if_else(interaction %in% interaction2 |
+                                  interaction2 %in% interaction,
+                              TRUE,
+                              FALSE)) %>%
+        # ligands which are targets in OmniPath
+        mutate(ambigous_transmitters = (source %in% target)) %>%
+        # filter to ambiguously annotated transmitters from duplicates
+        # interactions alone
+        filter((ambigous_transmitters & dups))
+
+    wrong_transmitters <- c("ADGRE5", "CD160",
+                            "CD226", "EGFR",
+                            "TNFRSF18", "CTLA4",
+                            "KLRB1", "KLRF1", "KLRF2",
+                            "PTPRC", "PVR", "SIGLEC1",
+                            "SIGLEC9", "TNFRSF14",
+                            "ITGAD_ITGB2",
+                            "ITGA4_ITGB1", "ITGA9_ITGB1",
+                            "ITGA4_ITGB7",
+                            "TYK2", "SYK",
+                            "MT-RNR2",
+                            "IL13_IL13RA1_IL4R",
+                            "IL22_IL22RA1",
+                            "IL18BP"
+
+    )
+
+    # # Identify wrongly annotated interactions
+    duplicated_omni %<>%
+        filter(source_genesymbol %in% wrong_transmitters)
+
+    # Blocklist certain receivers
+    block_receivers <- c("IFNG_IFNGR1", # include a ligand in the complex
+                         "CNTN2_CNTNAP2",
+                         "IL2_IL2RA_IL2RB_IL2RG",
+                         "IL15_IL15RA_IL2RB_IL2RG",
+                         "IL6_IL6R_IL6ST",
+                         "IL1B_IL1R1_IL1RAP",
+                         "IL1B_IL1R2_IL1RAP",
+                         "IFNA2_IFNAR1_IFNAR2",
+                         "ACVR1C_ACVR2B_CFC1",
+                         "CSF2_CSF2RA_CSF2RB",
+                         "GP1BA_GP1BB_GP5_GP9")
+
+
+    # Remove those from our curated omnipath
+    complex_omni %<>%
+        anti_join(duplicated_omni, by=c("source_genesymbol",
+                                        "target_genesymbol")) %>%
+        filter(!target_genesymbol %in% block_receivers) %>%
+        filter(!source_genesymbol %in% wrong_transmitters) %>%
+        # # Recomplexify CD8 complex?
+        # mutate(target_genesymbol = if_else(target_genesymbol=="CD8A" |
+        #                                        target_genesymbol=="CD8B",
+        #                                    "CD8A_CD8B",
+        #                                    target_genesymbol)) %>%
+        distinct_at(.vars=c("source_genesymbol", "target_genesymbol"),
+                    .keep_all=TRUE)
+
+    ## Recode odd aliases
+    complex_omni %<>%
+        mutate(source_genesymbol =
+                   recode(source_genesymbol,
+                          !!!list(
+                              "C4B_2"="C4B"
+                              )
+                          )
+               )
+
+    # Return the final Curated OmniPath Resource
+    return(complex_omni)
+}
+
+  contents: read
+
+jobs: #' Run iTALK with OmniPath data [[DEPRECATED]]
+#'
+#' @param sce Seurat object or SingleCellExperiment as input
+#' @param op_resource OmniPath Intercell Resource DN
+#' @param assay assay to use from Seurat object
+#' @param .format bool: whether to format output
+#' @param ... Parameters passed to Seurat FindMarkers (ref requires import)
+#'
+#' @return An unfiltered iTALK df sorted by relevance
+#'
+#' In this case, we use the product of the logFC rather than thresholding, as in
+#' the original implementation.
+#'
+#' @importFrom magrittr %>% %<>%
+#' @importFrom tidyr unite expand_grid
+#' @importFrom dplyr select rename mutate group_by group_split
+#'
+#' @export
+#'
+#' @details In order to be comparable with the remainder of the methods, we
+#' calculate the mean of the ligand and receptor logFC.
+#' The original implementation only uses the DE genes above a certain logFC
+#' threshold.
+call_italk <- function(
+  sce,
+  op_resource,
+  assay = "RNA",
+  .format = TRUE,
+  ...){
+
+  # Convert sce to seurat
+  if(class(sce) == "SingleCellExperiment"){
+    sce %<>% .liana_convert(., assay=assay)
+  }
+
+  if(!is.null(op_resource)){
+    op_resource %<>% italk_formatDB
+  }
+
+  # create a dataframe of the cell labels
+  cell_type <- Idents(sce) %>%
+    data.frame(group = ., row.names = names(.)) %>%
+    unname() %>%
+    as.vector()
+
+
+  deg <- Seurat::FindAllMarkers(sce,
+                                assay = assay,
+                                ...
+                                ) %>%
+    dplyr::group_by(cluster) %>%
+    dplyr::group_split()  %>%
+    map(function(x){
+
+      logcol <- ifelse("avg_logFC" %in% colnames(x), # Seurat...
+                       "avg_logFC", # version 3.2.3
+                       "avg_log2FC") # version 4.0.3
+
+      x %>%
+        rename(p.value = 'p_val',
+               logFC = !!logcol,
+               q.value = 'p_val_adj',
+               cell_type = 'cluster',
+               gene = 'gene')
+      }) %>%
+    setNames(levels(Idents(sce)))
+
+  # Iterate over cell type pairs and Find LR
+  idents <- as.character(unique(Idents(sce)))
+  comb <- expand_grid(source = idents, target = idents)
+
+  res <- comb %>%
+    pmap(function(source, target){
+      iTALK::FindLR(
+        deg[[source]],
+        deg[[target]],
+        datatype = 'DEG',
+        comm_type = 'other',
+        database = op_resource
+        )
+      }) %>%
+    bind_rows()
+
+  if (.format) {
+    res <- res %>% FormatiTALK(remove.na = TRUE)
+  }
+
+  return(res)
+}
+
+
+
+
+#' Helper Function to Filter and format iTalk results
+#'
+#' @param italk_res iTalk results object
+#' @param remove.na bool whether to filter NA
+#'
+#' @importFrom tibble tibble
+#' @export
+FormatiTALK <- function(italk_res,
+                        remove.na = TRUE){
+
+    italk_res <- tibble(
+      'source' = italk_res$cell_from,
+      'ligand' = italk_res$ligand,
+      'target' = italk_res$cell_to,
+      'receptor' = italk_res$receptor,
+      'logFC_from' = italk_res$cell_from_logFC,
+      'logFC_to' = italk_res$cell_to_logFC,
+      'qval_from' = italk_res$cell_from_q.value,
+      'qval_to' = italk_res$cell_to_q.value
+      ) %>%
+      mutate(logfc_comb = mean(c(logFC_from, logFC_to)))
+
+  return(italk_res)
+}
+
+
+#' Helper Function to convert Omni to iTALK resource Format
+#'
+#' @param op_resource OmniPath resource
+#' @export
+#'
+#' @noRd
+italk_formatDB <- function(op_resource){
+  op_resource %>%
+    unite(col = "Pair.Name", source_genesymbol, target_genesymbol,
+          sep="_", remove = FALSE) %>%
+    rename('Ligand.ApprovedSymbol' = source_genesymbol,
+           'Receptor.ApprovedSymbol' = target_genesymbol) %>%
+    mutate("Classification" = "other",
+           'Receptor.Name' = Receptor.ApprovedSymbol,
+           'Ligand.Name' = Ligand.ApprovedSymbol) %>%
+    select(Pair.Name, Ligand.ApprovedSymbol, Ligand.Name,
+           Receptor.ApprovedSymbol, Receptor.Name, Classification) %>%
+    as.data.frame()
+}
+  build: #' Function to Aggregate CCC Method Results
+#'
+#' @param liana_res LIANA results
+#' @param aggregate_how way to aggregate, by default (NULL) will aggregate
+#'  all passed methods with the approach specified in `liana:::.score_specs`.
+#'  Alternative options are `magnitude` and `specificity`.
+#' @param set_cap Function used to set ranked cap (i.e. the value that is
+#'    assigned to interactions with NA for scores);
+#'    By default, this is set to "max", which is the maximum number of interactions
+#'    obtained by the methods; Some methods return all possible ligand-receptor
+#'    combinations for each possible source and target cell pair - i.e. the
+#'    known universe of all possible interactions (based on the CCC resource)
+#' @param resource If methods are ran with multiple resources, the name of the
+#'    resource of interest needs to be provided
+#'    *Note* if a name is not provided, the first results based on the first
+#'    resource in the list will be returned
+#' @param cap A cap can for all methods can also be manually set, then the top X
+#'    interactions, based on the `specificity` scores for each method will be
+#'    returned and the ranking will be carried out solely on them
+#' @param get_ranks boolean, whether to return consensus ranks for methods
+#' @param get_agrank boolean, whether to return aggregate rank using the
+#'    `RobustRankAggreg` package.
+#' @param .score_mode defines the way that the methods would be aggragate.
+#' By default, we use the score of each method which reflects specificity
+#' (if available), if not e.g. the case of SCA we use it's sole scoring function.
+#' This aggregation is by default done on the basis of the list returns by
+#' `.score_mode`. Alternatively, one could pass `.score_housekeep` to obtain an
+#' aggragate of the housekeeping interactions of each method.
+#' @param join_cols columns by which different method results will be joined.
+#' NULL by default, and automatically will handle the columns depending on the
+#' methods used.
+#' @inheritDotParams .rank_matrix
+#'
+#' @return Tibble with the interaction results and ranking for each method
+#'
+#' @details set_cap is the name of the name of a function that is to be executed
+#'   on a vector representing the number of rows in the results for each method,
+#'   by default this is set to \link{base::max}, but any other function that
+#'   works with vectors could be passed - e.g. min, mean, etc.
+#'
+#' This function also decomplexifies any complex present in the CellChat results
+#' which returns complexes by default
+#'
+#' @export
+#'
+#' @examples
+#' liana_path <- system.file(package = "liana")
+#' # load testdata
+#' testdata <- readRDS(file.path(liana_path , "testdata", "input", "testdata.rds"))
+#' # run liana
+#' liana_res <- liana_wrap(testdata, method=c("sca", "natmi"))
+#' # aggregate results from multiple methods
+#' liana_res <- liana_aggregate(liana_res)
+liana_aggregate <- function(liana_res,
+                            aggregate_how=NULL,
+                            resource = NULL,
+                            set_cap = "max",
+                            cap = NULL,
+                            get_ranks = TRUE,
+                            get_agrank = TRUE,
+                            .score_mode = .score_specs,
+                            verbose = TRUE,
+                            join_cols = NULL,
+                            ...){
+
+    # define approach to aggregate
+    if(!is.null(aggregate_how)){
+        if(aggregate_how=="magnitude"){
+            score_mode = liana:::.score_housekeep()
+        } else if(aggregate_how=="specificity"){
+            specs <- liana:::.score_specs()
+            specs$sca <- NULL # remove SingleCellSignalR score
+            specs$call_sca <- NULL # remove SingleCellSignalR score
+            score_mode = specs
+        } else{
+            stop("Please specify an existing aggregate approach!")
+        }
+    } else{
+        score_mode <- .score_mode()
+    }
+
+    if(!is_tibble(liana_res[[1]]) && is.null(resource)){
+        stop("Please provide provide a name for the resource ",
+             "to be plucked and used to aggregate the method results!")
+    } else if(!is_tibble(liana_res[[1]])){
+        liana_res %<>% map(function(m_results) m_results %>% pluck(resource))
+    }
+
+    # fix external methods which return only ligand/receptor, but not .complex
+    if(any(startsWith(names(liana_res), "call_"))){
+        if(!all(startsWith(names(liana_res), "call_"))){
+            liana_message(
+                "Using internal and external methods should be done with caution!",
+                output = "warning",
+                verbose = verbose)
+        }
+
+        join_cols %<>% `%||%` (c("source", "target",
+                                 "ligand", "receptor"))
+    } else{
+        # Default/internal-only liana runs
+        join_cols %<>% `%||%` (c("source", "target",
+                                 "ligand.complex", "receptor.complex"))
+    }
+
+    cap %<>% `%||%`(.select_cap(liana_res, set_cap))
+
+    liana_mlist <- liana_res %>%
+        map2(names(.), function(res, method_name){
+
+            if(is.null(score_mode[[method_name]])){
+                liana_message(
+                    str_glue(
+                        "Unknown method name or missing specifics for: {method_name}"
+                    ), output = "warning",  verbose = verbose)
+                return()
+            } else{
+                liana_message(str_glue("Now aggregating {method_name}"),
+                              output = "message",
+                              verbose = verbose)
+            }
+
+            method_score <- score_mode[[method_name]]@method_score
+            desc_order <- score_mode[[method_name]]@descending_order
+
+            .method = sym(as.character(str_glue("{method_name}.{method_score}")))
+            .rank_col = sym(as.character(str_glue("{method_name}.rank")))
+
+            res %>%
+                # split ligand and receptors for cellchat
+                {if(method_name=="call_cellchat")
+                    decomplexify(., columns = c("ligand", "receptor")) %>%
+                        dplyr::rename(ligand.complex = ligand_complex,
+                                      receptor.complex = receptor_complex) else .} %>%
+                top_n(n=if_else(desc_order,
+                                cap,
+                                -cap),
+                      wt=!!sym(method_score)) %>%
+                mutate( {{ .rank_col }} := .rank_enh(.data[[method_score]],
+                                                     desc_order)) %>%
+                arrange(!!.rank_col) %>%
+                rename( {{ .method }} := method_score) %>%
+                select(!!join_cols,
+                       !!.method, !!.rank_col) %>%
+                mutate(across(c(source, target), as.character)) %>%
+                distinct() %>%
+                as_tibble()
+        }) %>% compact()
+
+    liana_aggr <- liana_mlist %>%
+        purrr::reduce(., full_join, by = join_cols) %>%
+        {`if`(get_ranks, .liana_consensus(., cap, join_cols))}
+
+    # Get Robust Ranks
+    if(get_agrank){
+        liana_aggr <- liana_mlist %>%
+            .aggregate_rank(join_cols = join_cols,
+                            verbose = verbose,
+                            ...) %>%
+            right_join(., liana_aggr,
+                       by = join_cols)
+    }
+
+    return(liana_aggr)
+}
+
+
+#' Aggregate CCC Method results and by both magnitude and specificity ranks
+#'
+#' @param liana_res LIANA results
+#' @inheritDotParams liana_aggregate
+#'
+#' @export
+#'
+#' @examples
+#' liana_path <- system.file(package = "liana")
+#' # load testdata
+#' testdata <- readRDS(file.path(liana_path , "testdata", "input", "testdata.rds"))
+#' # run liana
+#' liana_res <- liana_wrap(testdata, method=c("sca", "natmi"))
+#' # aggregate results from multiple methods
+#' liana_res <- rank_aggregate(liana_res)
+rank_aggregate <- function(liana_res, ...){
+    dots <- list(...)
+    if("aggregate_how" %in% names(dots)){
+        stop("A consensus for both magnitude and specificity will be assigned!")
+    }
+
+    keys <- c("source", "target",
+              "ligand.complex",
+              "receptor.complex")
+
+    magnitude_rank <- liana_aggregate(liana_res,
+                                      aggregate_how="magnitude",
+                                      ...) %>%
+        dplyr::rename(magnitude_rank = aggregate_rank,
+                      magnitude_mean_rank = mean_rank) %>%
+        select(!ends_with(".rank"))
+    specificity_rank <- liana_aggregate(liana_res,
+                                        aggregate_how="specificity",
+                                        ...) %>%
+        select(all_of(keys),
+               specificity_rank = aggregate_rank,
+               specificity_mean_rank = mean_rank,
+               !ends_with(".rank"))
+
+    consensus_rank <- left_join(magnitude_rank, specificity_rank, by=keys) %>%
+        select(all_of(keys), magnitude_rank, specificity_rank, everything()) %>%
+        arrange(magnitude_rank)
+
+    return(consensus_rank)
+}
+
+
+
+#' Helper function to execute a function on the vector representing the number
+#'  of rows in the results for each method
+#'
+#' @param fun function to execute
+#' @param liana_res ligand-receptor stats between clusters, output of
+#' `liana_pipe`
+#'
+#' @noRd
+.select_cap <- function(liana_res, fun){
+    nums <- liana_res %>% map(function(res) nrow(res)) %>% as.numeric()
+    exec(fun, nums)
+}
+
+
+
+#' Get Consensus Rankings for the Methods
+#'
+#' @param liana_aggr Aggregated method results
+#' @param cap Value assigned to NA (by default, the max number of all possible
+#'    interactions, depending on the resource)
+#'
+#' @import purrr tibble
+#'
+#' @return aggregated liana tibble with consensus ranks
+#'
+#' @noRd
+.liana_consensus <- function(liana_aggr, cap, join_cols){
+    liana_aggr %>%
+        mutate_at(vars(ends_with(".rank")),
+                  ~ replace(., is.na(.), cap)) %>% # assign .rank_cap to NA
+        mutate(mean_rank = pmap_dbl(select(., ends_with(".rank")),
+                                    function(...) mean(c(...)))) %>%
+        arrange(mean_rank) %>%
+        select(all_of(join_cols),
+               ends_with("_rank"),
+               everything())
+}
+
+
+#' Convert to Rank Helper Function
+#'
+#' @param vec vector to rank
+#' @param descending_order boolean, whether to sort in desc
+#'
+#' @return Rank vector
+#' @noRd
+.rank_enh <- function(vec, descending_order){
+    if(descending_order){
+        rank(desc(vec), ties.method = "average")
+    } else{
+        rank(vec, ties.method = "average")
+    }
+}
+
+#' Robust Aggregate ranks using `RobustRankAggreg`
+#'
+#' @param liana_mlist liana list with method tibbles
+#' @param join_cols columns to be concatenated to create entity to be ranked
+#'
+#' @noRd
+.aggregate_rank <- function(liana_mlist, join_cols, verbose, ...){
+    liana_message("Aggregating Ranks", output = "message", verbose = verbose)
+
+    rankmat <- liana_mlist %>%
+        map(function(res){
+            res %>%
+                unite(join_cols,
+                      col = "interaction",
+                      sep = "⊎") %>%
+                select(interaction, ends_with("rank"))
+        }) %>%
+        reduce(full_join,  by="interaction")  %>%
+        column_to_rownames(var = "interaction") %>%
+        as.matrix()
+
+    rankmat[is.na(rankmat)] <- max(rankmat, na.rm=TRUE)
+
+    rankmat %>%
+        {. / max(.)} %>%
+        .robust_rank_agg(.,
+                         ...) %>%
+        separate(col = "interaction", sep = "⊎",
+                 into = join_cols)
+}
+
+
+#' Function to calculate and format aggregate ranks
+#'
+#' @param rmat a ranked matrix [0,1]
+#'
+#' @details Adated from Kolde et al., 2012.
+#' Required due to the removal of the RobustRankAggregate package from CRAN.
+#'
+#' @references Kolde, R., Laur, S., Adler, P. and Vilo, J., 2012.
+#'  Robust rank aggregation for gene list integration and meta-analysis.
+#'  Bioinformatics, 28(4), pp.573-580.
+#'
+#' @noRd
+.robust_rank_agg <- function(rmat){
+    tibble(interaction = rownames(rmat), # Name
+           # calc aggr ranks
+           aggregate_rank = unname(apply(rmat, 1, .rho_scores))) %>% # Score
+        arrange(aggregate_rank)
+}
+
+
+#' Calculate (corrected) beta scores and rho values
+#'
+#' @param r normalized ranks vector [0,1]
+#'
+#' @return The functions returns a vector of p-values
+#'
+#' @details Adated from Kolde et al., 2012.
+#' Required due to the removal of the RobustRankAggregate package from CRAN.
+#'
+#' @references Kolde, R., Laur, S., Adler, P. and Vilo, J., 2012.
+#'  Robust rank aggregation for gene list integration and meta-analysis.
+#'  Bioinformatics, 28(4), pp.573-580.
+#'
+#' @noRd
+.rho_scores <- function(r){
+    r <- sort(r)
+    n <- length(r) #length is sometimes larger than max -> over-inflates FPs
+
+    # Calc beta p-vals
+    p <- pbeta(q=r,
+               shape1 = 1:n,
+               shape2 = n - (1:n) + 1)
+
+    # correct beta pvals
+    .corr_beta_pvals(p = min(p), k=n)
+}
+
+#' Correct beta p-vals
+#'
+#' @param p min p-val
+#' @param k number of elements in the vec
+#'
+#' @noRd
+.corr_beta_pvals <- function(p, k){
+    min(p * k, 1)
+}
+
+
+
+#' Helper function to rank each method
+#'
+#' @param liana_res liana_results for a single method
+#' @param method_name name of the method
+#' @param mode ranking to be carried out. Accepted modes are `specificity`
+#' and `magnitude`. The first is meant to reflect the specificity of interactions
+#' across all cell types, while the latter typically reflects how highly expressed
+#' is a given interaction.
+#'
+#' @details this function makes use of liana's `liana:::.score_specs` and
+#' `liana:::.score_housekeep` functions.
+#'
+#' @export
+rank_method <- function(liana_res,
+                        method_name,
+                        mode="specificity"){
+
+    if(mode=="specificity"){
+        .score_mode <- liana:::.score_specs
+    } else if(mode=="magnitude"){
+        .score_mode <- liana:::.score_housekeep
+    } else {
+        stop("Passed `mode` not found!")
+    }
+
+    if(is.null(.score_mode()[[method_name]])){
+        stop("Score-method combination not found!")
+    }
+
+    method_score <- .score_mode()[[method_name]]@method_score
+    desc_order <- .score_mode()[[method_name]]@descending_order
+
+    liana_res %>%
+        mutate(rank_col = .rank_enh(.data[[method_score]],
+                                    desc_order)) %>%
+        arrange(rank_col)
+}
+
+
+    runs-on: macos-latest
+    strategy: #' Function to obtain SingleCellSignalR-like scores
+#'
+#' @inheritParams liana_scores
+#' @inheritDotParams liana_call
+#'
+#' @export
+#'
+#' @return Returns a tibble with specificity weights (`LRscore`) as calculated
+#'    by SingleCellSignalR
+get_sca <- function(lr_res,
+                    ...){
+    liana_call(
+        lr_res = lr_res,
+        method = "sca",
+        ...
+    )
+}
+
+
+#' Function to obtain connectome-like weights
+#'
+#' @inheritParams liana_scores
+#' @inheritDotParams liana_call
+#'
+#' @export
+#'
+#' @return Returns a tibble with specificity weights (`weight_sc`) as calculated
+#'    by Connectome
+get_connectome <- function(lr_res,
+                           ...){
+    liana_call(
+        lr_res = lr_res,
+        method = "connectome",
+        ...
+        )
+}
+
+
+
+#' Function to obtain NATMI-like weights
+#'
+#' @inheritParams liana_scores
+#' @inheritDotParams liana_call
+#'
+#' @export
+#'
+#' @return Returns a tibble with specificity weights (`edge_specificity`)
+#'    as calculated by NATMI
+get_natmi <- function(lr_res,
+                      ...){
+    liana_call(
+        lr_res = lr_res,
+        method = "natmi",
+        ...
+    )
+}
+
+
+
+#' Function to obtain logFC weights
+#'
+#' @inheritParams liana_scores
+#' @inheritDotParams liana_call
+#'
+#' @export
+#'
+#' @return Returns a tibble with a logFC metric (`logfc_comb`). `logfc_comb` is
+#'    calculated as the product of the (1 vs the rest) log2FC for each ligand
+#'    and receptor gene
+get_logfc <- function(lr_res,
+                      ...){
+    liana_call(
+        lr_res = lr_res,
+        method = "logfc",
+        ...
+    )
+}
+
+
+#' Function to obtain CellPhoneDB-like scores
+#'
+#' @inheritParams liana_scores
+#' @inheritParams cellphonedb_score
+#' @inheritDotParams cellphonedb_score
+#'
+#' @noRd
+#'
+#' @return Returns a tibble with specificity weights (`pvalue`) as calculated
+#'    by CellPhoneDB
+get_cellphonedb <- function(lr_res,
+                            ...){
+    liana_call(
+        lr_res = lr_res,
+        method = "cellphonedb",
+        ...
+    )
+}
+
+
+#' Function to obtain CytoTalk-like scores
+#'
+#' @inheritParams liana_scores
+#' @inheritParams cellphonedb_score
+#' @inheritDotParams cellphonedb_score
+#'
+#' @noRd
+#'
+#' @return Returns a tibble with specificity weights (`pvalue`) as calculated
+#'    by CellPhoneDB
+get_cytotalk <- function(lr_res,
+                         ...){
+
+    liana_call(
+        lr_res = lr_res,
+        method = "cytotalk",
+        ...
+    )
+}
+
+
+#' Wrapper Function to obtain scores via liana_pipe
+#' @param method name of the method to be called
+#' @inheritParams liana_pipe
+#' @inheritDotParams liana_pipe
+#' @inheritParams liana_scores
+#' @inheritParams recomplexify
+#'
+#' @export
+#'
+#' @return lr_res modified to be method-specific
+liana_call <- function(method,
+                       lr_res,
+                       ...){
+
+    liana_scores(.score_specs()[[method]],
+                 lr_res = lr_res,
+                 ...)
+}
+
+
+
+#' Function to obtain different scoring schemes
+#'
+#' @param score_object score_object specific to the test obtained from score_specs
+#' @param lr_res ligand-receptor DE results and other stats between clusters
+#' @param ... dot params passed to `*_score` functions
+#'
+#' @return lr_res modified to be method-specific
+liana_scores <- function(score_object,
+                         lr_res,
+                         ...){
+
+
+    # Get expr prop from defaults/kwargs
+    expr_prop <- list(...)[["expr_prop"]]
+    return_all <- list(...)[["return_all"]]
+
+    supp_columns <- list(...) %>% pluck("supp_columns")
+    supp_columns <- union(score_object@add_columns, supp_columns)
+    if(return_all){
+        supp_columns <- union(supp_columns, c("lrs.to.keep"))
+    }
+
+    # join all columns
+    all_columns <- c(score_object@columns, supp_columns)
+    # Remove NAs for methods that don't have additional columns
+    all_columns <- as.character(na.omit(all_columns))
+
+    lr_res %<>%
+        select(ligand, receptor,
+               ends_with("complex"),
+               source, target,
+               ends_with("prop"),
+               any_of(all_columns))
+
+    lr_res %<>%
+        recomplexify(
+            lr_res = .,
+            columns = score_object@columns,
+            add_columns = supp_columns,
+            ...)  %>%
+        # Select only the relevant columns
+        select(source, target,
+               ligand.complex, ligand,
+               receptor.complex, receptor,
+               ends_with("prop"),
+               any_of(all_columns)) %>%
+        ungroup()
+
+    if(return_all){
+        lr_res <- lr_res %>%
+            mutate(lrs.to.keep = (receptor.prop >= expr_prop &
+                       ligand.prop >= expr_prop))
+        rest <- lr_res %>%
+            filter(!lrs.to.keep)
+        if(score_object@method_name!="cytotalk"){
+            lr_res <- lr_res %>%
+                filter(lrs.to.keep)
+        }
+    } else if(!return_all){
+        rest <- NULL
+    }
+
+    args <-
+        append(
+            list(lr_res = lr_res,
+            score_col = score_object@method_score),
+            list(...)
+        )
+
+    old_columns <- colnames(lr_res)
+    lr_res <- exec(score_object@score_fun, !!!args)
+    new_columns <- setdiff(colnames(lr_res), old_columns)
+
+    lr_res %>%
+        ungroup() %>%
+        .assign_to_filter(lr_res=.,
+                          columns = new_columns,
+                          expr_prop=expr_prop,
+                          return_all = args$return_all,
+                          rest=rest) %>%
+        # ensure that there are no duplicates (edge cases where multiple subunits
+        # have the same expr. - note that we also include method score to ensure
+        # that no information is being lost + there are no issues)
+        distinct_at(c("source", "target",
+                      "ligand.complex", "receptor.complex",
+                      score_object@method_score), .keep_all = TRUE)
+}
+
+
+#' Don't filter but assign as worst, and add `lrs.to.keep`
+#'
+#' @keywords internal
+#' @noRd
+.assign_to_filter <- function(lr_res,
+                              columns,
+                              expr_prop,
+                              return_all,
+                              rest){
+    if(!return_all){
+        return(lr_res %>%
+                   filter(receptor.prop >= expr_prop &
+                              ligand.prop >= expr_prop)
+               )
+    } else{
+        lr_res <- bind_rows(lr_res, rest)
+
+        map(columns,function(col){
+
+            # TODO Need to change this
+            # Here, I get the newly assigned columns and according to those
+            # I set the mins and max...
+            # Would require to rework the classes as in Python
+            # deal with descending
+            if(col %in% c("pvalue", "pval")){
+                fun <- "max"
+            } else{ # ascending
+                fun <- "min"
+            }
+
+            set_to <- exec(.fn=fun, lr_res[[col]], na.rm=TRUE)
+            lr_res <<- lr_res %>%
+                mutate({{ col }} := ifelse(lrs.to.keep, lr_res[[col]], set_to))
+        })
+
+        return(lr_res)
+    }
+}
+
+
+
+      matrix: #' Function to pass Default Arguments for each method
+#'
+#'
+#' @param expr_prop minimum proportion of gene expression per cell type (0.1 by default).
+#' Note that when working with complexes, the minimum subunit proportion will
+#' be used for filtering.
+#' @param complex_policy policy how to account for the presence of complexes.
+#'
+#' @param seed random seed integer
+#' @param parallelize whether to parallelize cellphonedb-like
+#' @param workers number of workers to be called
+#'
+#' @param liana_pipe.params list of Parameters passed to NATMI \code{\link{liana_pipe}}
+#' @param liana_call.params list of Parameters passed to NATMI \code{\link{liana_call}}
+#' @param cellchat.params list of Parameters passed to CellChat \code{\link{call_cellchat}}
+#' @param squidpy.params list of Parameters passed to Squidpy \code{\link{call_squidpy}}
+#' @param call_connectome.params list of Parameters passed to Connectome \code{\link{call_connectome}}
+#' @param call_italk.params list of Parameters passed to iTALK \code{\link{call_italk}}
+#' @param call_natmi.params list of Parameters passed to NATMI \code{\link{call_natmi}}
+#' @param call_sca.params list of Parameters passed to SingleCellSignalR \code{\link{call_sca}}
+#' @param assay Assay name passed to `call_italk`, `call_sca`, `call_cellchat`,
+#'    and `call_connectome`
+#' @param cellphonedb.params list of Parameters passed to liana's internal
+#' cellphonedb implementation \code{\link{cellphonedb_score}}
+#' @param natmi.params list of Parameters passed to liana's internal
+#' edge_specificity implementation \code{\link{natmi_score}}
+#' @param sca.params list of Parameters passed to liana's internal
+#' LRScore implementation \code{\link{sca_score}}
+#' @param connectome.params list of Parameters passed to liana's internal
+#' connectome's weight_sc implementation \code{\link{connectome_score}}
+#' @param cytotalk.params list of Parameters passed to liana's internal
+#' crosstalk scores implementation \code{\link{cytotalk_score}}
+#' @param logfc.params list of Parameters passed to liana's internal
+#' logFC implementation \code{\link{logfc_score}}
+#' @param permutation.params list of parameters passed to permutation methods
+#' @inheritParams liana_pipe
+#'
+#' @details The default parameters for each method can also be overwritten by
+#'  manually passing a list of parameters for the appropraite method
+#'   \code{\link{liana_wrap}}
+#'
+#' Further, each `get_*` method will by default obtain the default params passed
+#'    via \code{\link{liana_pipe}} and \code{\link{liana_call}}. This is done so that most steps
+#'    required for the calculation of these methods are undertaken only once.
+#'
+#' NB! LIANA's internal methods are made consistent. There is no reason to pass
+#' specific parameters to any of them. Thus, it is best that one sticks to the
+#' non-nested parameters of this function (i.e. excluding `.params`),
+#' unless a very specific reason requires any of LIANA's internal parameters
+#' to be changed.
+#'
+#'
+#' @return A list of the default parameters for each method
+#'
+#' @export
+#'
+#' @examples
+#' liana_path <- system.file(package = "liana")
+#' # load testdata
+#' testdata <- readRDS(file.path(liana_path , "testdata", "input", "testdata.rds"))
+#' # get a `named` list with all default parameters passed to liana.
+#' def_params <- liana_defaults()
+#' # any of these can then be overwritten and passed to `...` in `liana_wrap`
+#' # with the `.params` suffix to the parameter name type. For example,
+#' liana_res <- liana_wrap(testdata,
+#'                         permutation.params = list(nperms=2),
+#'                         liana_pipe.params = list(test.type='wilcox'))
+liana_defaults <- function(
+    assay = "RNA",
+    assay.type = "logcounts",
+    expr_prop = 0.1,
+    seed = 1004,
+    complex_policy = "mean0",
+    parallelize = FALSE,
+    workers = 8,
+    permutation.params = NULL,
+    liana_pipe.params = NULL,
+    liana_call.params = NULL,
+    cellphonedb.params = NULL,
+    natmi.params = NULL,
+    sca.params = NULL,
+    connectome.params = NULL,
+    cytotalk.params = NULL,
+    logfc.params = NULL,
+    cellchat.params = NULL,
+    squidpy.params = NULL,
+    call_sca.params = NULL,
+    call_natmi.params = NULL,
+    call_connectome.params = NULL,
+    call_italk.params = NULL,
+    ...){
+
+    # Internal ----
+    # LIANA_pipe defaults
+    liana_pipe.defaults <- list(
+        test.type = "wilcox",
+        pval.type = "all",
+        assay = assay,
+        assay.type = assay.type
+    )
+
+    # liana_call.defaults
+    liana_call.defaults <- list(
+        complex_policy = complex_policy,
+        expr_prop = expr_prop
+    )
+
+    # Permutation defaults (permutations to be used in e.g. CPDB)
+    permutation.defaults <- list(
+        nperms = 1000,
+        parallelize = parallelize,
+        workers = workers,
+        seed = seed
+    )
+
+    # Define Defaults
+    # CellPhoneDB defaults
+    cellphonedb.defaults <- list(
+        workers = workers,
+        parallelize = parallelize,
+        prop_filt = TRUE
+        )
+
+    # NATMI
+    natmi.defaults <- list(
+        prop_filt = TRUE
+    )
+
+    # logFC
+    logfc.defaults <- list(
+        prop_filt = TRUE
+    )
+
+
+    ## Connectome and Cytotalk calculate scores are calculated at
+    ## the cell-cluster-pair level -> We don't apply prop filtering to those
+    # Connectome
+    connectome.defaults <- list(
+        prop_filt = TRUE
+    )
+
+    # CytoTalk
+    cytotalk.defaults <- list(
+        assay.type = assay.type,
+        seed = seed,
+        prop_filt = FALSE
+    )
+
+    # SCA
+    sca.defaults <- list(
+        prop_filt = TRUE
+    )
+
+
+    # External ----
+
+    # Squidpy defaults
+    squidpy.defaults <- list(
+        cluster_key = NULL,
+        n_perms = 1000,
+        threshold = expr_prop,
+        seed = as.integer(seed),
+        assay = assay,
+        assay.type = assay.type
+    )
+
+    # CellChat Default
+    cellchat.defaults <- list(
+        nboot = 100,
+        expr_prop = expr_prop,
+        exclude_anns = NULL,
+        thresh = 1,
+        assay = assay,
+        .normalize = FALSE,
+        .do_parallel = FALSE,
+        .raw_use = TRUE,
+        organism = "human",
+        de_thresh = 0.05
+    )
+
+    # SingleCellSignalR Defaults
+    call_sca.defaults <- list(
+        assay = assay,
+        .format = TRUE,
+        s.score = 0,
+        logFC = log2(1.5)
+        )
+
+    # Connectome Defaults
+    call_conn.defaults <- list(
+        min.cells.per.ident = 1,
+        p.values = TRUE,
+        calculate.DOR = FALSE,
+        assay = assay,
+        .format = TRUE,
+        .spatial = FALSE
+        )
+
+    # NATMI Defaults
+    call_natmi.defaults <- list(
+        expr_file = "test_em.csv",
+        meta_file = "metadata.csv",
+        output_dir = "NATMI_results",
+        assay = assay,
+        assay.type = "logcounts",
+        num_cor = 4,
+        .format = TRUE,
+        .overwrite_data = TRUE,
+        .seed = seed,
+        .natmi_path = NULL,
+        .delete_input_output = FALSE,
+        reso_name = "placeholder"
+        )
+
+    # iTalk Defaults
+    call_italk.defaults <- list(
+        assay = assay,
+        .format = TRUE,
+        .DE = TRUE
+        )
+
+    # List of Defaults (re-assigned if needed)
+    default_args <- list(
+        "expr_prop" = expr_prop,
+
+        # liana_scores (passed to get_* functions)
+        "permutation" = permutation.params %<>%
+            reassign_params(., permutation.defaults),
+
+        "liana_pipe" = liana_pipe.params %<>%
+            reassign_params(., liana_pipe.defaults),
+
+        # this thing needs to be either completely removed or moved to liana_wrap
+        "liana_call" = liana_call.params %<>%
+            reassign_params(., liana_call.defaults),
+
+        "cellphonedb" = cellphonedb.params %<>%
+            reassign_params(., cellphonedb.defaults),
+
+        "cytotalk" = cytotalk.params %<>%
+            reassign_params(., cytotalk.defaults),
+
+        "connectome" = connectome.params %<>%
+            reassign_params(., connectome.defaults),
+
+        "natmi" = natmi.params %<>%
+            reassign_params(., natmi.defaults),
+
+        "sca" = sca.params %<>%
+            reassign_params(., sca.defaults),
+
+        "logfc" = logfc.params %<>%
+            reassign_params(., logfc.defaults),
+
+        # external methods
+        "call_cellchat" = cellchat.params %<>%
+            reassign_params(., cellchat.defaults),
+
+        'call_squidpy' = squidpy.params %<>%
+            reassign_params(., squidpy.defaults),
+
+        # call_* functions/pipes
+        'call_sca' = call_sca.params %<>%
+            reassign_params(., call_sca.defaults),
+
+        'call_connectome' = call_connectome.params %<>%
+            reassign_params(., call_conn.defaults),
+
+        'call_natmi' = call_natmi.params %<>%
+            reassign_params(., call_natmi.defaults),
+
+        'call_italk' = call_italk.params %<>%
+            reassign_params(., call_italk.defaults)
+    )
+
+    return(default_args)
+}
+
+
+#' Helper function to replace default parameters
+#' @param replacements named list corresponding to default arguments
+#' @param defaults named list with default arguments
+#'
+#' @returns a named list with the same arguments
+#'
+#' @noRd
+reassign_params <- function(replacements,
+                            defaults){
+    if(!is.null(replacements)){
+            nm1 <- intersect(names(defaults), names(is.na(replacements)))
+            modifyList(defaults, replacements[nm1])
+        } else{
+            defaults
+        }
+}
+        r-version: ['3.6.3', '4.1.1']
+
+    steps: 
+#' Function to generate a homologous OmniPath resource
+#'
+#' @param op_resource a resource in the format of OmniPath/LIANA
+#'
+#' @param target_organism `ncbi_taxid` or `name` of the target organism.
+#' See `show_homologene` for available organisms via OmnipathR's `HomoloGene`
+#'
+#' @param max_homologs Determines the max number of homologs to be translated.
+#' Certain genes will have multiple homolog matches, with some having also
+#' certain isoforms considered. To exclude cases in which the number of
+#' matched homologs is too high, one can adjust the homologs parameter.
+#' Setting this to `1` would mean that one-to-many homolog matches are discarded
+#'
+#' @param .missing_fun approach to handle missing interactions. By default
+#' set to `NULL` which would mean that any interactions without a homology
+#' match will be filtered. This can be set to e.g. `str_to_title` when working
+#' with murine symbols. Then if a gene has no matched homolog, instead of
+#' discarding it, the `.missing_fun` will be used to format the name from human.
+#' Hence, increasing the number of matches, but likely introducing some
+#' mismatches.
+#'
+#' @param symbols_dict `NULL` by default, then `get_homologene_dict` is called
+#' to generate a dictionary from OmniPathR's homologene resource. Alternatively,
+#' one can pass their own symbols_dictionary.
+#'
+#' @param source name of the source (ligand) column
+#'
+#' @param target name of the target (receptor) column
+#'
+#' @param verbose logical for verbosity
+#'
+#' @return a converted ligand-receptor resource
+#'
+#' @export
+generate_homologs <- function(op_resource,
+                              target_organism,
+                              max_homologs = 5,
+                              .missing_fun = NULL,
+                              symbols_dict = NULL,
+                              columns = c("source_genesymbol",
+                                          "target_genesymbol"),
+                              verbose = TRUE){
+
+    op_resource %<>% mutate(across(all_of(columns),
+                                   ~str_replace(., "COMPLEX:", "")))
+
+    # Minimum column set resource
+    minres <- op_resource %>% select(!!columns)
+
+    # Get decomplexified resource
+    decomp <- decomplexify(minres, columns = columns)
+
+    # Get union of symbols
+    entities <- purrr::reduce(map(columns, function(col) decomp[[col]]), union)
+
+    # generate homology geneset
+    symbols_dict <- get_homologene_dict(entities = entities,
+                                        target_organism = target_organism)
+
+
+    # Remove any missing antities
+    if(is.null(.missing_fun)){
+
+        # All missing entities
+        missing_entities <- setdiff(entities,
+                                    names(symbols_dict))
+
+        liana_message(
+            str_glue("Entries without homologs:
+                     {paste(missing_entities, collapse = '; ')}"),
+            verbose = verbose
+        )
+
+        # Keep only interactions for which all proteins (incl. subunits) have a matching homologue
+        missing <- decomp %>%
+            # check if neither is in missing entities
+            mutate(lr_present = !if_any(columns, function(x) x %in% missing_entities)) %>%
+            group_by(across(all_of(ends_with("complex")))) %>%
+            summarise(all_present = mean(lr_present), .groups = "keep") %>%
+            # only keep those that are present
+            filter(all_present < 1) %>%
+            # remove _complex for join
+            rename_with(~gsub("_complex", "", .x), ends_with("complex"))
+
+        # Remove interactions without matches
+        minres <- anti_join(minres,
+                            missing,
+                            by = columns)
+    }
+
+
+    # Obtain genes with multiple matches
+    entity_2many <- symbols_dict %>%
+        enframe(name = "genesymbol_source",
+                value = "genesymbol_target") %>%
+        group_by(genesymbol_source) %>%
+        count(name = "n_match") %>%
+        filter(n_match > 1 & n_match <= max_homologs) %>%
+        pull(genesymbol_source)
+
+    liana_message(
+        stringr::str_glue("One-to-many homolog matches: {paste(entity_2many, collapse = '; ')}"),
+        verbose = verbose
+    )
+
+    ### IF NOT many2many .handle_complexes for all
+    op_notmany <- minres %>%
+        decomplexify(columns = columns) %>%
+        filter(!if_any(!ends_with("complex"), function(x) x %in% entity_2many)) %>%
+        # recomplexify
+        select(-columns) %>%
+        rename_with(~gsub("_complex", "", .x), ends_with("complex")) %>%
+        distinct()
+
+    # homologous omnipath resource (with 1to1 alone)
+    or_notmany <- op_notmany %>%
+        # join back missing cols
+        left_join(op_resource, by = columns) %>%
+        .handle_complexes(symbols_dict = symbols_dict,
+                          .missing_fun = .missing_fun,
+                          columns=columns)
+
+    ### Get interactions with many-many
+    op_1many <- anti_join(minres,
+                          op_notmany,
+                          by = columns)
+
+    # Recursively translate the 1many resource
+    op_one2_many <- op_1many %>%
+        liana::decomplexify(columns = columns) %>%
+        group_by(across(ends_with("complex"))) %>%
+        group_split()
+
+    # On all one2many !!!
+    suppressWarnings(pb <- dplyr::progress_estimated(length(op_one2_many)))
+    or_many <- op_one2_many %>%
+        map(function(op_row.decomp){
+            if(verbose) pb$tick()$print()
+
+            # create dictonary by row
+            dicts_row <- .create_row_dict(symbols_dict,
+                                          op_row.decomp,
+                                          entity_2many,
+                                          columns)
+
+            # The tibble to be translated to all homologs
+            op_row <- inner_join(op_row.decomp,
+                                 op_1many,
+                                 by = columns) %>%
+                # recomplexify
+                select(-columns) %>%
+                rename_with(~gsub("_complex", "", .x),
+                            ends_with("complex")) %>%
+                distinct() %>%
+                # join back remainder of cols
+                left_join(op_resource,
+                          by = columns)
+
+            # Return all matches for all homologs
+            or_row <- map(dicts_row, function(d){
+                .handle_complexes(op_row,
+                                  symbols_dict = d,
+                                  .missing_fun = .missing_fun,
+                                  columns = columns)
+            }) %>%
+                bind_rows() %>%
+                distinct()
+        }) %>%
+        bind_rows()
+
+    # Bind 1to1 and 1tomany
+    or_resource <- bind_rows(or_notmany, or_many) %>%
+        select(-ends_with("complex")) %>%
+        select(!!columns, everything()) %>%
+        distinct_at(c("source_genesymbol", "target_genesymbol"),
+                    .keep_all = TRUE)
+
+    return(or_resource)
+
+}
+
+
+#' Function to translate Human complexes to organism X homologs
+#'
+#' @param op_resource resource in the format of OmniPath/LIANA
+#'
+#' @param symbols_dict dictionary (named list) with human genesymbols and ortholog
+#'  in a second species
+#'
+#' @param columns columns relevant for homology conversion
+#'
+#' @details Complexes cannot be joined directly, thus this function will
+#' translate each subunit one by one.
+#'
+#' @noRd
+.handle_complexes <- function(op_resource,
+                              symbols_dict,
+                              columns=columns,
+                              .missing_fun = NULL){
+    # decomplexify
+    op_resource_decomplex <- op_resource %>%
+        decomplexify(columns=columns)
+
+    # translate subunits
+    translated_subunits <- op_resource_decomplex %>%
+        mutate(across(all_of(columns),
+                      ~recode.character2(.x, !!!symbols_dict,
+                                         .missing_fun = .missing_fun)))
+
+    # Generate Dictionaries for complexes
+    complex_dict <- map(columns,
+                        ~.generate_complex_dict(translated_subunits, col=.x))
+
+
+    # Bind all dictionaries
+    dict <- pmap( # append multiple lists
+        list(
+            list(
+                symbols_dict,
+                flatten(complex_dict)
+            )
+        ), c) %>%
+        flatten %>%
+        flatten()
+
+    # get orthologous resource
+    op_ortholog <- op_resource %>%
+        mutate(across(columns,
+                      ~recode.character2(.x,
+                                         !!!dict,
+                                         .missing_fun = .missing_fun)))
+
+    return(op_ortholog)
+}
+
+
+#' Modified `dplyr::recode` function
+#'
+#' @inheritParams dplyr::recode
+#'
+#' @param .missing_fun Function to modify any missing homologs/strings
+#'  `NULL` by default and any missing values will be discarded.
+#'  For example, one could be set it to `str_to_title` to format all symbols, or
+#'  any other format in a scenario where a homolog dictionary is not available
+#'  for the organism of interest.
+#'
+#' @details enables to modify unmatched genesymbols
+#' @import stringr
+#'
+#' @keywords internal
+recode.character2 <- function(.x,
+                              ...,
+                              .default = NULL,
+                              .missing = NULL,
+                              .missing_fun) {
+    .x <- as.character(.x)
+    values <- rlang::list2(...)
+    if (!all(rlang::have_name(values))) {
+        bad <- which(!rlang::have_name(values)) + 1
+        msg <- glue::glue("{dplyr:::fmt_pos_args(bad)} must be named.")
+        rlang::abort(msg)
+    }
+
+    n <- length(.x)
+    template <- dplyr:::find_template(values, .default, .missing)
+    out <- template[rep(NA_integer_, n)]
+    replaced <- rep(FALSE, n)
+
+    for (nm in names(values)) {
+        out <- dplyr:::replace_with(out,
+                                    .x == nm,
+                                    values[[nm]],
+                                    paste0("`", nm, "`"))
+        replaced[.x == nm] <- TRUE
+    }
+
+    .default <- dplyr:::validate_recode_default(.default, .x, out, replaced)
+
+    if(!is.null(.missing_fun)){
+        out <- dplyr:::replace_with(out,
+                                    !replaced & !is.na(.x),
+                                    exec(.missing_fun, .default),
+                                    "`.default`")
+        }
+
+    out <- dplyr:::replace_with(out,
+                                is.na(.x),
+                                .missing,
+                                "`.missing`")
+    out
+}
+
+
+
+
+#' Helper function to generate a dictionary also for the complexes
+#'
+#' @param translated_subunits decomplexified op_resource with already recoded
+#' subunits
+#'
+#' @param entity column of interest (target or source)
+#'
+#' @noRd
+.generate_complex_dict <- function(translated_subunits, col){
+    col_complex <- str_glue("{col}_complex")
+
+    filter(translated_subunits, str_detect(.data[[col_complex]], "_")) %>%
+        dplyr::select(.data[[col_complex]], .data[[col]]) %>%
+        distinct() %>%
+        group_by(.data[[col_complex]]) %>%
+        group_nest(keep = FALSE, .key = 'subunits') %>%
+        mutate(translated_complex = map(subunits, function(sub){
+            glue::glue_collapse(sub[[col]], sep = "_") %>%
+                as.character()
+        })) %>%
+        dplyr::select(.data[[col_complex]], translated_complex) %>%
+        unnest(translated_complex) %>%
+        deframe()
+
+}
+
+
+#' Helper function to bind dictionaries
+#'
+#' @param main_entity entity with one-to-many mapping (ligand or receptor)
+#' @param secondary_entity other entity (ligand or receptor)
+#'
+#' @details split by interaction, deframe and bind the secondary entity.
+#' For example, if a ligand (`main_entity`) has one-to-many mapping to
+#' multiple homologs, then main_entity will contain all homologs that match to
+#' the ligand's subunits (or protein if not a complex). To this, we also attach
+#' the genes of the receptor (`secondary_entity`) so that `generate_orthologs`
+#' can translate both the ligand and receptor, and vice versa.
+#'
+#' @noRd
+.bind_dicts <- function(main_entity, secondary_entity){
+    main_entity %>%
+        group_by_all() %>%
+        group_split() %>%
+        map(~deframe(bind_rows(.x, secondary_entity)))
+}
+
+
+#' Function to create a dictionary for one2many maps
+#'
+#' @param symbols_dict the human to mouse dict (should be a vect)
+#' @param op_row.decomp decomp omni (we need all genes)
+#' @param entity_2many entities that match to many homologs
+#' @param columns columns
+#'
+#' @return a dictionary for the provided interaction
+#'
+#' @noRd
+.create_row_dict <- function(symbols_dict,
+                             op_row.decomp,
+                             entity_2many,
+                             columns){
+
+    logical_row <- map_lgl(columns, function(col){
+        any(op_row.decomp[[col]] %in% entity_2many)
+    })
+
+    dicts_row <- map(columns, function(col){
+        symbols_dict[names(symbols_dict) %in% op_row.decomp[[col]]] %>%
+            enframe(name = "genesymbol_source", value = "genesymbol_target")
+    })
+
+    # if only 1 col -> return dict
+    if(length(columns)==1){
+        symbols_dict[names(symbols_dict) %in% op_row.decomp[[columns]]] %>%
+            enframe(name = "genesymbol_source", value = "genesymbol_target") %>%
+            group_by_all() %>%
+            group_split() %>%
+            map(~deframe(.x))
+
+    } else if(all(logical_row)){ # if all columns have 1-to-many
+        c(.bind_dicts(dicts_row[[1]], dicts_row[[2]]),
+          .bind_dicts(dicts_row[[2]], dicts_row[[1]]))
+    } else{ # main entity is the one with 1-to-many
+        .bind_dicts(main_entity = keep(dicts_row, logical_row) %>% pluck(1),
+                    secondary_entity = discard(dicts_row, logical_row) %>% pluck(1))
+    }
+}
+
+
+#' Helper function to get homologene dictionary
+#'
+#' @param entities genes to be converted - function will return a dictionary
+#' with only those.
+#'
+#' @param target_organism target organism (obtain tax id from `show_homologene`)
+#'
+#' @keywords internal
+#'
+#' @importFrom OmnipathR homologene_download
+get_homologene_dict <- function(entities,
+                                target_organism,
+                                id_type = "genesymbol"){
+
+    # Load homology geneset
+    hg_gs <- homologene_download(target = !!target_organism,
+                                 source = 9606L, # always human
+                                 id_type = !!id_type) %>%
+        select(-hgroup) %>%
+        # Limit to the universe of the resource
+        filter(.data[[str_glue("{id_type}_source")]] %in% entities)
+
+    # Convert to dictionary
+    return(hg_gs %>% deframe())
+}
+
+
+#' Deprecated call to generate_homologs
+#'
+#' @inheritDotParams generate_orthologs
+#'
+#' @export
+generate_orthologs <- function(...){
+    warning("`generate_orthologs` is deprecated, use `generate_homologs` instead")
+
+    generate_homologs(...)
+}
+
+#' Helper function to show available organisms via OmnipathR's homologene resource
+#'
+#' @importFrom OmnipathR homologene_raw
+#'
+#' @export
+show_homologene <- function(){
+    homologene_raw() %>%
+        pull(ncbi_taxid) %>%
+        unique %>%
+        tibble(ncbi_taxid = .,
+               name = common_name(.),
+               latin = latin_name(.)) %>%
+        na.omit() %>%
+        arrange(name) %>%
+        print(n=nrow(.))
+}
+
+      - uses: actions/checkout@v4
+      - name: Set up R ${{ #' Liana Pipe which runs DE analysis and merges needed information for LR inference
+#'
+#' @param sce SingleCellExperiment Object
+#' @param op_resource resource tibble obtained via \link{liana::select_resource}
+#' @inheritParams liana_scores
+#' @inheritParams scran::findMarkers
+#' @param assay assay to be used ("RNA" by default)
+#' @param assay.type - the type of data to be used to calculate the means
+#'  (logcounts by default), available options are: "counts" and "logcounts"
+#' @param verbose logical for verbosity
+#' @param cell.adj cell adjacency tibble/dataframe /w weights by which we will
+#' `multiply` the relevant columns. Any cell pairs with a weights of 0 will be
+#' filtered out.
+#' Note that if working with LIANA's default methods, we suggest weights >= 0 & =< 1.
+#' This ensure that all methods' score will be meaningfully weighed without
+#' changing the interpretation of their scores, thus allow one to filter SCA,
+#' rank NATMI, etc.
+#'
+#' @inheritParams .antilog1m
+#'
+#' @import SingleCellExperiment SeuratObject
+#' @importFrom scran findMarkers
+#' @importFrom scuttle summarizeAssayByGroup
+#'
+#' @export
+#'
+#' @return Returns a tibble with information required for LR calculations downstream
+liana_pipe <- function(sce,
+                       op_resource,
+                       test.type = "wilcox",
+                       pval.type = "all",
+                       assay = "RNA",
+                       assay.type = "logcounts",
+                       verbose = TRUE,
+                       base,
+                       cell.adj = NULL){
+
+    # calculate global_mean required for SCA
+    global_mean <- fast_mean(exec(assay.type, sce))
+
+    ### this whole chunk needs to move to liana_wrap
+    # Resource Format
+    transmitters <- op_resource$source_genesymbol %>%
+        as_tibble() %>%
+        select(gene = value) %>%
+        separate_rows(gene, sep="[_]") %>%
+        distinct()
+    receivers <- op_resource$target_genesymbol %>%
+        as_tibble() %>%
+        select(gene = value) %>%
+        separate_rows(gene, sep="[_]") %>%
+        distinct()
+    entity_genes <- union(transmitters$gene,
+                          receivers$gene)
+
+    # Filter `sce` to only include ligand receptor genes
+    # and exclude any cells with 0 counts of LR genes
+    sce <- .prep_universe(sce,
+                          entity_genes = entity_genes,
+                          verbose)
+
+    # Get Log2FC (done after non-expr. cell and gene filter from `liana_prep`)
+    # also any cells with 0 counts of LR genes are removed (in`.prep_universe`)
+    logfc_df <- get_log2FC(
+        sce,
+        assay.type = assay.type,
+        base
+    )
+
+
+    # Scale genes across cells
+    sce@assays@data[["scaledata"]] <- row_scale(exec(assay.type, sce))
+
+    # Get Avg and  Prop. Expr Per Cluster
+    mean_prop <-
+        scuttle::summarizeAssayByGroup(sce,
+                                       ids = colLabels(sce),
+                                       assay.type = assay.type,
+                                       statistics = c("mean", "prop.detected"))
+    means <- mean_prop@assays@data$mean
+    props <- mean_prop@assays@data$prop.detected
+
+    # scaled (z-transformed) means
+    scaled <- scuttle::summarizeAssayByGroup(sce,
+                                             ids = colLabels(sce),
+                                             assay.type = "scaledata",
+                                             statistics = c("mean"))
+    scaled <- scaled@assays@data$mean
+
+    # calculate PEM scores
+    pem_scores <- compute_pem_scores(sce = sce,
+                                     assay.type = assay.type)
+
+    # Find Markers and Format
+    cluster_markers <- scran::findMarkers(sce,
+                                          groups = colLabels(sce),
+                                          direction = "any",
+                                          full.stats = TRUE,
+                                          test.type = test.type,
+                                          pval.type = pval.type,
+                                          assay.type = assay.type) %>%
+        pluck("listData") %>%
+        map2(., names(.), function(cluster, cluster_name){
+            cluster %>%
+                as.data.frame() %>%
+                rownames_to_column("gene") %>%
+                as_tibble() %>%
+                select(gene, p.value, FDR, stat = summary.stats)
+        })
+
+    # Get all Possible Cluster pair combinations
+    pairs <- expand_grid(source = unique(colLabels(sce)),
+                         target = unique(colLabels(sce)))
+    # Get DEGs to LR format
+    lr_res <- pairs %>%
+        pmap(function(source, target){
+            source_stats <- ligrec_degformat(cluster_markers[[source]],
+                                             entity = transmitters,
+                                             ligand_receptor = "ligand")
+            target_stats <- ligrec_degformat(cluster_markers[[target]],
+                                             entity = receivers,
+                                             ligand_receptor = "receptor")
+
+            op_resource %>%
+                select(ligand = source_genesymbol,
+                       receptor = target_genesymbol) %>%
+                left_join(source_stats, by = "ligand") %>%
+                left_join(target_stats, by = "receptor") %>%
+                rename_with(~gsub(x = .x,
+                                  pattern = "p.value",
+                                  replacement = "pval"),
+                            ends_with("p.value")) %>%
+                na.omit() %>%
+                distinct() %>%
+                mutate(source = source,
+                       target = target)
+        }) %>%
+        bind_rows()
+
+    # Join Expression Means
+    lr_res %<>%
+        join_means(means = means,
+                   source_target = "source",
+                   entity = "ligand",
+                   type = "expr") %>%
+        join_means(means = means,
+                   source_target = "target",
+                   entity = "receptor",
+                   type = "expr") %>%
+        join_means(means = scaled,
+                   source_target = "source",
+                   entity = "ligand",
+                   type = "scaled") %>%
+        join_means(means = props,
+                   source_target = "target",
+                   entity = "receptor",
+                   type = "prop") %>%
+        join_means(means = props,
+                   source_target = "source",
+                   entity = "ligand",
+                   type = "prop") %>%
+        join_means(means = scaled,
+                   source_target = "target",
+                   entity = "receptor",
+                   type = "scaled") %>%
+        join_sum_means(means = means,
+                       entity = "ligand") %>%
+        join_sum_means(means = means,
+                       entity = "receptor") %>%
+        # Join PEM scores
+        join_means(means = pem_scores,
+                   source_target = "target",
+                   entity = "receptor",
+                   type = "pem") %>%
+        join_means(means = pem_scores,
+                   source_target = "source",
+                   entity = "ligand",
+                   type = "pem") %>%
+        # logFC
+        join_log2FC(logfc_df,
+                    source_target = "source",
+                    entity="ligand") %>%
+        join_log2FC(logfc_df,
+                    source_target = "target",
+                    entity="receptor") %>%
+        # Global Mean
+        mutate(global_mean = global_mean)
+
+    liana_message("LIANA: LR summary stats calculated!",
+                  verbose = verbose
+    )
+
+    # Weigh by (spatial) constrains
+    if(!is.null(cell.adj)){
+        lr_res %<>%
+            .sp_costrain(cell.adj)
+    }
+
+    # Join complexes (recomplexify) to lr_res
+    cmplx <- op_resource %>%
+        select(
+            ligand = source_genesymbol,
+            ligand.complex = source_genesymbol_complex,
+            receptor = target_genesymbol,
+            receptor.complex = target_genesymbol_complex
+        )
+
+    lr_res %<>%
+        left_join(., cmplx,
+                  by=c("ligand", "receptor")) %>%
+        distinct()
+
+    # Inherit levels of idents
+    levels(lr_res$source) <- levels(colLabels(sce))
+    levels(lr_res$target) <- levels(colLabels(sce))
+
+    return(lr_res)
+}
+
+
+
+#' Helper Function to join DEG stats to LR
+#'
+#' @param cluster_markers dataframe with DE stats for a cluster
+#' @param entity Transmitter or Receiver vector passed as tibble
+#' @param ligand_receptor whether this is the source or target cluster
+#'
+#' @return A tibble with stats for receivers or transmitters per cluster
+#'
+#' @noRd
+ligrec_degformat <- function(cluster_markers,
+                             entity,
+                             ligand_receptor,
+                             columns=c("gene", "p.value", "FDR", "stat")){
+    cluster_markers %>%
+        left_join(entity, ., by = "gene") %>%
+        na.omit() %>%
+        select(columns) %>%
+        rename_with(~paste(ligand_receptor, .x, sep = "."), -gene) %>%
+        dplyr::rename({{ligand_receptor}} := gene) %>%
+        distinct() %>%
+        na.omit()
+}
+
+
+
+
+#' Join Expression per Cluster
+#'
+#' @param lr_res LR formatted DE results from \link{ligrec_degformat}
+#' @param means Gene avg expression per cluster
+#' @param source_target target or source cell
+#' @param entity ligand or receptor
+#' @param type type of mean to join (count or scaled)
+#' @param pb progress bar
+#'
+#' @importFrom magrittr %>% %<>%
+#'
+#' @return Returns the Average Expression Per Cluster
+#'
+#' @export
+#'
+#' @keywords internal
+join_means <- function(lr_res,
+                       means,
+                       source_target,
+                       entity,
+                       type,
+                       pb = NULL){
+
+    if(!is.null(pb)){
+        pb$tick()$print()
+    }
+
+    entity.avg <- sym(str_glue("{entity}.{type}"))
+
+    means %<>%
+        as.data.frame() %>%
+        rownames_to_column("gene") %>%
+        pivot_longer(-gene, names_to = "cell", values_to = "avg") %>%
+        dplyr::rename({{ source_target }} := cell,
+                      {{ entity }} := gene,
+                      {{ entity.avg }} := avg)
+
+    lr_res %>%
+        left_join(means, by=c(source_target, entity))
+}
+
+
+#' Join Expression per Cluster
+#'
+#' @param lr_res LR formatted DE results from \link{ligrec_degformat}
+#' @param means Gene avg expression per cluster
+#' @param entity ligand or receptor
+#'
+#' @return Returns the Summed Average Expression Per Cluster
+#'
+#' @noRd
+join_sum_means <- function(lr_res, means, entity){
+
+    entity.expr <- sym(str_glue("{entity}.sum"))
+
+    sums <- means %>%
+        as.data.frame() %>%
+        rownames_to_column("gene") %>%
+        rowwise("gene") %>%
+        mutate(sum.means = sum(c_across(where(is.numeric)))) %>%
+        select(gene, sum.means) %>%
+        dplyr::rename({{ entity }} := gene,
+                      {{ entity.expr }} := sum.means)  %>%
+        distinct() %>%
+        ungroup()
+
+    lr_res %>%
+        left_join(sums, by=c(entity))
+}
+
+
+#' Helper Function to join log2FC dataframe to LR_res
+#'
+#' @param lr_res LR formatted DE results from \link{ligrec_degformat}
+#' @param logfc_df obtained via \link{get_log2FC}
+#' @param source_target target or source cell
+#' @param entity ligand or receptor
+#'
+#' @noRd
+join_log2FC <- function(lr_res,
+                        logfc_df,
+                        source_target,
+                        entity){
+
+    entity.fc <- sym(str_glue("{entity}.log2FC"))
+
+    logfc <- logfc_df %>%
+        dplyr::rename(
+            {{ source_target }} := cell,
+            {{ entity }} := gene,
+            {{ entity.fc }} := avg_log2FC)  %>%
+        distinct()
+
+    lr_res %>%
+        left_join(logfc, by=c(entity, source_target))
+
+}
+
+
+
+
+#' Get Log2FC of Subject vs LOSO (i.e. 1 cell type vs all other cells FC)
+#'
+#' @param sce SingleCellExperiment object
+#' @param subject leave-one-out subject, i.e. the cluster whose log2FC we wish
+#'    to calculate when compared to all other cells
+#' @inheritParams .antilog1m
+#'
+#' @inheritParams liana_pipe
+#'
+#' @return A log2FC dataframe for a given cell identity
+#'
+#' @details log2FC is calculated using the raw count average + a pseudocount of 1.
+#' `assay.type` should be the raw counts
+#'
+#' @noRd
+get_log2FC <- function(sce, assay.type, base){
+
+
+    if(!is.nan(base)){
+        # Get anti-logged normalized counts (preserves batch effets)
+        sce@assays@data[["normcounts"]] <- .get_invcounts(sce, assay.type, base)
+    } else{
+        # Get raw counts as they are
+        sce@assays@data[["normcounts"]] <- counts(sce)
+    }
+
+
+    # iterate over each possible cluster leaving one out
+    levels(colLabels(sce)) %>%
+        map(function(subject){
+            # Subject (i.e. target) Cluster avg
+            subject_avg <-
+                scater::calculateAverage(subset(sce,
+                                                select = colLabels(sce)==subject),
+                                         assay.type = "normcounts"
+                ) %>%
+                as_tibble(rownames = "gene") %>%
+                dplyr::rename(subject_avg = value)
+
+            # All other cells average
+            loso_avg <-
+                scater::calculateAverage(subset(sce,
+                                                select = !(colLabels(sce) %in% subject)),
+                                         assay.type = "normcounts"
+                ) %>%
+                as_tibble(rownames = "gene") %>%
+                dplyr::rename(loso_avg = value)
+
+            # Join avg and calculate FC
+            left_join(subject_avg, loso_avg, by="gene") %>%
+                mutate(avg_log2FC =
+                           log2((subject_avg + 1)) - log2((loso_avg + 1))) %>%
+                select(gene, avg_log2FC)
+
+        }) %>% setNames(levels(colLabels(sce))) %>%
+        enframe(name = "cell") %>%
+        unnest(value)
+}
+
+
+#' Helper Function to 'decomplexify' ligands and receptors into individual subunits
+#'
+#' @param resource a ligrec resource
+#'
+#' @param columns columns to separate and pivot long (e.g. genesymbol or uniprot),
+#' `source_genesymbol` and `target_genesymbol` by default
+#'
+#' @return returns a longer tibble with complex subunits on seperate rows
+#'
+#' @details takes any number of columns, and assumes `_` as sep.
+#'
+#' @export
+decomplexify <- function(resource,
+                         columns = c("source_genesymbol",
+                                     "target_genesymbol")){
+    columns %>%
+        map(function(col){
+            sep_cols <- c(str_glue("col{rep(1:5)}"))
+            col.complex <- str_glue("{col}_complex")
+
+            resource <<- resource %>%
+                mutate({{ col.complex }} :=
+                           resource[[str_glue("{col}")]]) %>%
+                separate(col,
+                         into = sep_cols,
+                         sep = "_",
+                         extra = "drop",
+                         fill = "right") %>%
+                pivot_longer(cols = all_of(sep_cols),
+                             values_to = col,
+                             names_to = NULL) %>%
+                tidyr::drop_na(all_of(col)) %>%
+                distinct() %>%
+                mutate(across(all_of(c(col, col.complex)),
+                              ~str_replace(., "COMPLEX:", "")))
+        })
+    return(resource)
+}
+
+
+#' Helper Function to Get a rowwise scaled matrix
+#'
+#' @param mat a matrix, typically the logcounts matrix from an SCE object
+#'
+#'
+#' @noRd
+row_scale <- function(mat){
+    col_means = rowMeans(mat,
+                         na.rm = TRUE) # Get the column means
+    col_sd = MatrixGenerics::rowSds(mat,
+                                    center = col_means,
+                                    na.rm = TRUE) # Get the column sd
+
+    # return scaled mat
+    return(as.matrix((mat - col_means) / col_sd))
+}
+
+#' Helper function to inverse logged counts
+#'
+#' @param x mat or array
+#' @param base base for conversion from log-tranformed ~CPM back to ~CPM.
+#'
+#' @keywords internal
+.antilog1m <- function(x, base=2){base ^ (x) - 1}
+
+
+#' Helper function to generate inversed counts (i.e. normalized but not logged)
+#'
+#' @param sce SingleCellExperiment object
+#' @param assay.type counts slot
+#' @param base a positive or complex number: the base with respect to which
+#' log-transformation was computed.
+#'
+#' @noRd
+.get_invcounts <- function(sce, assay.type, base){
+    antilogged <- .antilog1m(slot(exec(assay.type, sce), "x"), base = base)
+
+    methods::new(
+        "dgCMatrix",
+        i = slot(exec(assay.type, sce), "i"),
+        p = slot(exec(assay.type, sce), "p"),
+        Dim = slot(exec(assay.type, sce), "Dim"),
+        Dimnames = slot(exec(assay.type, sce), "Dimnames"),
+        x = antilogged,
+        factors = slot(exec(assay.type, sce), "factors")
+    )
+}
+
+
+#' Helper function to fix r mean
+#'
+#' @param mat a matrix
+#'
+#' @details r mean is slow and it overflows on memory.
+#'
+#' @noRd
+fast_mean <- function(mat){
+    if(class(mat)=="dgCMatrix"){
+        sum(mat@x)/(as.numeric(nrow(mat)) * as.numeric(ncol(mat)))
+    } else{
+        Matrix::mean(mat)
+    }
+}
+
+#' Helper function to format SCE to the LR universe
+#' @param sce SingleCellExperiment object
+#' @param entity_genes union of ligand-receptor genes
+#' @param verbose verbose - True/Flase
+#'
+#' @noRd
+.prep_universe <- function(sce, entity_genes, verbose){
+
+    # Keep only LR universe
+    sce <- sce[rownames(sce) %in% entity_genes, ]
+
+    # Check organism/gene intersect
+    if(nrow(sce) < 3){
+        liana_message(
+            "Low gene intersect (<3) detected!",
+            "Please check if the rownames of the data match the gene identities in the resource (i.e. human genesymbols).",
+            output = "stop",
+            verbose = verbose
+        )
+    }
+
+    # Check for non-zero cells
+    nonzero_cells <- colSums(counts(sce)) > 0
+
+    if(!all(nonzero_cells)){
+        nzero_cells <- sum(map_dbl(nonzero_cells, function(x) rlang::is_false(x = x)))
+
+        liana_message(
+            stringr::str_glue("{nzero_cells} cells were excluded as they",
+                              " did not express any ligand-receptor genes!"),
+            output="warning",
+            verbose=verbose
+        )
+    }
+
+    return(sce[,nonzero_cells])
+}
+
+
+#' Weigh by spatial constrans
+#'
+#' @param lr_res liana_pipe output prior to joining complexes
+#' @param cell.adj cell adjacency weights (should be positive)
+#' @param adjacency name of the column with cell pair adjacency scores
+#'
+#' @return weighed lr_res
+#'
+#' @details Note that for the case that there are weights from 0-1, the negative
+#' values (in e.g. logFC, z-scores) might be counter-logically affected - i.e.
+#' they would be brought closer to 0.
+#' Thus, by default liana expects weights from 0-1. These are then multiplied
+#' for positive values, while negative values are divided.
+#'
+#' Alternatively, one could e.g. multiply the weights by a factor (e.g. 10,000),
+#' if logFC and Connectome are used. However, this would change some of
+#' the assumptions/interpretations of the scores, while
+#' consensus ranking will be unaffected.
+#'
+#' Also, note that any interactions between cell pairs with an adjacency of 0
+#' will be excluded (this would affect the scores from CytoTalk).
+#'
+#' NB! `%/*/%` is only applicable and relevant to logFC and z-scores from a
+#' single-context, and should not be used when scaling between conditions!!!
+#'
+#' @keywords internal
+.sp_costrain <- function(lr_res,
+                         cell.adj,
+                         adjacency = "adjacency"){
+    lr_res %>%
+        left_join(cell.adj, by=c("source", "target")) %>%
+        # remove any interactions between non-interacting cells
+        filter(.data[[adjacency]]!=0) %>%
+        # weigh relevant columns by adjacency
+        mutate(across(ends_with(c("expr", "pem") #**
+        ), ~`*`(.x, adjacency))) %>%
+        rowwise() %>% # required as its done by element (not vector operation)
+        mutate(across(ends_with(c("log2FC", "scaled")),
+                      # makes sense for single context
+                      # but makes no sense for multiple (better to change to prod)
+                      ~`%/*/%`(.x, adjacency))) %>%
+        ungroup()
+}
+
+
+
+#' Helper function to multiply or divide depending on sign
+#'
+#' @param x target for weighing
+#' @param y weight
+#'
+#' @noRd
+`%/*/%` <- function(x, y){
+    if(y==0) return(0)
+
+    if(x >= 0){
+        x * y
+    } else{
+        x / y
+    }
+} }}
+        uses: r-lib/actions/setup-r@f57f1301a053485946083d7a45022b278929a78a
+        with: #' Liana dotplot interactions by source and target cells
+#'
+#' @param liana_res aggregated `liana_wrap` results from multiple methods,
+#' or alternatively results from running `liana_wrap` with a single method.
+#' Should be filtered by some condition (e.g. preferential consesus ranking,
+#' specific interactions, etc).
+#'
+#' @param source_groups names of the source (sender) cell types (NULL = no filter)
+#' @param target_groups names of the target cell types (NULL = no filter)
+#'
+#' @param ntop number of interactions to return. Note that this assumes
+#' that the tibble is sorted in descending order of interaction importance!
+#'
+#' @param magnitude column to represent interactions expression magnitude
+#' (by default `sca.LRscore`)
+#'
+#' @param specificity column to represent the dot-size of the interaction
+#' (by default `natmi.edge_specificity`)
+#'
+#' @param y.label y label name
+#' @param size.label size (~specificty) label name
+#' @param colour.label colour (~magnitude) label name
+#'
+#' @param show_complex logical whether to show complexes (default - TRUE) or
+#'  only the subunit with minimum expression.
+#'
+#' @details Here, we refer to `specificity` as how specific this interaction is
+#' to a cell type pair regards to the rest of the cell type pairs (
+#' e.g. CellPhoneDB's p-values, NATMI's specificity edges, Connectome's scaled weights, etc)
+#'
+#' `magnitude` on the other hand is a direct measure of the expression alone,
+#' by default we use SingleCellSignalR's dataset indepent LRscore (bound between 0 and 1).
+#' Yet, one could also use CellChat's probabilities or CellPhoneDB's means, etc.
+#'
+#' @import ggplot2 dplyr
+#' @importFrom magrittr %<>%
+#'
+#' @return a ggplot2 object
+#'
+#' @export
+liana_dotplot <- function(liana_res,
+                          source_groups = NULL,
+                          target_groups = NULL,
+                          ntop = NULL,
+                          specificity = "natmi.edge_specificity",
+                          magnitude = "sca.LRscore",
+                          y.label = "Interactions (Ligand -> Receptor)",
+                          size.label = "Interaction\nSpecificity",
+                          colour.label = "Expression\nMagnitude",
+                          show_complex = TRUE,
+                          size_range = c(2, 10),
+                          invert_specificity = FALSE,
+                          invert_magnitude = FALSE,
+                          invert_function = function(x) -log10(x + 1e-10)
+                          ){
+
+    if(show_complex){
+        entities <- c("ligand.complex", "receptor.complex")
+    } else{
+        entities <- c("ligand", "receptor")
+    }
+
+    # Modify for the plot
+    liana_mod <- liana_res %>%
+        # Filter to only the cells of interest
+        `if`(!is.null(source_groups),
+             filter(., source %in% source_groups),
+             .) %>%
+        `if`(!is.null(target_groups),
+             filter(., target %in% target_groups),
+             .)
+
+
+    if(!is.null(ntop)){
+        # Subset to the X top interactions
+        top_int <- liana_mod %>% distinct_at(entities) %>% head(ntop)
+        liana_mod %<>% inner_join(top_int, by=entities)
+    }
+
+    if(invert_magnitude){
+        liana_mod %<>% mutate(!!magnitude := invert_function(.data[[magnitude]]))
+    }
+    if(invert_specificity){
+        liana_mod %<>% mutate(!!specificity := invert_function(.data[[specificity]]))
+    }
+
+    liana_mod %<>%
+        rename(magnitude = !!magnitude) %>%
+        rename(specificity = !!specificity) %>%
+        unite(entities, col = "interaction", sep = " -> ") %>%
+        unite(c("source", "target"), col = "source_target", remove = FALSE)
+
+
+
+    # ensure levels & order is kept the plot
+    interactions_order <- liana_mod %>% pull("interaction") %>% unique()
+    liana_mod %<>%
+        mutate(interaction = factor(interaction, levels=rev(interactions_order))) %>%
+        mutate(across(where(is.character), as.factor))
+
+    # colour blind palette from http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/
+    cbPalette <- c("#E69F00", "#56B4E9",
+                   "#009E73", "#F0E442", "#0072B2",
+                   "#D55E00", "#CC79A7", "#DF69A7")
+
+    # plot
+    suppressWarnings(
+        ggplot(liana_mod,
+               aes(x = target,
+                   y = interaction,
+                   colour = magnitude,
+                   size = specificity,
+                   group = target
+               )) +
+            geom_point() +
+            scale_color_gradientn(colours = viridis::viridis(20)) +
+            scale_size_continuous(range = size_range) +
+            facet_grid(. ~ source,
+                       space = "free",
+                       scales ="free",
+                       switch = "y")  +
+            # scale_x_discrete(position = "right") +
+            labs(y = y.label,
+                 colour = colour.label,
+                 size = size.label,
+                 x = "Target",
+                 title= "Source"
+            ) +
+            theme_bw(base_size = 20) +
+            theme(
+                legend.text = element_text(size = 16),
+                axis.text.x = element_text(colour =
+                                               cbPalette[1:length(
+                                                   unique(liana_mod$source)
+                                               )],
+                                           face = "bold",
+                                           size = 23),
+                axis.title.x = element_text(colour = "gray6"),
+                axis.text.y = element_text(size = 18,
+                                           vjust = 0.5),
+                legend.title = element_text(size = 18),
+                panel.spacing = unit(0.1, "lines"),
+                strip.background = element_rect(fill = NA),
+                plot.title = element_text(vjust = 0, hjust=0.5, colour = "gray6"),
+                strip.text = element_text(size = 24, colour = "gray6") #,
+                # strip.text.y.left = element_text(angle = 0)
+            )
+    )
+}
+
+
+
+#' Frequency ChordDiagram
+#'
+#' @inheritParams liana_dotplot
+#' @param cex label relative font size
+#'
+#' @param ... other paramters passed to `circlize::chordDiagram`
+#' @param transparency transparency
+#'
+#' @param facing axis label rotation (check `circlize::circos.text` for options)
+#' @param offset for text.
+#'
+#' @export
+chord_freq <- function(liana_res,
+                       source_groups = NULL,
+                       target_groups = NULL,
+                       cex = 1,
+                       transparency = 0.4,
+                       facing = "clockwise",
+                       adj = c(-0.5, 0.05),
+                       ...){
+
+    # Get Frequencies for the celltypes of interest
+    freqs <- liana_res %>%
+        `if`(!is.null(source_groups),
+             filter(., source %in% source_groups),
+             .) %>%
+        `if`(!is.null(target_groups),
+             filter(., target %in% target_groups),
+             .) %>%
+        .get_freq()
+
+    celltypes <- union(colnames(freqs), rownames(freqs))
+
+    grid.col <- grDevices::colorRampPalette(
+        (RColorBrewer::brewer.pal(n = 8, name = 'Dark2'))
+    )(length(celltypes)) %>%
+        setNames(celltypes)
+
+    # 4ord plot
+    circlize::circos.clear()
+    circlize::chordDiagram(freqs,
+                           directional = 1,
+                           direction.type = c("diffHeight", "arrows"),
+                           link.arr.type = "big.arrow",
+                           transparency = transparency,
+                           grid.col = grid.col,
+                           annotationTrack = c("grid"),
+                           self.link = 1,
+                           big.gap = 7.5,
+                           small.gap = 5,
+                           ...
+    )
+
+    # Taken from https://stackoverflow.com/questions/31943102/rotate-labels-in-a-chorddiagram-r-circlize
+    circlize::circos.trackPlotRegion(track.index = 1,
+                                     panel.fun = function(x, y) {
+        xlim = circlize::get.cell.meta.data("xlim")
+        ylim = circlize::get.cell.meta.data("ylim")
+        sector.name = circlize::get.cell.meta.data("sector.index")
+        circlize::circos.text(mean(xlim), ylim[1],
+                              sector.name, facing = facing,
+                              niceFacing = TRUE, adj = adj, cex = cex)
+    }, bg.border = NA)
+
+    p <- grDevices::recordPlot()
+
+    return(p)
+}
+
+
+#' Communication Frequency heatmap plot
+#'
+#' @param liana_res aggregated liana results (preferably truncated
+#'  to some threshold)
+#' @inheritDotParams liana_heatmap
+#'
+#' @export
+#'
+#' @details This plot was inspired by CellPhoneDB and also CellChat's heatmap design.
+#' It makes the assumption that the number of interactions inferred between cell
+#' types is informative of the communication events occurring in the system as a whole.
+#' This is a rather strong assumption limited by the arbitrarily filtered
+#' interactions Thus, I suggest that one limits any conclusions, unless supported
+#' by complimentary information, such as biological prior knowledge.
+heat_freq <- function(liana_res, ...){
+    # Calculate Frequencies
+    freqs <- liana_res %>%
+        .get_freq()
+
+    liana_heatmap(mat = freqs,
+                  ...)
+}
+
+
+#' Communication by cell type Heatmap
+#'
+#' @param mat Diagonal celltype-celltype matrix to be plotted. In theory,
+#' any metric deemed meaningful between cell pairs can be plotted.
+#' @param font_size base font_size - other fontsizes are relative to this one
+#' @param grid_text logical whether to display grid text or not
+#' @param name name of the heatmap.
+#' By default the heatmap name is used as the title of the heatmap legend.
+#' @param row_title Row tittle
+#' @param column_title Column tittle
+#'
+#' @param ... parameters passed to `ComplexHeatmap::Heatmap`
+#'
+#' @export
+#'
+#' @importFrom ComplexHeatmap Heatmap HeatmapAnnotation rowAnnotation anno_barplot
+#' @importFrom grid gpar unit grid.text
+#'
+#' @details Heatmap function inspired by CellPhoneDBv3 and CellChat's designs
+#' on communication heatmaps.
+liana_heatmap <- function(mat,
+                          font_size = 12,
+                          grid_text = FALSE,
+                          name = 'Frequency',
+                          pallette = c("white", "violetred2"),
+                          row_title = "Sender (Cell types)",
+                          column_title = "Receiver (Cell types)",
+                          ...){
+
+    if(grid_text){
+        grid_text <- function(j, i, x, y, width, height, fill) {
+            grid_text <- grid.text(sprintf("%d", mat[i, j]),
+                                   x, y, gp = gpar(fontsize = font_size*0.83))
+        }
+    } else{
+        grid_text <- NULL
+    }
+
+    # define Annotations and Barplots
+    cell_anno <- unique(rownames(mat))
+    cell_anno <- grDevices::colorRampPalette(
+        (RColorBrewer::brewer.pal(n = 8, name = 'Dark2'))
+    )(length(cell_anno)) %>%
+        setNames(cell_anno)
+
+    ## Annotations
+    ha_opts <- list(show_legend = FALSE,
+                    show_annotation_name = FALSE,
+                    col = list("anno"=cell_anno),
+                    simple_anno_size = grid::unit(0.25, "cm"))
+    column_ha <- exec("HeatmapAnnotation", anno = names(cell_anno), !!!ha_opts)
+    row_ha <- exec("rowAnnotation", anno = names(cell_anno), !!!ha_opts)
+
+    # Barplots
+    column_bar <- ComplexHeatmap::HeatmapAnnotation(
+        bar = .anno_barplot(colSums(mat),
+                            cell_anno,
+                            axis.font.size = font_size*0.5
+                            ),
+        annotation_name_gp = gpar(fontsize = font_size*0.5),
+        show_legend = FALSE,
+        show_annotation_name = FALSE)
+
+    row_bar <- ComplexHeatmap::rowAnnotation(
+        bar2 = .anno_barplot(rowSums(mat),
+                             cell_anno,
+                             font_size*0.5
+                             ),
+        gp = gpar(fill = cell_anno,
+                  col = cell_anno),
+        show_legend = FALSE,
+        show_annotation_name = FALSE)
+
+    # Heatmap
+    ComplexHeatmap::Heatmap(mat,
+                            col=colorRampPalette(pallette)(10),
+                            cluster_rows = FALSE,
+                            cluster_columns = FALSE,
+                            row_names_side = "left",
+                            top_annotation = column_bar,
+                            bottom_annotation = column_ha,
+                            right_annotation = row_bar,
+                            left_annotation = row_ha,
+                            row_title = row_title,
+                            row_names_gp = gpar(fontsize = font_size),
+                            row_title_gp = gpar(fontsize = font_size*1.2),
+                            column_names_gp = gpar(fontsize = font_size),
+                            column_title = column_title,
+                            column_title_gp = gpar(fontsize = font_size*1.2),
+                            column_title_side = "bottom",
+                            heatmap_legend_param = list(title_gp = gpar(fontsize = font_size*0.9,
+                                                                        fontface = 'bold'),
+                                                        border = NA,
+                                                        labels_gp = gpar(fontsize = font_size*0.9),
+                                                        grid_width = unit(2, "mm")),
+                            name = name,
+                            cell_fun = grid_text,
+                            ...
+    )
+
+}
+
+
+#' Helper Function to Generate Annotation Barplots
+#'
+#' @param x numeric vector
+#' @param cell_anno vector of colour codes named by cell type annotations
+#' @param axis.font.size fontsize of the barplots axis font size
+#'
+#' @noRd
+.anno_barplot <- function(x,
+                          cell_anno,
+                          axis.font.size){
+    anno_barplot(x,
+                 gp = gpar(fill = cell_anno,
+                           col = cell_anno,
+                           font.size=axis.font.size),
+                 axis_param = list(gp=gpar(font.size=axis.font.size)),
+                 title="",
+                 border = FALSE)
+}
+
+
+#' Helper function to obtain interaction frequencies
+#'
+#' @param liana_res liana-formatted results
+#'
+#' @noRd
+.get_freq <- function(liana_res){
+    liana_res %>%
+        group_by(source, target) %>%
+        summarise(freq = n(), .groups = 'keep') %>%
+        pivot_wider(id_cols = source,
+                    names_from = target,
+                    values_from = freq,
+                    values_fill = 0) %>%
+        arrange(source) %>%
+        ungroup() %>%
+        as.data.frame() %>%
+        column_to_rownames('source') %>%
+        as.matrix()
+}
+          r-version: ${{ matrix.r-version }}
+      - name: Install dependencies
+        run: |
+          install.packages(c("remotes", "rcmdcheck"))
+          remotes::install_deps(dependencies = TRUE)
+        shell: Rscript {0}
+      - name: Check
+        run: rcmdcheck::rcmdcheck(args = "--no-manual", error_on = "error")
+        shell: Rscript {0}
