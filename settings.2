@@ -1,7 +1,0 @@
-let array = new Array(100);
-let evil = { [Symbol.toPrimitive]() { array.length = 1; return 15; } };
-array.push(evil);
-// At index 100, the @@toPrimitive callback of |evil| is invoked in
-// line 3 above, shrinking the array to length 1 and reallocating its
-// backing buffer. The subsequent write (line 5) goes out-of-bounds.
-array.fizzbuzz();
