@@ -1,0 +1,280 @@
+# This starter workflow is for a CMake project running on multiple platforms. There is a different starter workflow if you just want a single platform.
+# See: https://github.com/actions/starter-workflows/blob/main/ci/cmake-single-platform.yml
+name: CMake on multiple platforms
+
+on: .keep
+  push: #!/bin/bash
+
+# Linux hosts Installer for the Ultimate Hosts Blacklist
+# Repo Url: https://github.com/Ultimate-Hosts-Blacklist/Ultimate.Hosts.Blacklist
+# Copyright (c) 2020 Ultimate Hosts Blacklist - @Ultimate-Hosts-Blacklist
+# Copyright (c) 2017, 2018, 2019, 2020 
+# Copyright (c) 2017, 2018, 2019, 2020 
+
+#
+# root has to run the script
+#
+if [[ $(id -u -n) != "root" ]]
+    then
+    printf "You need to be root to do this!\nIf you have SUDO installed, then run this script with `sudo ${0}`"
+    exit 1
+fi
+
+# First Backup Existing hosts file
+sudo mv /etc/hosts /etc/hosts.bak
+
+# Now download the new hosts file and put it into place
+sudo wget https://hosts.ubuntu101.co.za/hosts -O /etc/hosts
+
+exit 0
+    branches: [ "main" ]
+  pull_request: #!/bin/bash
+
+# Linux hosts UnInstaller for the Ultimate Hosts Blacklist
+# Repo Url: https://github.com/Ultimate-Hosts-Blacklist/Ultimate.Hosts.Blacklist
+# Copyright (c) 2020 Ultimate Hosts Blacklist - @Ultimate-Hosts-Blacklist
+# Copyright (c) 2017, 2018, 2019, 2020 
+# Copyright (c) 2017, 2018, 2019, 2020 
+
+# Replace our original hosts file
+sudo mv /etc/hosts.bak /etc/hosts
+
+exit 0
+    branches: [ "main" ]
+
+jobs: #!/bin/bash
+
+# Linux hosts Updater for the Ultimate Hosts Blacklist
+# Repo Url: https://github.com/Ultimate-Hosts-Blacklist/Ultimate.Hosts.Blacklist
+# Copyright (c) 2020 Ultimate Hosts Blacklist - @Ultimate-Hosts-Blacklist
+# Copyright (c) 2017, 2018, 2019, 2020 
+# Copyright (c) 2017, 2018, 2019, 2020 
+
+# Get the latest updated hosts file and put it into place
+sudo wget https://hosts.ubuntu101.co.za/hosts -O /etc/hosts
+
+exit 0
+  build: #!/bin/bash
+
+# Linux hosts.deny Installer for the Ultimate Hosts Blacklist
+# Repo Url: https://github.com/Ultimate-Hosts-Blacklist/Ultimate.Hosts.Blacklist
+# Copyright (c) 2020 Ultimate Hosts Blacklist - @Ultimate-Hosts-Blacklist
+# Copyright (c) 2017, 2018, 2019, 2020 
+# Copyright (c) 2017, 2018, 2019, 2020 
+
+# First Backup Existing hosts file
+sudo mv /etc/hosts.deny /etc/hosts.deny.bak
+
+# Now download the new hosts file and put it into place
+sudo wget https://hosts.ubuntu101.co.za/hosts.deny -O /etc/hosts.deny
+
+exit 0
+    runs-on: ${{ #!/bin/bash
+
+# Linux hosts.deny UnInstaller for the Ultimate Hosts Blacklist
+# Repo Url: https://github.com/Ultimate-Hosts-Blacklist/Ultimate.Hosts.Blacklist
+# Copyright (c) 2020 Ultimate Hosts Blacklist - @Ultimate-Hosts-Blacklist
+# Copyright (c) 2017, 2018, 2019, 2020 
+# Copyright (c) 2017, 2018, 2019, 2020 
+
+# Remove the hosts.deny file from your system
+sudo rm /etc/hosts.deny
+
+exit 0 }}
+
+    strategy: #!/bin/bash
+
+# Linux hosts.deny Updater for the Ultimate Hosts Blacklist
+# Repo Url: https://github.com/Ultimate-Hosts-Blacklist/Ultimate.Hosts.Blacklist
+# Copyright (c) 2020 Ultimate Hosts Blacklist - @Ultimate-Hosts-Blacklist
+# Copyright (c) 2017, 2018, 2019, 2020 
+# Copyright (c) 2017, 2018, 2019, 2020 
+
+# Get the latest updated hosts file and put it into place
+sudo wget https://hosts.ubuntu101.co.za/hosts.deny -O /etc/hosts.deny
+
+exit 0
+      # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
+      fail-fast: false
+
+      # Set up a matrix to run the following 3 configurations:
+      # 1. <Windows, Release, latest MSVC compiler toolchain on the default runner image, default generator>
+      # 2. <Linux, Release, latest GCC compiler toolchain on the default runner image, default generator>
+      # 3. <Linux, Release, latest Clang compiler toolchain on the default runner image, default generator>
+      #
+      # To add more build types (Release, Debug, RelWithDebInfo, etc.) customize the build_type list.
+      matrix: #!/bin/bash
+
+# Linux superhosts.deny Installer for the Ultimate Hosts Blacklist
+# Repo Url: https://github.com/Ultimate-Hosts-Blacklist/Ultimate.Hosts.Blacklist
+# Copyright (c) 2020 Ultimate Hosts Blacklist - @Ultimate-Hosts-Blacklist
+# Copyright (c) 2017, 2018, 2019, 2020 
+# Copyright (c) 2017, 2018, 2019, 2020 
+
+# Now download the new hosts.deny file and put it into place
+sudo wget https://hosts.ubuntu101.co.za/superhosts.deny -O /etc/hosts.deny
+
+exit 0
+        os: [ubuntu-latest, windows-latest]
+        build_type: [Release]
+        c_compiler: [gcc, clang, cl]
+        include: #!/bin/bash
+
+# Linux superhosts.deny UnInstaller for the Ultimate Hosts Blacklist
+# Repo Url: https://github.com/Ultimate-Hosts-Blacklist/Ultimate.Hosts.Blacklist
+# Copyright (c) 2020 Ultimate Hosts Blacklist - @Ultimate-Hosts-Blacklist
+# Copyright (c) 2017, 2018, 2019, 2020 
+# Copyright (c) 2017, 2018, 2019, 2020 
+
+# Remove the hosts.deny file from your system
+sudo rm /etc/hosts.deny
+
+exit 0
+          - os: windows-latest
+            c_compiler: cl
+            cpp_compiler: cl
+          - os: ubuntu-latest
+            c_compiler: gcc
+            cpp_compiler: g++
+          - os: ubuntu-latest
+            c_compiler: clang
+            cpp_compiler: clang++
+        exclude: #!/bin/bash
+
+# Linux superhosts.deny Updater for the Ultimate Hosts Blacklist
+# Repo Url: https://github.com/Ultimate-Hosts-Blacklist/Ultimate.Hosts.Blacklist
+# Copyright (c) 2020 Ultimate Hosts Blacklist - @Ultimate-Hosts-Blacklist
+# Copyright (c) 2017, 2018, 2019, 2020 
+# Copyright (c) 2017, 2018, 2019, 2020 
+
+# Get the latest updated hosts file and put it into place
+sudo wget https://hosts.ubuntu101.co.za/superhosts.deny -O /etc/hosts.deny
+
+exit 0
+          - os: windows-latest
+            c_compiler: gcc
+          - os: windows-latest
+            c_compiler: clang
+          - os: ubuntu-latest
+            c_compiler: cl
+
+    steps: exit 0 --config :: @ECHO OFF
+TITLE Update Hosts
+
+cd \
+mkdir tmp
+
+:: Check if we are administrator. If not, exit immediately.
+
+>nul 2>&1 "%SYSTEMROOT%\system32\cacls.exe" "%SYSTEMROOT%\system32\config\system"
+if %ERRORLEVEL% NEQ 0 (
+    ECHO This script must be run with administrator privileges!
+    ECHO Please launch command prompt as administrator. Exiting...
+    EXIT /B 1
+)
+if not exist "%WINDIR%\System32\drivers\etc\hosts.bak" (
+	COPY %WINDIR%\System32\drivers\etc\hosts %WINDIR%\System32\drivers\etc\hosts.bak
+    )
+if not exist "%WINDIR%\System32\drivers\etc\hosts.original" (
+	COPY %WINDIR%\System32\drivers\etc\hosts %WINDIR%\System32\drivers\etc\hosts.original
+    )
+:: Download Latest Updated Hosts File
+:: Uses a Windows component called BITS 
+:: It has been included in Windows since XP and 2000 SP3
+
+bitsadmin.exe /transfer "Download Fresh Hosts File" https://hosts.ubuntu101.co.za/hosts.windows C:\tmp\hosts
+
+echo Move new hosts file in-place
+
+:: Move new hosts file in-place
+
+COPY C:\tmp\hosts %WINDIR%\System32\drivers\etc\
+
+echo Flush the DNS cache
+
+:: Flush the DNS cache
+
+ipconfig /flushdns
+
+echo ALL DONE !!! Enjoy the Protection !!  
+
+    - name: Test
+      working-directory: :: @ECHO OFF
+TITLE Uninstall Hosts
+
+:: Check if we are administrator. If not, exit immediately.
+
+>nul 2>&1 "%SYSTEMROOT%\system32\cacls.exe" "%SYSTEMROOT%\system32\config\system"
+if %ERRORLEVEL% NEQ 0 (
+    ECHO This script must be run with administrator privileges!
+    ECHO Please launch command prompt as administrator. Exiting...
+    EXIT /B 1
+)
+	COPY %WINDIR%\System32\drivers\etc\hosts.original %WINDIR%\System32\drivers\etc\hosts
+)
+
+:: Flush the DNS cache
+
+ipconfig /flushdns
+
+echo ALL DONE !!! Original hosts file restored !!
+      # Execute tests defined by the CMake configuration.
+      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
+      run: ctest -C :: @ECHO OFF
+TITLE Update Hosts
+
+:: Check if we are administrator. If not, exit immediately.
+
+>nul 2>&1 "%SYSTEMROOT%\system32\cacls.exe" "%SYSTEMROOT%\system32\config\system"
+if %ERRORLEVEL% NEQ 0 (
+    ECHO This script must be run with administrator privileges!
+    ECHO Please launch command prompt as administrator. Exiting...
+    EXIT /B 1
+)
+:: Download Latest Updated Hosts File
+:: Uses a Windows component called BITS 
+:: It has been included in Windows since XP and 2000 SP3
+
+bitsadmin.exe /transfer "Download Fresh Hosts File" https://hosts.ubuntu101.co.za/hosts.windows C:\tmp\hosts
+
+echo Move new hosts file in-place
+
+:: Move new hosts file in-place
+
+COPY C:\tmp\hosts %WINDIR%\System32\drivers\etc\
+
+echo Flush the DNS cache
+
+:: Flush the DNS cache
+
+ipconfig /flushdns
+
+echo ALL DONE !!! Enjoy the Protection !!  
+    - uses: actions/checkout@v4
+
+    - name: Set reusable strings
+      # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
+      id: strings
+      shell: bash
+      run: |
+        echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+
+    - name: Configure CMake
+      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+      run: >
+        cmake -B ${{ steps.strings.outputs.build-output-dir }}
+        -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
+        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -S ${{ github.workspace }}
+
+    - name: Build
+      # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
+      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+
+    - name: Test
+      working-directory: ${{ steps.strings.outputs.build-output-dir }}
+      # Execute tests defined by the CMake configuration. Note that --build-config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
+      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
+      run: ctest --build-config ${{ matrix.build_type }}
