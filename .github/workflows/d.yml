@@ -1,0 +1,1873 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+name: D
+
+on: <?xml version="1.0" encoding="utf-8"?>
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" 
+    xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" 
+    xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3" 
+    xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities" 
+    xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10">
+    <Identity Name="3945spikespaz.SearchDeflector" 
+        ProcessorArchitecture="x86" 
+        Publisher="CN=69331A0A-1F10-4A10-8A28-3627A09E25FD" 
+        Version="{{version}}" />
+    <Properties>
+        <DisplayName>Search Deflector</DisplayName>
+        <PublisherDisplayName>spikespaz</PublisherDisplayName>
+        <Description>A small program that forwards searches from Cortana to your preferred browser and search engine.</Description>
+        <Logo>Assets\Logo-Store.png</Logo>
+    </Properties>
+    <Resources>
+        <Resource Language="en-us" />
+    </Resources>
+    <Dependencies>
+        <TargetDeviceFamily Name="Windows.Desktop" 
+            MinVersion="10.0.14393.0" 
+            MaxVersionTested="10.0.16299.15" />
+    </Dependencies>
+    <Capabilities>
+        <rescap:Capability Name="runFullTrust" />
+    </Capabilities>
+    <Applications>
+        <Application Id="SearchDeflector" 
+            Executable="configure.exe" 
+            EntryPoint="Windows.FullTrustApplication">
+            <uap:VisualElements DisplayName="Search Deflector" 
+                Description="A small program that forwards searches from Cortana to your preferred browser and search engine." 
+                BackgroundColor="transparent" 
+                Square150x150Logo="Assets\Logo-150.png" 
+                Square44x44Logo="Assets\Logo-44.png">
+                <uap:DefaultTile>
+                    <uap:ShowNameOnTiles>
+                        <uap:ShowOn Tile="square150x150Logo" />
+                    </uap:ShowNameOnTiles>
+                </uap:DefaultTile>
+            </uap:VisualElements>
+            <Extensions>
+                <uap3:Extension Category="windows.protocol" 
+                    Executable="deflector.exe" 
+                    EntryPoint="Windows.FullTrustApplication">
+                    <uap3:Protocol Name="microsoft-edge" 
+                        Parameters="&quot;%1&quot;">
+                        <uap:DisplayName>Search Deflector</uap:DisplayName>
+                    </uap3:Protocol>
+                </uap3:Extension>
+            </Extensions>
+        </Application>
+    </Applications>
+</Package>
+  push: [Setup]
+
+AllowNetworkDrive=no
+AllowUNCPath=no
+AppContact=support@spikespaz.com
+AppCopyright=Copyright (C) 2019 Jacob Birkett
+AppId=spikespaz-search-deflector
+AppName=Search Deflector
+AppPublisher=spikespaz
+AppPublisherURL=https://spikespaz.com
+AppReadmeFile=https://github.com/spikespaz/search-deflector/blob/master/README.md
+AppSupportURL=https://github.com/spikespaz/search-deflector/issues
+AppUpdatesURL=https://github.com/spikespaz/search-deflector/releases
+AppVerName=Search Deflector {#AppVersion}
+AppVersion={#AppVersion}
+AppModifyPath={app}\configure.exe
+ChangesAssociations=yes
+Compression=lzma
+DefaultDirName={pf32}\Search Deflector
+DefaultGroupName=Search Deflector
+DisableWelcomePage=no
+InfoBeforeFile=pack\message.txt
+LicenseFile=build\vars\license.txt
+MinVersion=10.0
+OutputBaseFilename=SearchDeflector-Installer
+SetupIconFile=assets\logo.ico
+Uninstallable=yes
+UninstallDisplayName=Search Deflector
+UninstallDisplayIcon={app}\configure.exe
+VersionInfoVersion={#AppVersion}
+VersionInfoDescription=Search Deflector {#AppVersion} Installer
+WizardSmallImageFile=assets\logo.bmp
+WizardImageFile=assets\wizard.bmp
+OutputDir=build\dist
+SourceDir=..
+
+[Types]
+
+Name: "full"; \
+    Description: "Recommended Installation"
+Name: "custom"; \
+    Description: "Custom Installation"; \
+    Flags: iscustom
+
+[Components]
+
+Name: "main"; \
+    Description: "Application Files"; \
+    Types: full custom; \
+    Flags: Fixed
+Name: "updater"; \
+    Description: "Automatic Updater"; \
+    Types: full custom
+
+[Tasks]
+
+Name: "localmachine"; \
+    Description: "Register for all users"; \
+    Flags: unchecked
+
+[Files]
+
+Source: "build\bin\configure.exe"; \
+    DestDir: "{app}"; \
+    Components: main
+Source: "build\bin\deflector.exe"; \
+    DestDir: "{app}"; \
+    Components: main
+Source: "build\bin\engines.txt"; \
+    DestDir: "{app}"; \
+    Components: main
+Source: "build\vars\license.txt"; \
+    DestDir: "{app}"; \
+    Components: main
+Source: "build\bin\lang\**"; \
+    DestDir: "{app}\lang"; \
+    Components: main
+
+
+Source: "build\bin\libcurl.dll"; \
+    DestDir: "{app}"; \
+    Components: main
+Source: "pack\updatetask.xml"; \
+    DestDir: "{tmp}"; \
+    Components: updater
+
+[Icons]
+
+Name: "{commonprograms}\Search Deflector"; \
+    Filename: "{app}\configure.exe"; \
+    Components: main
+
+[Run]
+
+Filename: "{app}\configure.exe"; \
+    Flags: hidewizard skipifsilent; \
+    Components: main
+
+Filename: "schtasks"; \
+    Parameters: "/CREATE /F /TN ""Search Deflector Updater"" /XML ""{tmp}\updatetask.xml"""; \
+    Flags: runhidden; \
+    Components: updater
+Filename: "schtasks"; \
+    Parameters: "/CHANGE /TN ""Search Deflector Updater"" /TR ""{app}\configure.exe -u"""; \
+    Flags: runhidden; \
+    Components: updater
+
+[UninstallRun]
+
+Filename: "schtasks"; \
+    Parameters: "/DELETE /F /TN ""Search Deflector Updater"""; \
+    Flags: runhidden; \
+    Components: updater
+
+[Registry]
+
+Root: HKLM; \
+    Subkey: "Software\Classes\SearchDeflector"; \
+    Flags: uninsdeletekey; \
+    Components: main; \
+    Tasks: localmachine
+Root: HKLM; \
+    Subkey: "Software\Classes\SearchDeflector"; \
+    ValueName: "FriendlyTypeName"; \
+    ValueData: "Search Deflector"; \
+    ValueType: string; \
+    Components: main; \
+    Tasks: localmachine
+Root: HKLM; \
+    Subkey: "Software\Classes\SearchDeflector"; \
+    ValueName: "URL Protocol"; \
+    ValueType: string; \
+    Components: main; \
+    Tasks: localmachine
+Root: HKLM; \
+    Subkey: "Software\Classes\SearchDeflector\shell\open\command"; \
+    ValueData: """{app}\deflector.exe"" ""%1"""; \
+    ValueType: string; \
+    Components: main; \
+    Tasks: localmachine
+Root: HKLM; \
+    Subkey: "Software\Classes\SearchDeflector\DefaultIcon"; \
+    ValueData: """{app}\deflector.exe,0"""; \
+    ValueType: string; \
+    Components: main; \
+    Tasks: localmachine
+Root: HKLM; \
+    Subkey: "Software\SearchDeflector"; \
+    Flags: uninsdeletekey; \
+    Components: main; \
+    Tasks: localmachine
+Root: HKLM; \
+    Subkey: "Software\SearchDeflector\Capabilities\URLAssociations"; \
+    ValueName: "microsoft-edge"; \
+    ValueData: "SearchDeflector"; \
+    ValueType: string; \
+    Components: main; \
+    Tasks: localmachine
+Root: HKLM; \
+    Subkey: "Software\RegisteredApplications"; \
+    ValueName: "SearchDeflector"; \
+    ValueData: "Software\SearchDeflector\Capabilities"; \
+    ValueType: string; \
+    Flags: uninsdeletevalue; \
+    Components: main; \
+    Tasks: localmachine
+
+
+Root: HKCU; \
+    Subkey: "Software\Classes\SearchDeflector"; \
+    Flags: uninsdeletekey; \
+    Components: main; \
+    Tasks: not localmachine
+Root: HKCU; \
+    Subkey: "Software\Classes\SearchDeflector"; \
+    ValueName: "FriendlyTypeName"; \
+    ValueData: "Search Deflector"; \
+    ValueType: string; \
+    Components: main; \
+    Tasks: not localmachine
+Root: HKCU; \
+    Subkey: "Software\Classes\SearchDeflector"; \
+    ValueName: "URL Protocol"; \
+    ValueType: string; \
+    Components: main; \
+    Tasks: not localmachine
+Root: HKCU; \
+    Subkey: "Software\Classes\SearchDeflector\shell\open\command"; \
+    ValueData: """{app}\deflector.exe"" ""%1"""; \
+    ValueType: string; \
+    Components: main; \
+    Tasks: not localmachine
+Root: HKCU; \
+    Subkey: "Software\Classes\SearchDeflector\DefaultIcon"; \
+    ValueData: """{app}\deflector.exe,0"""; \
+    ValueType: string; \
+    Components: main; \
+    Tasks: not localmachine
+Root: HKCU; \
+    Subkey: "Software\SearchDeflector"; \
+    Flags: uninsdeletekey; \
+    Components: main; \
+    Tasks: not localmachine
+Root: HKCU; \
+    Subkey: "Software\SearchDeflector\Capabilities\URLAssociations"; \
+    ValueName: "microsoft-edge"; \
+    ValueData: "SearchDeflector"; \
+    ValueType: string; \
+    Components: main; \
+    Tasks: not localmachine
+Root: HKCU; \
+    Subkey: "Software\RegisteredApplications"; \
+    ValueName: "SearchDeflector"; \
+    ValueData: "Software\SearchDeflector\Capabilities"; \
+    ValueType: string; \
+    Flags: uninsdeletevalue; \
+    Components: main; \
+    Tasks: not localmachine
+
+
+Root: HKCU; \
+    Subkey: "Software\Clients\SearchDeflector"; \
+    Flags: uninsdeletekey; \
+    Components: main
+Root: HKCU; \
+    Subkey: "Software\Clients\SearchDeflector"; \
+    ValueName: "EngineURL"; \
+    ValueData: "google.com/search?q={{{{query}}"; \
+    ValueType: string; \
+    Flags: createvalueifdoesntexist; \
+    Components: main
+Root: HKCU; \
+    Subkey: "Software\Clients\SearchDeflector"; \
+    ValueName: "BrowserPath"; \
+    ValueData: ""; \
+    ValueType: string; \
+    Flags: createvalueifdoesntexist; \
+    Components: main
+Root: HKCU; \
+    Subkey: "Software\Clients\SearchDeflector"; \
+    ValueName: "UseProfile"; \
+    ValueData: 0; \
+    ValueType: dword; \
+    Flags: createvalueifdoesntexist; \
+    Components: main
+Root: HKCU; \
+    Subkey: "Software\Clients\SearchDeflector"; \
+    ValueName: "ProfileName"; \
+    ValueData: ""; \
+    ValueType: string; \
+    Flags: createvalueifdoesntexist; \
+    Components: main
+Root: HKCU; \
+    Subkey: "Software\Clients\SearchDeflector"; \
+    ValueName: "InterfaceLanguage"; \
+    ValueData: "Default"; \
+    ValueType: string; \
+    Flags: createvalueifdoesntexist; \
+    Components: main
+Root: HKCU; \
+    Subkey: "Software\Clients\SearchDeflector"; \
+    ValueName: "SearchCount"; \
+    ValueData: 0; \
+    ValueType: dword; \
+    Flags: createvalueifdoesntexist; \
+    Components: main
+
+[Code]
+
+{
+    The below code is from Martin Prikryl on Stack Overflow.
+    https://stackoverflow.com/a/40949812/2512078
+}
+
+var InfoBeforeCheckBox: TNewCheckBox;
+
+procedure CheckInfoBeforeRead;
+begin
+    WizardForm.NextButton.Enabled := WizardSilent or InfoBeforeCheckBox.Checked;
+end;
+
+procedure InfoBeforeCheckBoxClick(Sender: TObject);
+begin
+    CheckInfoBeforeRead;
+end;
+
+procedure InitializeWizard();
+begin
+    InfoBeforeCheckBox := TNewCheckBox.Create(WizardForm);
+    InfoBeforeCheckBox.Parent := WizardForm.InfoBeforePage;
+    InfoBeforeCheckBox.Top := WizardForm.LicenseNotAcceptedRadio.Top;
+    InfoBeforeCheckBox.Left := WizardForm.LicenseNotAcceptedRadio.Left;
+    InfoBeforeCheckBox.Width := WizardForm.LicenseNotAcceptedRadio.Width;
+    InfoBeforeCheckBox.Height := WizardForm.LicenseNotAcceptedRadio.Height;
+    InfoBeforeCheckBox.Caption := 'I promise that I have read the above information';
+    InfoBeforeCheckBox.OnClick := @InfoBeforeCheckBoxClick;
+
+    WizardForm.InfoBeforeMemo.Height :=
+        WizardForm.LicenseMemo.Top +
+        WizardForm.LicenseMemo.Height -
+        WizardForm.InfoBeforeMemo.Top -
+        WizardForm.LicenseAcceptedRadio.Top +
+        InfoBeforeCheckBox.Top;
+end;
+
+procedure CurPageChanged(CurPageID: Integer);
+begin
+    if CurPageID = wpInfoBefore then
+    begin
+        CheckInfoBeforeRead;
+    end;
+end;
+    branches: [ "main" ]
+  pull_request: _npx lint-staged
+    branches: [ "main" ]
+
+permissions:  #!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+pnpm pre-commit 
+  contents: read
+
+jobs: module common;
+
+import core.sys.windows.windows: CommandLineToArgvW, GetCommandLineW, CreateProcessW, MessageBox,
+    MB_ICONERROR, MB_ICONWARNING, MB_YESNO, IDYES, MB_OK, HWND, DETACHED_PROCESS, CREATE_UNICODE_ENVIRONMENT, STARTUPINFO_W, PROCESS_INFORMATION;
+import core.sys.windows.winnt: LCID, LANGID, LPWSTR, LPCWSTR, DWORD, MAKELCID, SORT_DEFAULT;
+import core.sys.windows.winnls: GetLocaleInfoW;
+
+import std.string: strip, split, splitLines, indexOf, indexOfAny, startsWith, stripLeft, replace, endsWith, toLower, fromStringz;
+import std.windows.registry: Registry, RegistryException, Key, REGSAM;
+import std.file: FileException, exists, readText, thisExePath, dirEntries, SpanMode;
+import std.path: isValidFilename, buildPath, dirName, baseName;
+import std.process: browse, ProcessException;
+import std.typecons: Tuple, tuple;
+import std.utf: toUTF16z, toUTFz;
+import std.uri: encodeComponent, decodeComponent;
+import std.algorithm: canFind;
+import std.format: format;
+import std.range: repeat;
+import std.array: join;
+import std.conv: to;
+import std.regex: matchFirst;
+import std.base64: Base64URL;
+
+debug import std.stdio: writeln;
+debug import std.string: format;
+
+/// File name of the executable to download and run to install an update.
+enum string SETUP_FILENAME = "SearchDeflector-Installer.exe";
+/// Repository path information for Search Deflector, https://github.com/spikespaz/search-deflector.
+enum string PROJECT_AUTHOR = "spikespaz";
+enum string PROJECT_NAME = "search-deflector"; /// ditto
+/// Current version of the Search Deflector binaries.
+enum string PROJECT_VERSION = import("version.txt");
+/// Online version of the engine templates that will be accessed when internet is available.
+enum string ENGINE_TEMPLATES_URL = "https://raw.githubusercontent.com/spikespaz/search-deflector/release/libs/engines.txt";
+/// String of the GitHub issue template.
+enum string ISSUE_TEMPLATE = import("issue.md");
+
+/// URL of the Search Deflector Wiki home page.
+enum string WIKI_URL = "https://github.com/spikespaz/search-deflector/wiki";
+/// URL of the wiki's thank-you page.
+enum string WIKI_THANKS_URL = WIKI_URL ~ "/Thanks-for-using-Search-Deflector!";
+
+/// Missing Windows API exports
+extern (Windows) {
+    /// https://docs.microsoft.com/en-us/windows/win32/api/winnls/nf-winnls-lcidtolocalename
+    int LCIDToLocaleName(LCID, LPWSTR, int, DWORD);
+    /// https://docs.microsoft.com/en-us/windows/win32/api/winnls/nf-winnls-localenametolcid
+    LCID LocaleNameToLCID(LPCWSTR lpName, DWORD dwFlags);
+    /// https://docs.microsoft.com/en-us/windows/win32/api/winnls/nf-winnls-getuserdefaultuilanguage
+    LANGID GetUserDefaultUILanguage();
+
+    /// https://docs.microsoft.com/en-us/windows/win32/intl/locale-names
+    /// https://www.magnumdb.com/search?q=LOCALE_NAME_MAX_LENGTH
+    enum uint LOCALE_NAME_MAX_LENGTH = 0x55;
+    /// https://docs.microsoft.com/en-us/windows/win32/intl/locale-allow-neutral-names
+    /// https://www.magnumdb.com/search?q=LOCALE_ALLOW_NEUTRAL_NAMES
+    enum uint LOCALE_ALLOW_NEUTRAL_NAMES = 0x08000000;
+    /// https://docs.microsoft.com/en-us/windows/win32/intl/locale-slocalized-constants
+    /// https://www.magnumdb.com/search?q=LOCALE_SLOCALIZEDDISPLAYNAME
+    enum uint LOCALE_SLOCALIZEDDISPLAYNAME = 0x00000002;
+}
+
+
+/// Static object for translation file loading
+static struct Translator {
+    private static string[string] translationMap;
+    private static string[string] langFileMap;
+    private static string langKey;
+
+    static this() {
+        foreach (string fileName; dirEntries(buildPath(thisExePath().dirName(), "lang"), SpanMode.shallow)) {
+            debug writeln("Found locale file: " ~ fileName);
+            langFileMap[fileName.baseName().toLower()[0 .. $ - 4]] = fileName;
+        }
+    }
+
+    static string getUserDefaultLangKey() {
+        wchar[LOCALE_NAME_MAX_LENGTH] localeName;
+        LCIDToLocaleName(getDefaultLCID(), localeName.ptr, LOCALE_NAME_MAX_LENGTH, LOCALE_ALLOW_NEUTRAL_NAMES);
+        return localeName.ptr.fromStringz().to!string();
+    }
+
+    static uint getDefaultLCID() {
+        return MAKELCID(GetUserDefaultUILanguage(), SORT_DEFAULT);
+    }
+
+    static string getNameFromLangKey(const string langKey) {
+        const uint maxNameLen = 255;
+        wchar[maxNameLen] langName;
+
+        GetLocaleInfoW(
+            LocaleNameToLCID(langKey.toUTF16z(), LOCALE_ALLOW_NEUTRAL_NAMES),
+            LOCALE_SLOCALIZEDDISPLAYNAME,
+            langName.ptr,
+            maxNameLen
+        );
+
+        string langName0 = langName.ptr.fromStringz().to!string();
+        debug writeln("langName: " ~ langName0);
+        return langName0;
+    }
+
+    static string[] getLangKeys() {
+        return langFileMap.keys;
+    }
+
+    /// Load translations from file by specified langKey
+    static bool load(const string langKey) {
+        Translator.langKey = langKey;
+        return load();
+    }
+
+    /// Load the file corresponding to the current langKey
+    static bool load() {
+        bool success = true;
+        string filePath = langFileMap.get(langKey, null);
+
+        if (filePath is null) {
+            debug writeln("Requested user default locale not found!");
+            filePath = langFileMap["en-us"];
+            success = false;
+        }
+
+        translationMap = parseConfig(readText(filePath));
+        debug writeln("Loaded locale: " ~ filePath);
+        return success;
+    }
+
+    /// Load the user's default language, returns success
+    static bool loadDefault() {
+        return load(getUserDefaultLangKey());
+    }
+
+    /// Return the translation by key
+    static string text(const string key) {
+        debug writeln("Getting translation for key: " ~ key);
+
+        if (key !in translationMap)
+            debug writeln("Key not in translations: " ~ key);
+
+        return translationMap.get(key, "UNKNOWN STRING");
+    }
+}
+
+/// Struct representing the settings to use for deflection.
+static struct DeflectorSettings {
+    static string engineURL; /// ditto
+    static string browserPath; /// ditto
+    static bool useProfile; /// Flag to enable or disable launching the browser with a profile.
+    static string profileName; /// The name of the user profile to pass to the browser on launch.
+    static string interfaceLanguage; /// The language code to use for the UI.
+    static uint searchCount; /// Counter for how many times the user has made a search query.
+    static bool disableNag; /// Flag to disable the reditection to the nag message.
+
+    static this() {
+        bool anyFailed = false;
+        Key deflectorKey;
+
+        try
+            deflectorKey = Registry.currentUser.getKey("SOFTWARE\\Clients\\SearchDeflector", REGSAM.KEY_READ);
+        catch (RegistryException) {
+            debug writeln("Failed to load key 'SOFTWARE\\Clients\\SearchDeflector', creating.");
+            anyFailed = true;
+            deflectorKey = Registry.currentUser.createKey("SOFTWARE\\Clients\\SearchDeflector", REGSAM.KEY_READ);
+        }
+
+        try
+            engineURL = deflectorKey.getValue("EngineURL").value_SZ;
+        catch (RegistryException) {
+            debug writeln("Failed to load 'EngineURL' from registry. Setting the default value.");
+            anyFailed = true;
+            engineURL = "google.com/search?q={{query}}";
+        }
+
+        try
+            browserPath = deflectorKey.getValue("BrowserPath").value_SZ;
+        catch (RegistryException) {
+            debug writeln("Failed to load 'EngineURL' from registry. Setting the default value.");
+            anyFailed = true;
+            browserPath = "";
+        }
+
+        try
+            useProfile = cast(bool) deflectorKey.getValue("UseProfile").value_DWORD;
+        catch (RegistryException) {
+            debug writeln("Failed to load 'EngineURL' from registry. Setting the default value.");
+            anyFailed = true;
+            useProfile = false;
+        }
+
+        try
+            profileName = deflectorKey.getValue("ProfileName").value_SZ;
+        catch (RegistryException) {
+            debug writeln("Failed to load 'EngineURL' from registry. Setting the default value.");
+            anyFailed = true;
+            profileName = "";
+        }
+
+        try
+            interfaceLanguage = deflectorKey.getValue("InterfaceLanguage").value_SZ;
+        catch (RegistryException) {
+            debug writeln("Failed to load 'EngineURL' from registry. Setting the default value.");
+            anyFailed = true;
+            interfaceLanguage = "";
+        }
+
+        try
+            searchCount = deflectorKey.getValue("SearchCount").value_DWORD;
+        catch (RegistryException) {
+            debug writeln("Failed to load 'EngineURL' from registry. Setting the default value.");
+            anyFailed = true;
+            searchCount = 0;
+        }
+
+        try
+            disableNag = cast(bool) deflectorKey.getValue("DisableNag").value_DWORD;
+        catch (RegistryException) {
+            debug writeln("Failed to load 'EngineURL' from registry. Setting the default value.");
+            anyFailed = true;
+            disableNag= false;
+        }
+
+        if (anyFailed) {
+            debug writeln("Some values from registry did not exist, dumping new defaults.");
+            dump();
+        } else
+            debug writeln("Successfully loaded all registry settings!");
+    }
+
+    /// Dump current settings to system registry
+    static void dump() {
+        Key deflectorKey = Registry.currentUser.createKey("SOFTWARE\\Clients\\SearchDeflector", REGSAM.KEY_WRITE);
+
+        // Write necessary changes.
+        deflectorKey.setValue("EngineURL", engineURL);
+        deflectorKey.setValue("BrowserPath", browserPath);
+        deflectorKey.setValue("SearchCount", searchCount);
+        deflectorKey.setValue("UseProfile", useProfile);
+        deflectorKey.setValue("ProfileName", profileName);
+        deflectorKey.setValue("InterfaceLanguage", interfaceLanguage);
+        deflectorKey.setValue("DisableNag", disableNag);
+
+        deflectorKey.flush();
+    }
+}
+
+/// Structure containing Windows version information
+static struct WindowsVersion {
+    /// ditto
+    static string release, build, edition, insiderRing;
+
+    /// Fetch all version info from registry
+    static this() {
+        try {
+            Key insiderInfo = Registry.localMachine.getKey("SOFTWARE\\Microsoft\\WindowsSelfHost\\Applicability", REGSAM.KEY_READ);
+            insiderRing = insiderInfo.getValue("BranchName").value_SZ;
+        } catch (RegistryException)
+            insiderRing = null;
+
+        try {
+            Key currentVersion = Registry.localMachine.getKey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", REGSAM.KEY_READ);
+
+            release = currentVersion.getValue("ReleaseId").value_SZ;
+            build = currentVersion.getValue("CurrentBuildNumber").value_SZ;
+            edition = currentVersion.getValue("EditionID").value_SZ;
+        } catch (RegistryException error) {
+            debug writeln(error.message);
+            release = build = edition = "unknown";
+        }
+    }
+}
+
+/// Get a config in the pattern of "^(?<key>[^:]+)\s*:\s*(?<value>.+)$" from a string.
+string[string] parseConfig(const string config) {
+    string[string] data;
+
+    foreach (line; config.splitLines()) {
+        line = line.stripLeft();
+
+        if (!line.length || line[0 .. 2] == "//") // Ignore comments.
+            continue;
+
+        const size_t sepIndex = line.indexOf(":");
+
+        const string key = line[0 .. sepIndex].strip();
+        const string value = line[sepIndex + 1 .. $].strip();
+
+        data[key] = value;
+    }
+
+    return data;
+}
+
+/// Parse the query parameters from a URI and return as an associative array.
+string[string] getQueryParams(const string uri) {
+    string[string] queryParams;
+
+    const size_t queryStart = uri.indexOf('?');
+
+    if (queryStart == -1)
+        return null;
+
+    const string[] paramStrings = uri[queryStart + 1 .. $].split('&');
+
+    foreach (param; paramStrings) {
+        const size_t equalsIndex = param.indexOf('=');
+        const string key = param[0 .. equalsIndex];
+        const string value = param[equalsIndex + 1 .. $];
+
+        queryParams[key] = value;
+    }
+
+    return queryParams;
+}
+
+/// Return a tuple of the search term that was typed in (if any),
+/// the URL that was typed (if any), and the URL that was selected from the search results panel (if any)
+Tuple!(string, "searchTerm", string, "enteredUrl", string, "selectedUrl") getSearchInfo(const string uri) {
+    immutable string edgePrefix = "microsoft-edge:";
+    if (uri.toLower().startsWith(edgePrefix))
+        return getSearchInfo(uri[edgePrefix.length .. $]);
+
+    auto returnTuple = typeof(return)(tuple(null, null, null));
+    string[string] queryParams = getQueryParams(uri);
+
+    if (queryParams is null)
+        return returnTuple;
+
+    if ("url" in queryParams && "q" in queryParams) {
+        returnTuple.searchTerm = queryParams["q"].decodeComponent();
+        returnTuple.selectedUrl = cast(string) Base64URL.decode(queryParams["url"]);
+    } else if ("q" in queryParams) {
+        returnTuple.searchTerm = queryParams["q"].decodeComponent();
+    } else if ("url" in queryParams) {
+        returnTuple = getSearchInfo(queryParams["url"].decodeComponent());
+    } else {
+        returnTuple.enteredUrl = uri;
+    }
+
+    return returnTuple;
+}
+
+/// Open a URL by spawning a shell process to the browser executable, or system default.
+void openUri(const string browserPath, const string args, const string url) {
+    string execPath;
+
+    if (["system_default", ""].canFind(browserPath))
+        execPath = getSysDefaultBrowser().path;
+    else
+        execPath = browserPath;
+
+    const string commandLine = "%s %s %s".format(escapeShellArg(execPath, false), args, escapeShellArg(url, false));
+
+    STARTUPINFO_W lpStartupInfo = { STARTUPINFO_W.sizeof };
+    PROCESS_INFORMATION lpProcessInformation;
+
+    debug writeln(commandLine);
+
+    const bool success = cast(bool) CreateProcessW(
+        execPath.toUTF16z(), /* lpApplicationName */
+        commandLine.toUTFz!(wchar*)(), /* lpCommandLine */
+        null, /* lpProcessAttributes */
+        null, /* lpThreadAttributes */
+        true, /* bInheritHandles */
+        CREATE_UNICODE_ENVIRONMENT | DETACHED_PROCESS, /* dwCreationFlags */
+        null, /* lpEnvironment */
+        null, /* lpCurrentDirectory */
+        &lpStartupInfo, /* lpStartupInfo */
+        &lpProcessInformation /* lpProcessInformation */
+    );
+
+    if (!success) {
+        const uint messageId = MessageBox(null, "Search Deflector could not deflect the URI to your browser." ~
+                "\nMake sure that the browser is still installed and that the executable still exists." ~
+                "\n\nWould you like to see the full error message online?",
+                "Search Deflector", MB_ICONWARNING | MB_YESNO);
+
+        if (messageId == IDYES)
+            createErrorDialog(ProcessException.newFromLastError("Failed to spawn new process"));
+    }
+}
+
+/// Create an error dialog from the given exception
+void createErrorDialog(const Throwable error, HWND hWnd = null) nothrow {
+    // dfmt off
+    try {
+        const uint messageId = MessageBox(hWnd,
+                "Search Deflector launch failed. Would you like to open the issues page to submit a bug report?" ~
+                "\nThe important information will be filled out for you." ~
+                "\n\nIf you do not wish to create a bug report, click 'No' to exit.",
+                "Search Deflector", MB_ICONERROR | MB_YESNO);
+
+        if (messageId == IDYES)
+            browse("https://github.com/spikespaz/search-deflector/issues/new?body=" ~
+                createIssueMessage(error).encodeComponent());
+    } catch (Throwable) { // @suppress(dscanner.suspicious.catch_em_all)
+        assert(0);
+    }
+    // dfmt on
+}
+
+/// Create a warning dialog with given message content
+void createWarningDialog(const string message, HWND hWnd = null) nothrow {
+    try {
+        debug writeln(message);
+
+        MessageBox(hWnd, message.toUTF16z, "Search Deflector", MB_ICONWARNING | MB_OK);
+    } catch (Throwable error) // @suppress(dscanner.suspicious.catch_em_all)
+        createErrorDialog(error);
+
+}
+
+/// Creates a GitHub issue body with the data from an Exception.
+string createIssueMessage(const Throwable error) {
+    const auto browsers = getAllAvailableBrowsers();
+
+    // dfmt off
+    return ISSUE_TEMPLATE.strip().formatString([
+        "errorFile": error.file,
+        "errorLine": error.line.to!string(),
+        "errorMessage": error.message,
+        "browserName": browsers.nameFromPath(DeflectorSettings.browserPath),
+        "browserPath": DeflectorSettings.browserPath,
+        "useProfile": DeflectorSettings.useProfile.to!string(),
+        "profileName": DeflectorSettings.profileName,
+        "engineName": browsers.nameFromUrl(DeflectorSettings.engineURL),
+        "engineUrl": DeflectorSettings.engineURL,
+        "queryString": "",
+        "queryUrl": "",
+        "windowsRelease": WindowsVersion.release,
+        "windowsBuild": WindowsVersion.build,
+        "windowsEdition": WindowsVersion.edition,
+        "insidersPreview": WindowsVersion.insiderRing
+    ]).to!string();
+    // dfmt on
+}
+
+/// Return a string array of arguments that are parsed in ArgV style from a string.
+string[] getConsoleArgs(const wchar* commandLine = GetCommandLineW()) {
+    int argCount;
+    wchar** argList = CommandLineToArgvW(commandLine, &argCount);
+    string[] args;
+
+    for (int index; index < argCount; index++)
+        args ~= argList[index].to!string();
+
+    return args;
+}
+
+/// Escape a command line argument according to the reference:
+/// https://web.archive.org/web/20190109172835/https://blogs.msdn.microsoft.com/twistylittlepassagesallalike/2011/04/23/everyone-quotes-command-line-arguments-the-wrong-way/
+string escapeShellArg(const string argument, bool force) {
+    if (argument.length == 0)
+        return "";
+
+    if (!force && argument.indexOfAny(" \t\n\v\"") == -1)
+        return argument;
+
+    string escapedArg = "\"";
+
+    for (uint pos = 0; pos < argument.length; pos++) {
+        uint backslashCount = 0;
+
+        while (pos != argument.length && argument[pos] == '\\') {
+            pos++;
+            backslashCount++;
+        }
+
+        if (pos == argument.length) {
+            escapedArg ~= '\\'.repeat(backslashCount * 2).to!string();
+            break;
+        } else if (argument[pos] == '"')
+            escapedArg ~= '\\'.repeat(backslashCount * 2 + 1).to!string() ~ '"';
+        else
+            escapedArg ~= '\\'.repeat(backslashCount).to!string() ~ argument[pos];
+    }
+
+    escapedArg ~= '"';
+
+    return escapedArg;
+}
+
+/// Function to create a string from arguments that is properly escaped.
+string escapeShellArgs(const string[] arguments) {
+    string commandLine;
+
+    foreach(string argument; arguments)
+        commandLine ~= ' ' ~ escapeShellArg(argument, false);
+
+    return commandLine;
+}
+
+/// Constructs browser arguments based on executable name and options provided
+string getBrowserArgs(const string browserPath, const bool useProfile, const string profileName) {
+    string[] browserArgs;
+
+    const bool isChrome = browserPath.endsWith("chrome.exe");
+    const bool isFirefox = browserPath.endsWith("firefox.exe");
+
+    if (useProfile) {
+        if (isChrome)
+            browserArgs ~= "--profile-directory=" ~ escapeShellArg(profileName, false);
+        else if (isFirefox)
+            browserArgs ~= ["-P", escapeShellArg(profileName, false)];
+    }
+
+    return browserArgs.join(' ');
+}
+
+/// Try to fetch the engine presets from the repository, if it fails, read from local.
+string[string] getEnginePresets() {
+    import std.net.curl: get, CurlException; // Must use local import because of name conflict with associative arrays 'get' method
+
+    string[string] engines = parseConfig(readText(buildPath(thisExePath().dirName(), "engines.txt")));
+
+    try
+        engines = mergeAAs(engines, parseConfig(get(ENGINE_TEMPLATES_URL).idup)); // Get the string of the resource content.
+    catch (CurlException) {
+    }
+
+    return engines;
+}
+
+/// Fetch a list of available browsers from the Windows registry along with their paths.
+/// Use the names as the keys in an associative array containing the browser executable paths.
+string[string] getAvailableBrowsers(const bool currentUser = false) {
+    string[string] availableBrowsers;
+    Key startMenuInternetKey;
+
+    if (currentUser)
+        startMenuInternetKey = Registry.currentUser.getKey("SOFTWARE\\Clients\\StartMenuInternet");
+    else
+        startMenuInternetKey = Registry.localMachine.getKey("SOFTWARE\\Clients\\StartMenuInternet");
+
+    foreach (key; startMenuInternetKey.keys) {
+        string browserName;
+
+        try
+            browserName = key.getValue("").value_SZ;
+        catch (RegistryException)
+            continue;
+
+        string browserPath = key.getKey("shell\\open\\command").getValue("").value_SZ;
+
+        if (!isValidFilename(browserPath) && !exists(browserPath)) {
+            browserPath = getConsoleArgs(browserPath.toUTF16z())[0];
+
+            if (!isValidFilename(browserPath) && !exists(browserPath))
+                continue;
+        }
+
+        availableBrowsers[browserName] = browserPath;
+    }
+
+    return availableBrowsers;
+}
+
+/// Get all of the installed browsers from system registry
+string[string] getAllAvailableBrowsers() {
+    auto browsers = getAvailableBrowsers(false);
+
+    try
+        return mergeAAs(browsers, getAvailableBrowsers(true));
+    catch (RegistryException) {
+    }
+
+    return browsers;
+}
+
+/// Fetch the system default browser's program ID and executable path
+Tuple!(string, "progID", string, "path") getSysDefaultBrowser() {
+    Key userChoiceKey = Registry.currentUser.getKey("SOFTWARE\\Microsoft\\Windows\\Shell\\Associations\\UrlAssociations\\https\\UserChoice");
+    const string progID = userChoiceKey.getValue("ProgID").value_SZ;
+    Key progCommandKey = Registry.localMachine.getKey("SOFTWARE\\Classes\\" ~ progID ~ "\\shell\\open\\command");
+    string browserPath = progCommandKey.getValue("").value_SZ;
+
+    if (!isValidFilename(browserPath) && !exists(browserPath)) {
+        browserPath = getConsoleArgs(browserPath.toUTF16z())[0];
+
+        if (!isValidFilename(browserPath) && !exists(browserPath))
+            throw new FileException(browserPath, "Browser executable path does not exist or is not valid.");
+    }
+
+    return tuple!("progID", "path")(progID, browserPath);
+}
+
+/// Get the browser name from known list of paths for installed browsers
+string nameFromPath(const string[string] browsers, const string path) {
+    if (["", "system_default"].canFind(path))
+        return Translator.text("option.default_browser");
+
+    foreach (browser; browsers.byKeyValue)
+        if (browser.value == path)
+            return browser.key;
+
+    return Translator.text("option.custom_browser");
+}
+
+/// Get the engine name by an engine URL from the known list
+string nameFromUrl(const string[string] engines, const string url) {
+    foreach (engine; engines.byKeyValue)
+        if (engine.value == url)
+            return engine.key;
+
+    return Translator.text("option.custom_engine");
+}
+
+/// Format a string by replacing each key with a value in replacements.
+S formatString(S)(const S input, const S[S] replacements) {
+    S output = input;
+
+    foreach (variable; replacements.byKeyValue())
+        output = output.replace("{{" ~ variable.key ~ "}}", variable.value);
+
+    return output;
+}
+
+/// Merge two associative arrays, updating existing values in "baseAA" with new ones from "updateAA".
+T[K] mergeAAs(T, K)(T[K] baseAA, T[K] updateAA) {
+    T[K] newAA = baseAA;
+
+    foreach (key; updateAA.byKey())
+        newAA[key] = updateAA[key];
+
+    return newAA;
+}
+
+/// Null comparison
+bool isNull(T)(T value) if (is(T == class) || isPointer!T) {
+    return value is null;
+}
+  build: module configure;
+
+import std.file: exists, isFile, tempDir, thisExePath, timeLastModified;
+import std.algorithm: endsWith, canFind, countUntil;
+import std.socket: SocketException, getAddress;
+import std.windows.registry: RegistryException;
+import std.path: buildNormalizedPath;
+import std.string: indexOf, strip;
+import std.traits: isPointer;
+import std.datetime: SysTime;
+import std.json: JSONValue;
+import std.format: format;
+import std.utf: toUTF16z;
+import std.conv: to;
+
+import core.stdc.stdlib: exit;
+
+import arsd.minigui;
+
+import common;
+import updater;
+debug import std.stdio: writeln;
+
+void main(string[] args) {
+    const bool forceUpdate = args.canFind("--update") || args.canFind("-u");
+
+    try {
+        if (DeflectorSettings.interfaceLanguage.length == 0)
+            Translator.loadDefault();
+        else
+            Translator.load(DeflectorSettings.interfaceLanguage);
+
+        auto app = ConfigApp();
+
+        version (free_version)
+            if (forceUpdate) {
+                app.fetchReleaseInfo();
+
+                if (app.shouldUpdate())
+                    app.installUpdate(true);
+
+                return;
+            }
+
+        app.createWindow();
+        app.loopWindow();
+    } catch (Exception error) {
+        createErrorDialog(error);
+        debug writeln(error);
+    }
+}
+
+/// Main structure for user interface
+struct ConfigApp {
+    Window window; /// Main program window
+    VerticalLayout mainLayout; /// Main window layout
+    SettingsSyncApi syncApi; /// Settings synchronization API instance for registry and UI
+
+    DropDownSelection browserSelect; /// Drop down selection for installed browsers
+    DropDownSelection engineSelect; /// Drop down selection for engines from engines.txt
+    DropDownSelection languageSelection; /// Drop down selection for language translation
+
+    LineEdit browserPath; /// Browser Path Line Edit
+    LineEdit engineUrl; /// Engine URL Line Edit
+
+    Checkbox useProfile; /// Enable/Disable Browser Profile Checkbox
+    LineEdit profileName; /// Profile Name Line Edit
+
+    Button browserPathButton; /// Browser Path Selection Button
+    Button applyButton; /// Apply Settings Button
+    Button wikiButton; /// Open Website Button
+    Button closeButton; /// Close Interface Button
+
+    TabWidget tabs; /// Main Tabs Widget
+
+    TabWidgetPage settingsPage; /// Page for main settings
+    TabWidgetPage languagePage; /// Page for language options
+
+    version (free_version) {
+        TabWidgetPage updatePage; /// Page for update information
+
+        /// Labels for update information
+        TextLabel versionLabel, uploaderLabel, timestampLabel, binarySizeLabel, downloadCountLabel;
+
+        Button updateButton; /// Button to download and apply update
+        Button detailsButton; /// Button to open the latest release
+
+        JSONValue releaseJson; /// Release JSON data from GitHub
+        JSONValue releaseAsset; /// Latest release JSOn asset data from GitHub
+    }
+
+    bool browserPathButtonHidden = true; /// Flag whether or not the path selection button should be shown
+
+    /// Window construction main function
+    void createWindow() {
+        debug writeln("ConfigApp.createWindow()");
+
+        this.window = new Window(400, 340, Translator.text("title.window"));
+        this.window.win.setMinSize(300, 340);
+
+        this.createWidgets();
+        this.loadDefaults();
+        this.bindCommonButtonListeners();
+        this.showConfigPageDefaults();
+        this.bindLanguagePageListeners();
+        this.bindConfigPageListeners();
+
+        version (free_version)
+            this.bindUpdatePageListeners();
+
+        // Little hack to mitigate issue #51
+        this.tabs.setCurrentTab(1);
+        this.tabs.setCurrentTab(0);
+
+        // And this for good measure
+        this.browserPathButton.hide();
+        this.browserPathButtonHidden = true;
+    }
+
+    /// Checks whether or not the version online is newer by SemVer
+    version (free_version) bool shouldUpdate() {
+        debug writeln("ConfigApp.shouldUpdate()");
+
+        return compareVersions(this.releaseJson["tag_name"].str, PROJECT_VERSION);
+    }
+
+    /// Returns the path to the downloaded installer in TEMP
+    string getInstallerPath() {
+        debug writeln("ConfigApp.getInstallerPath()");
+
+        return buildNormalizedPath(tempDir(), SETUP_FILENAME);
+    }
+
+    /// Begin main window loop
+    void loopWindow() {
+        debug writeln("ConfigApp.loopWindow()");
+
+        this.window.loop();
+    }
+
+    /// Construct all of widgets in the interface
+    void createWidgets() {
+        debug writeln("ConfigApp.createWidgets()");
+
+        this.mainLayout = new VerticalLayout(this.window);
+
+        this.tabs = new TabWidget(this.mainLayout);
+        this.tabs.setMargins(0, 0, 0, 0);
+
+        auto vSpacer = new VerticalSpacer(this.mainLayout);
+        vSpacer.setMaxHeight(4);
+
+        this.createCommonButtons();
+
+        this.settingsPage = this.tabs.addPage(Translator.text("title.settings_page"));
+        this.settingsPage.setPadding(4, 4, 4, 4);
+        this.languagePage = this.tabs.addPage(Translator.text("title.language_page"));
+        this.languagePage.setPadding(4, 4, 4, 4);
+
+        version (free_version) {
+            this.updatePage = this.tabs.addPage(Translator.text("title.update_page"));
+            this.updatePage.setPadding(4, 4, 4, 4);
+
+            this.createUpdatePageWidgets();
+        }
+
+        this.createConfigPageWidgets();
+        this.createLanguagePageWidgets();
+
+        TextLabel label = new TextLabel("%s: %s, %s: %s".format(
+                Translator.text("fragment.version"), PROJECT_VERSION,
+                Translator.text("fragment.author"), PROJECT_AUTHOR
+            ), this.mainLayout);
+
+        label.setMargins(6, 8, 4, 8);
+    }
+
+    void createCommonButtons() {
+        HorizontalSpacer hSpacer;
+        HorizontalLayout hLayout;
+
+        // Group for Apply, Website and Close buttons
+        hLayout = new HorizontalLayout(this.mainLayout);
+
+        hSpacer = new HorizontalSpacer(hLayout);
+        hSpacer.setMaxWidth(8);
+        hSpacer.setMaxHeight(1);
+
+        this.applyButton = new Button(Translator.text("button.apply"), hLayout);
+        this.applyButton.setEnabled(false);
+
+        hSpacer = new HorizontalSpacer(hLayout);
+        hSpacer.setMaxWidth(4);
+        hSpacer.setMaxHeight(1);
+
+        this.wikiButton = new Button(Translator.text("button.website"), hLayout);
+
+        hSpacer = new HorizontalSpacer(hLayout);
+        hSpacer.setMaxWidth(4);
+        hSpacer.setMaxHeight(1);
+
+        this.closeButton = new Button(Translator.text("button.close"), hLayout);
+
+        hSpacer = new HorizontalSpacer(hLayout);
+        hSpacer.setMaxWidth(8);
+        hSpacer.setMaxHeight(1);
+    }
+
+    /// Main interface (first page) widget construction
+    void createConfigPageWidgets() {
+        debug writeln("ConfigApp.createConfigPageWidgets()");
+
+        auto layout = new VerticalLayout(this.settingsPage);
+
+        TextLabel label;
+        VerticalSpacer vSpacer;
+        HorizontalSpacer hSpacer;
+        HorizontalLayout hLayout;
+
+        // Group for selecting from a list of installed browsers
+        label = new TextLabel(Translator.text("label.browser_name"), layout);
+        this.browserSelect = new DropDownSelection(layout);
+        this.browserSelect.addOption(Translator.text("option.custom_browser"));
+        this.browserSelect.addOption(Translator.text("option.default_browser"));
+
+        vSpacer = new VerticalSpacer(layout);
+        vSpacer.setMaxHeight(8);
+
+        // Group for the browser path display/edit and a button to browse files
+        label = new TextLabel(Translator.text("label.browser_path"), layout);
+        hLayout = new HorizontalLayout(layout);
+        this.browserPath = new LineEdit(hLayout);
+        this.browserPath.setEnabled(false);
+        this.browserPathButton = new Button("...", hLayout);
+        this.browserPathButton.setMaxWidth(30);
+        this.browserPathButton.hide();
+        this.browserPathButtonHidden = true;
+
+        vSpacer = new VerticalSpacer(layout);
+        vSpacer.setMaxHeight(8);
+
+        // Group for selecting from a list of search engines
+        label = new TextLabel(Translator.text("label.engine_name"), layout);
+        this.engineSelect = new DropDownSelection(layout);
+        this.engineSelect.addOption("Custom");
+
+        vSpacer = new VerticalSpacer(layout);
+        vSpacer.setMaxHeight(8);
+
+        // Group for editing the engine URL
+        label = new TextLabel(Translator.text("label.engine_url"), layout);
+        this.engineUrl = new LineEdit(layout);
+        this.engineUrl.setEnabled(false);
+
+        vSpacer = new VerticalSpacer(layout);
+        vSpacer.setMaxHeight(8);
+
+        // Group for enabling/disabling and naming the browser profile
+        label = new TextLabel(Translator.text("label.profile_dir"), layout);
+        hLayout = new HorizontalLayout(layout);
+        this.profileName = new LineEdit(hLayout);
+        this.profileName.setEnabled(false);
+        hSpacer = new HorizontalSpacer(hLayout);
+        hSpacer.setMaxWidth(2);
+        hSpacer.setMaxHeight(1);
+        this.useProfile = new Checkbox(Translator.text("label.enable_profile"), hLayout);
+        this.useProfile.isChecked = false;
+        this.useProfile.setMargins(4, 4, 0, 0);
+        this.useProfile.setStretchiness(2, 4);
+
+        // vSpacer = new VerticalSpacer(layout);
+    }
+
+    /// Language page widget construction
+    void createLanguagePageWidgets() {
+        debug writeln("ConfigApp.createLanguagePageWidgets()");
+
+        auto layout = new VerticalLayout(this.languagePage);
+
+        TextLabel label;
+
+        label = new TextLabel(Translator.text("label.language_select"), layout);
+
+        this.languageSelection = new DropDownSelection(layout);
+        this.languageSelection.addOption(Translator.text("option.default_language"));
+
+        foreach (string langKey; Translator.getLangKeys()) {
+            debug writeln(Translator.getNameFromLangKey(langKey));
+            this.languageSelection.addOption(Translator.getNameFromLangKey(langKey));
+        }
+    }
+
+    /// Updater page's widget construction
+    version (free_version) void createUpdatePageWidgets() {
+        debug writeln("ConfigApp.createUpdatePageWidgets()");
+
+        auto layout = new VerticalLayout(this.updatePage);
+        auto hLayout = new HorizontalLayout(layout);
+        auto vLayout0 = new VerticalLayout(hLayout);
+        auto vLayout1 = new VerticalLayout(hLayout);
+
+        TextLabel label;
+        VerticalSpacer spacer;
+
+        label = new TextLabel(Translator.text("fragment.current_version") ~ ':', vLayout0);
+        label = new TextLabel(Translator.text("fragment.build_date") ~ ':', vLayout0);
+
+        label = new TextLabel(PROJECT_VERSION, vLayout1);
+        label = new TextLabel(thisExePath.timeLastModified.toLocalTime.toReadableTimestamp(), vLayout1);
+
+        spacer = new VerticalSpacer(vLayout0);
+        spacer.setMaxHeight(Window.lineHeight);
+        spacer = new VerticalSpacer(vLayout1);
+        spacer.setMaxHeight(Window.lineHeight);
+
+        label = new TextLabel(Translator.text("fragment.latest_version") ~ ':', vLayout0);
+        label = new TextLabel(Translator.text("fragment.uploader") ~ ':', vLayout0);
+        label = new TextLabel(Translator.text("fragment.timestamp") ~ ':', vLayout0);
+        label = new TextLabel(Translator.text("fragment.binary_size") ~ ':', vLayout0);
+        label = new TextLabel(Translator.text("fragment.download_count") ~ ':', vLayout0);
+
+        this.versionLabel = new TextLabel("", vLayout1);
+        this.uploaderLabel = new TextLabel("", vLayout1);
+        this.timestampLabel = new TextLabel("", vLayout1);
+        this.binarySizeLabel = new TextLabel("", vLayout1);
+        this.downloadCountLabel = new TextLabel("", vLayout1);
+
+        auto hLayout0 = new HorizontalLayout(layout);
+        HorizontalSpacer hSpacer;
+
+        this.updateButton = new Button(Translator.text("button.update"), hLayout0);
+        this.updateButton.setEnabled(false);
+
+        hSpacer = new HorizontalSpacer(hLayout0);
+        hSpacer.setMaxWidth(4);
+        hSpacer.setMaxHeight(1);
+
+        this.detailsButton = new Button(Translator.text("button.details"), hLayout0);
+    }
+
+    /// Load defaults from registry into UI
+    void loadDefaults() {
+        debug writeln("ConfigApp.loadDefaults()");
+
+        this.syncApi = SettingsSyncApi();
+        this.syncApi.parent = &this;
+        this.syncApi.browsers = getAllAvailableBrowsers();
+        this.syncApi.engines = getEnginePresets();
+
+        foreach (browser; this.syncApi.browsers.byKey)
+            this.browserSelect.addOption(browser);
+
+        foreach (engine; this.syncApi.engines.byKey)
+            this.engineSelect.addOption(engine);
+
+        this.languageSelection.setSelection(
+            Translator.getLangKeys().countUntil(DeflectorSettings.interfaceLanguage) + 1
+        );
+
+        this.useProfile.isChecked = DeflectorSettings.useProfile;
+        this.profileName.content = DeflectorSettings.profileName;
+        this.profileName.setEnabled(DeflectorSettings.useProfile);
+    }
+
+    /// Set UI browser and engine names from the registry's values
+    void showConfigPageDefaults() {
+        debug writeln("ConfigApp.showConfigPageDefaults()");
+
+        this.syncApi.browserName = this.syncApi.browsers.nameFromPath(DeflectorSettings.browserPath);
+        this.syncApi.engineName = this.syncApi.engines.nameFromUrl(DeflectorSettings.engineURL);
+    }
+
+    /// Set the updater page's information from latest GitHub release
+    version (free_version) void showUpdatePageDefaults() {
+        debug writeln("ConfigApp.showUpdatePageDefaults()");
+
+        if (this.shouldUpdate)
+            this.updateButton.setEnabled(true);
+
+        this.versionLabel.label = releaseJson["tag_name"].str;
+        this.uploaderLabel.label = releaseAsset["uploader"]["login"].str;
+        this.timestampLabel.label = SysTime.fromISOExtString(releaseAsset["updated_at"].str).toReadableTimestamp();
+        this.binarySizeLabel.label = format("%.2f MB", releaseAsset["size"].integer / 1_048_576f);
+        this.downloadCountLabel.label = releaseAsset["download_count"].integer.to!string();
+    }
+
+    void bindCommonButtonListeners() {
+        this.applyButton.addEventListener(EventType.triggered, {
+            this.syncApi.dump();
+            this.applyButton.setEnabled(false);
+        });
+
+        this.wikiButton.addEventListener(EventType.triggered, {
+            openUri(this.syncApi.browserPath, getBrowserArgs(DeflectorSettings.browserPath, DeflectorSettings.useProfile, DeflectorSettings.profileName), WIKI_URL);
+        });
+
+        this.closeButton.addEventListener(EventType.triggered, { exit(0); });
+    }
+
+    void bindLanguagePageListeners() {
+        this.languageSelection.addEventListener(EventType.change, {
+            debug writeln(this.languageSelection.currentText);
+
+            if (this.languageSelection.getSelection() == 0)
+                DeflectorSettings.interfaceLanguage = "";
+            else
+                DeflectorSettings.interfaceLanguage = Translator.getLangKeys()[this.languageSelection.getSelection() - 1];
+
+            this.applyButton.setEnabled(true);
+        });
+    }
+
+    /// Bind listeners for every widget on the config page that needs actions handled
+    void bindConfigPageListeners() {
+        debug writeln("ConfigApp.bindConfigPageListeners()");
+
+        // And a fix for the "..." button mysteriously appearing after switching tabs
+        this.tabs.addDirectEventListener(EventType.click, (Event event) {
+            auto t = (event.clientX / 80); // 80 = tab width
+            if (!(event.clientY < Window.lineHeight && t >= 0 && t < this.tabs.children.length))
+                return;
+
+            debug writeln("Tabs changed");
+
+            if (this.browserPathButtonHidden)
+                this.browserPathButton.hide();
+            else
+                this.browserPathButton.show();
+
+            version (free_version) {
+                if (releaseJson.isNull) {
+                    this.fetchReleaseInfo();
+                    this.showUpdatePageDefaults();
+                }
+            }
+        });
+
+        this.browserPathButton.addEventListener(EventType.triggered, {
+            getOpenFileName(&this.browserPath.content, this.browserPath.content, null);
+
+            this.syncApi.browserPath = this.browserPath.content.strip();
+            this.applyButton.setEnabled(true);
+        });
+
+        this.browserSelect.addEventListener(EventType.change, {
+            debug writeln(this.browserSelect.currentText);
+            this.syncApi.browserName = this.browserSelect.currentText;
+            this.applyButton.setEnabled(true);
+        });
+
+        this.browserPath.addEventListener(EventType.keyup, {
+            string value = this.browserPath.content.strip(); // Santitize
+            debug writeln("Browser path changed: ", value);
+            DeflectorSettings.browserPath = value;
+            this.applyButton.setEnabled(true);
+        });
+
+        this.engineSelect.addEventListener(EventType.change, {
+            debug writeln(this.engineSelect.currentText);
+            this.syncApi.engineName = this.engineSelect.currentText;
+            this.applyButton.setEnabled(true);
+        });
+
+        this.useProfile.addEventListener(EventType.change, {
+            debug writeln("Profile name enabled: ", this.useProfile.isChecked);
+            DeflectorSettings.useProfile = this.useProfile.isChecked;
+            this.syncApi.dump();
+            this.profileName.setEnabled(this.useProfile.isChecked);
+        });
+
+        this.profileName.addEventListener(EventType.keyup, {
+            string value = this.profileName.content.strip(); // Sanitize
+            debug writeln("Profile name changed: ", value);
+            this.syncApi.profileName = value;
+            this.syncApi.dump();
+            this.applyButton.setEnabled(true);
+        });
+
+        this.engineUrl.addEventListener(EventType.keyup, {
+            string value = this.engineUrl.content.strip(); // Sanitize
+            debug writeln("Engine URL changed: ", value);
+            DeflectorSettings.engineURL = value;
+            this.applyButton.setEnabled(true);
+        });
+    }
+
+    /// Bind listeners for widgets on the update page
+    version (free_version) void bindUpdatePageListeners() {
+        debug writeln("ConfigApp.bindUpdatePageListeners()");
+
+        this.updateButton.addEventListener(EventType.triggered, {
+            this.updateButton.setEnabled(false);
+
+            this.installUpdate(false);
+        });
+
+        this.detailsButton.addEventListener(EventType.triggered, {
+            openUri(this.syncApi.browserPath, getBrowserArgs(DeflectorSettings.browserPath, DeflectorSettings.useProfile, DeflectorSettings.profileName), this.releaseJson["html_url"].str);
+        });
+    }
+
+    /// Fetch the latest release informatiion from GutHub
+    version (free_version) void fetchReleaseInfo() {
+        debug writeln("ConfigApp.fetchReleaseInfo()");
+
+        this.releaseJson = getLatestRelease(PROJECT_AUTHOR, PROJECT_NAME);
+        this.releaseAsset = getReleaseAsset(releaseJson, SETUP_FILENAME);
+    }
+
+    /// Begin installing the latest version of the program.
+    version (free_version) void installUpdate(const bool silent) {
+        debug writeln("ConfigApp.installUpdate()");
+
+        startInstallUpdate(this.releaseAsset["browser_download_url"].str, this.getInstallerPath(), silent);
+    }
+}
+
+/// Object to help keep both registry and interface up-to-date with eachother
+struct SettingsSyncApi {
+    private ConfigApp* parent;
+    private string[string] engines;
+    private string[string] browsers;
+
+    /// Dump current settings to registry
+    void dump() {
+        debug writeln("SettingsSyncApi.dump()");
+
+        if (this.parent.browserSelect.currentText != Translator.text("option.default_browser") && !validateExecutablePath(this.browserPath)) {
+            debug writeln("Bad browser path: ", this.browserPath);
+            createWarningDialog("Custom browser path is invalid.\nCheck the wiki for more information.", this.parent
+                    .window.hwnd);
+            return;
+        }
+
+        if (!validateEngineUrl(this.engineUrl)) {
+            debug writeln("Bad engine URL: ", this.engineUrl);
+            createWarningDialog("Custom search engine URL is invalid.\nCheck the wiki for more information.",
+                    this.parent.window.hwnd);
+            return;
+        }
+
+        DeflectorSettings.dump();
+    }
+
+    /// Set the browser path after validation
+    void browserPath(const string value) {
+        debug writeln("SettingsSyncApi.browserPath(value)");
+
+        if (value == "" || validateExecutablePath(value)) {
+            DeflectorSettings.browserPath = value;
+
+            if (value != this.parent.browserPath.content)
+                this.parent.browserPath.content = value;
+        }
+    }
+
+    /// Set the browser name from the path provided
+    void browserName(const string value) {
+        debug writeln("SettingsSyncApi.browserName(value)");
+
+        if (!([Translator.text("option.custom_browser"), Translator.text("option.default_browser"), ""] ~ this.browsers.keys).canFind(value))
+            this.browserPath = "";
+
+        if (value.length == 0 || value == Translator.text("option.default_browser")) {
+            this.parent.browserPath.setEnabled(false);
+            this.parent.browserPathButton.hide();
+            this.browserPath = "";
+        } else if (value == Translator.text("option.custom_browser")) {
+            this.parent.browserPath.setEnabled(true);
+            this.parent.browserPathButton.show();
+            this.browserPath = "";
+        } else {
+            this.parent.browserPath.setEnabled(false);
+            this.parent.browserPathButton.hide();
+
+            foreach (browser; this.browsers.byKeyValue)
+                if (browser.key == value) {
+                    this.browserPath = browser.value;
+                    break;
+                }
+        }
+
+        if (this.parent.browserSelect.currentText != value)
+            this.parent.browserSelect.currentText = value;
+    }
+
+    /// Set the engine URL after validation
+    void engineUrl(const string value) {
+        debug writeln("SettingsSyncApi.engineUrl(value)");
+
+        if (validateEngineUrl(value)) {
+            DeflectorSettings.engineURL = value;
+
+            if (value != this.parent.engineUrl.content)
+                this.parent.engineUrl.content = value;
+        }
+    }
+
+    /// Set the engine name in accordance to the URL
+    void engineName(const string value) {
+        debug writeln("SettingsSyncApi.engineName(value)");
+
+        assert((["Custom", ""] ~ this.engines.keys).canFind(value), "Search engine name is an unexpected value: " ~ value);
+
+        if (value.length == 0 || value == Translator.text("option.custom_engine")) {
+            this.parent.engineUrl.setEnabled(true);
+            this.engineUrl = "";
+        } else {
+            this.parent.engineUrl.setEnabled(false);
+
+            foreach (engine; this.engines.byKeyValue)
+                if (engine.key == value) {
+                    this.engineUrl = engine.value;
+                    break;
+                }
+        }
+
+        if (this.parent.engineSelect.currentText != value)
+            this.parent.engineSelect.currentText = value;
+    }
+
+    /// Set the profile name and disable if empty
+    void profileName(const string value) {
+        if (value.length == 0)
+            DeflectorSettings.useProfile = false;
+
+        DeflectorSettings.profileName = value;
+    }
+
+    /// Get the browser path
+    string browserPath() {
+        debug writeln("SettingsSyncApi.browserPath()");
+        return DeflectorSettings.browserPath;
+    }
+
+    /// Get the browser name from the current path
+    string browserName() {
+        debug writeln("SettingsSyncApi.browserName()");
+
+        if (["", "system_default"].canFind(this.browserPath))
+            return Translator.text("option.default_browser");
+
+        foreach (browser; this.browsers.byKeyValue)
+            if (browser.value == this.browserPath)
+                return browser.key;
+
+        return Translator.text("option.custom_browser");
+    }
+
+    /// Get the current engine URL
+    string engineUrl() {
+        debug writeln("SettingsSyncApi.engineUrl()");
+        return DeflectorSettings.engineURL;
+    }
+
+    /// Get the current engine name from path in settings
+    string engineName() {
+        debug writeln("SettingsSyncApi.browserName()");
+
+        foreach (string item; this.engines.keys)
+            if (this.engines[item] == this.engineUrl)
+                return item;
+
+        return Translator.text("option.custom_engine");
+    }
+}
+
+/// Return true if the executable path is valid
+bool validateExecutablePath(const string path) {
+    return path && path.exists() && path.isFile() && path.endsWith(".exe");
+}
+
+/// Validate that a user's custom search engine URL is a valid candidate.
+bool validateEngineUrl(const string url) {
+    if (url.indexOf("{{query}}") == -1)
+        return false;
+
+    try {
+        const ptrdiff_t slashIndex = url.indexOf("/");
+
+        if (slashIndex == -1)
+            getAddress(url);
+        else
+            getAddress(url[0 .. slashIndex]);
+
+        return true;
+    } catch (SocketException)
+        return false;
+}
+
+/// Convert date from JSON API to human readable string
+string toReadableTimestamp(T)(T time) {
+    return "%02d-%02d-%0004d  %02d:%02d %s".format(time.month, time.day, time.year, (time.hour > 12 ?
+            time.hour - 12 : time.hour), time.minute, (time.hour > 12 ? "PM" : "AM"));
+}
+
+    runs-on: module deflector;
+
+import common;
+import std.uri: decodeComponent;
+import std.conv: to;
+
+version (free_version) {
+    import core.thread: Thread;
+    import core.time: seconds;
+}
+
+debug {
+    import core.stdc.stdio: getchar;
+    import std.stdio: writeln;
+}
+
+void main(string[] args) {
+    if (args.length <= 1) {
+        createErrorDialog(new Exception("Expected one URI argument, recieved: \n" ~ args.to!string()));
+        return;
+    }
+
+    const auto searchInfo = getSearchInfo(args[1]);
+
+    debug {
+        writeln("\nInitial launch URI:\n\t" ~ args[1] ~ "\n");
+
+        debug writeln("Decoded search information:");
+        debug writeln("Search Term: " ~ searchInfo.searchTerm);
+        debug writeln("Entered URL: " ~ searchInfo.enteredUrl);
+        debug writeln("Selected URL: " ~ searchInfo.selectedUrl);
+    }
+
+    try {
+        const string browserArgs = getBrowserArgs(
+            DeflectorSettings.browserPath,
+            DeflectorSettings.useProfile,
+            DeflectorSettings.profileName
+        );
+        string launchUrl;
+
+        if (searchInfo.enteredUrl !is null)
+            launchUrl = searchInfo.enteredUrl;
+        else if (searchInfo.selectedUrl !is null)
+            launchUrl = searchInfo.selectedUrl;
+        else if (searchInfo.searchTerm)
+            if (searchInfo.searchTerm.decodeComponent() == "!DisableDonationRequest") {
+                DeflectorSettings.disableNag = true;
+                DeflectorSettings.dump();
+            } else
+                launchUrl = DeflectorSettings.engineURL.formatString(["query": searchInfo.searchTerm]);
+        else
+            throw new Exception("There was an error deflecting your search. Passed URI is:\t" ~ args[1]);
+
+        openUri(DeflectorSettings.browserPath, browserArgs, launchUrl);
+
+        version (free_version) // Makes the donation prompt open on the 10th search and every 20 afterward
+        if ((!DeflectorSettings.disableNag && (DeflectorSettings.searchCount - 10) % 20 == 0)
+                || DeflectorSettings.searchCount == 10) {
+            Thread.sleep(seconds(5));
+            openUri(DeflectorSettings.browserPath, browserArgs, WIKI_THANKS_URL);
+        }
+    } catch (Exception error) {
+        createErrorDialog(error);
+        debug writeln(error);
+    }
+
+    debug getchar();
+}
+
+    steps: module updater;
+
+import std.process: Config, spawnShell;
+import std.json: JSONValue, parseJSON;
+import std.net.curl: get, download;
+import std.range: zip, popFront;
+import std.file: thisExePath;
+import std.algorithm: sort;
+import std.stdio: writeln;
+import std.string: split;
+import std.path: dirName;
+import std.conv: to;
+
+import core.stdc.stdlib: exit;
+
+import common: formatString;
+
+debug import std.stdio: writeln;
+
+void startInstallUpdate(const string downloadUrl, const string installerFile, const bool silent = false) {
+    // Download the installer to the temporary path created above.
+    download(downloadUrl, installerFile);
+
+    auto launchArgs = `"{{installerFile}}" {{otherArgs}} /components="main, updater" /dir="{{installPath}}"`
+        .formatString(["installerFile"
+                : installerFile, "installPath" : thisExePath().dirName(), "otherArgs" : silent ? "/verysilent" : ""]);
+
+    debug writeln(launchArgs);
+
+    // This executable should already be running as admin so no verb should be necessary.
+    spawnShell(launchArgs, null, Config.detached | Config.suppressConsole);
+
+    exit(0);
+}
+
+/// Iterate through a release's assets and return the one that matches the filename given.
+JSONValue getReleaseAsset(const JSONValue release, const string filename) {
+    foreach (asset; release["assets"].array)
+        if (asset["name"].str == filename)
+            return asset;
+
+    assert(false);
+}
+
+/// Return the latest release according to semantic versioning.
+JSONValue getLatestRelease(const string author, const string repository) {
+    const string apiReleases = "https://api.github.com/repos/" ~ author ~ "/" ~ repository ~ "/releases";
+
+    JSONValue releasesJson = get(apiReleases).parseJSON();
+
+    releasesJson.array.sort!((a, b) => compareVersions(a["tag_name"].str, b["tag_name"].str))();
+
+    return releasesJson.array[0];
+}
+
+/// Compare two semantic versions, returning true if the first version is newer, false otherwise.
+public bool compareVersions(const string firstVer, const string secondVer) {
+    ushort[] firstVerParts = firstVer.split('.').to!(ushort[]);
+    ushort[] secondVerParts = secondVer.split('.').to!(ushort[]);
+
+    while (firstVerParts.length > secondVerParts.length) {
+        if (firstVerParts[0] != 0)
+            return true;
+        firstVerParts.popFront();
+    }
+
+    while (secondVerParts.length > firstVerParts.length) {
+        if (secondVerParts[0] != 0)
+            return false;
+        secondVerParts.popFront();
+    }
+
+    foreach (verParts; zip(firstVerParts, secondVerParts)) {
+        if (verParts[0] > verParts[1])
+            return true;
+        else if (verParts[1] > verParts[0])
+            return false;
+    }
+
+    return false;
+}
+    - uses: actions/checkout@v4
+    - uses: dlang-community/setup-dlang@4c99aa991ce7d19dd3064de0a4f2f6b2f152e2d7
+
+    - name: 'Build & Test'
+      run: |
+        # Build the project, with its main file included, without unittests
+        dub build --compiler=$DC
+        # Build and run tests, as defined by `unittest` configuration
+        # In this mode, `mainSourceFile` is excluded and `version (unittest)` are included
+        # See https://dub.pm/package-format-json.html#configurations
+        dub test --compiler=$DC
