@@ -1,434 +1,625 @@
 name: Ruby Gem
 
-on: {{ this.beginContent('//layouts/main') }}
-<div id="content">
-        {{ content }}
-</div><!-- content -->
-{{ Yii.void(this.endContent()) }}
-  push: {% extends 'views/layouts/main.twig' %}
+on: module AttachmentHelpers
+  def fixture_path(filename)
+    File.expand_path("#{PROJECT_ROOT}/spec/support/fixtures/#{filename}")
+  end
 
-{% block content %}
-<div class="span-19">
-        <div id="content">
-                {% block view %}{% endblock view %}
-        </div><!-- content -->
-</div>
-<div class="span-5 last">
-        <div id="sidebar">
-        {{ Yii.void(this.beginWidget('zii.widgets.CPortlet', {
-                        'title':'Operations'
-                }, true)) }}
-        {{        this.widget('zii.widgets.CMenu', {
-                        'items': [
-                        {'label':'Home', 'url':['/post']},
-                        {'label':'About', 'url':{0:'/site/page', 'view':'about'} },
-                        {'label':'Contact', 'url':['/site/contact']}
-                    ],
-                        'htmlOptions': {'class':'operations'}
-                }, true) }}
-        {{        Yii.void(this.endWidget()) }}
-        </div><!-- sidebar -->
-</div>
-{% endblock content %}
+  def attachment_path(filename)
+    File.expand_path("public/system/attachments/#{filename}")
+  end
+end
+World(AttachmentHelpers)
+
+When /^I modify my attachment definition to:$/ do |definition|
+  content = cd(".") { File.read("app/models/user.rb") }
+  name = content[/has_attached_file :\w+/][/:\w+/]
+  content.gsub!(/has_attached_file.+end/m, <<-FILE)
+      #{definition}
+      do_not_validate_attachment_file_type #{name}
+    end
+  FILE
+
+  write_file "app/models/user.rb", content
+  cd(".") { FileUtils.rm_rf ".rbx" }
+end
+
+When /^I upload the fixture "([^"]*)"$/ do |filename|
+  run_simple %(bundle exec rails runner "User.create!(:attachment => File.open('#{fixture_path(filename)}'))")
+end
+
+Then /^the attachment "([^"]*)" should have a dimension of (\d+x\d+)$/ do |filename, dimension|
+  cd(".") do
+    geometry = `identify -format "%wx%h" "#{attachment_path(filename)}"`.strip
+    expect(geometry).to eq(dimension)
+  end
+end
+
+Then /^the attachment "([^"]*)" should exist$/ do |filename|
+  cd(".") do
+    expect(File.exist?(attachment_path(filename))).to be true
+  end
+end
+
+When /^I swap the attachment "([^"]*)" with the fixture "([^"]*)"$/ do |attachment_filename, fixture_filename|
+  cd(".") do
+    require 'fileutils'
+    FileUtils.rm_f attachment_path(attachment_filename)
+    FileUtils.cp fixture_path(fixture_filename), attachment_path(attachment_filename)
+  end
+end
+
+Then /^the attachment should have the same content type as the fixture "([^"]*)"$/ do |filename|
+  cd(".") do
+    begin
+      # Use mime/types/columnar if available, for reduced memory usage
+      require "mime/types/columnar"
+    rescue LoadError
+      require "mime/types"
+    end
+
+    attachment_content_type = `bundle exec rails runner "puts User.last.attachment_content_type"`.strip
+    expected = MIME::Types.type_for(filename).first.content_type
+    expect(attachment_content_type).to eq(expected)
+  end
+end
+
+Then /^the attachment should have the same file name as the fixture "([^"]*)"$/ do |filename|
+  cd(".") do
+    attachment_file_name = `bundle exec rails runner "puts User.last.attachment_file_name"`.strip
+    expect(attachment_file_name).to eq(File.name(fixture_path(filename)).to_s)
+  end
+end
+
+Then /^the attachment should have the same file size as the fixture "([^"]*)"$/ do |filename|
+  cd(".") do
+    attachment_file_size = `bundle exec rails runner "puts User.last.attachment_file_size"`.strip
+    expect(attachment_file_size).to eq(File.size(fixture_path(filename)).to_s)
+  end
+end
+
+Then /^the attachment file "([^"]*)" should (not )?exist$/ do |filename, not_exist|
+  cd(".") do
+    expect(attachment_path(filename)).not_to be_an_existing_file
+  end
+end
+
+Then /^I should have attachment columns for "([^"]*)"$/ do |attachment_name|
+  cd(".") do
+    columns = eval(`bundle exec rails runner "puts User.columns.map{ |column| [column.name, column.sql_type] }.inspect"`.strip)
+    expect_columns = [
+      ["#{attachment_name}_file_name", "varchar"],
+      ["#{attachment_name}_content_type", "varchar"],
+      ["#{attachment_name}_file_size", "bigint"],
+      ["#{attachment_name}_updated_at", "datetime"]
+    ]
+    expect(columns).to include(*expect_columns)
+  end
+end
+
+Then /^I should not have attachment columns for "([^"]*)"$/ do |attachment_name|
+  cd(".") do
+    columns = eval(`bundle exec rails runner "puts User.columns.map{ |column| [column.name, column.sql_type] }.inspect"`.strip)
+    expect_columns = [
+      ["#{attachment_name}_file_name", "varchar"],
+      ["#{attachment_name}_content_type", "varchar"],
+      ["#{attachment_name}_file_size", "bigint"],
+      ["#{attachment_name}_updated_at", "datetime"]
+    ]
+
+    expect(columns).not_to include(*expect_columns)
+  end
+end
+  push: Then %r{I should see an image with a path of "([^"]*)"} do |path|
+  expect(page).to have_css("img[src^='#{path}']")
+end
+
+Then %r{^the file at "([^"]*)" is the same as "([^"]*)"$} do |web_file, path|
+  expected = IO.read(path)
+  actual = if web_file.match %r{^https?://}
+    Net::HTTP.get(URI.parse(web_file))
+  else
+    visit(web_file)
+    page.body
+  end
+  actual.force_encoding("UTF-8") if actual.respond_to?(:force_encoding)
+  expect(actual).to eq(expected)
+end
     branches: [ "main" ]
-  pull_request: <!DOCTYPE html>
-<html lang="ru">
+  pull_request: Given /^I generate a new rails application$/ do
+  steps %{
+    When I successfully run `rails new #{APP_NAME} --skip-bundle`
+    And I cd to "#{APP_NAME}"
+  }
 
-<head>
-  <meta charset="UTF-8">
-  <title>{% block title %}{{ this.pageTitle }}{% endblock title %}</title>
-  <link rel="stylesheet" href="/css/bootstrap.min.css">
-  <link rel="stylesheet" href="/css/navbar.css">
-  <link rel="stylesheet" href="/css/common.css">
-  {{ Yii.void(Yii.clientScript.registerCoreScript('jquery')) }}
-  <script src="/js/bootstrap.min.js"></script>
-  {% block auxres %}{% endblock auxres %}
-</head>
+  FileUtils.chdir("tmp/aruba/testapp/")
 
-<body>
+  steps %{
+    And I turn off class caching
+    And I write to "Gemfile" with:
+      """
+      source "http://rubygems.org"
+      gem "rails", "#{framework_version}"
+      gem "sqlite3", :platform => [:ruby, :rbx]
+      gem "activerecord-jdbcsqlite3-adapter", :platform => :jruby
+      gem "jruby-openssl", :platform => :jruby
+      gem "capybara"
+      gem "gherkin"
+      gem "aws-sdk-s3"
+      gem "racc", :platform => :rbx
+      gem "rubysl", :platform => :rbx
+      """
+    And I remove turbolinks
+    And I comment out lines that contain "action_mailer" in "config/environments/*.rb"
+    And I empty the application.js file
+    And I configure the application to use "paperclip" from this project
+  }
 
-<div class="container-fluid nopaddings">
-  <div class="main-menu">
-    <div class="center-block col-sm-12 col-md-10 col-lg-9 nofloat">
-      <nav class="navbar navbar-default">
-        <div class="navbar-header">
-          <button type="button" class="navbar-toggle collapsed"
-                  data-toggle="collapse" data-target="#navbar-collapse-1"
-                  aria-expanded="false">
-            <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-          <a class="navbar-brand" href="/">Доска объявлений</a>
-        </div>
-        <div class="collapse navbar-collapse" id="navbar-collapse-1">
-          {{ this.widget('zii.widgets.CMenu', {
-            'htmlOptions': {
-              'class': 'nav navbar-nav navbar-right'
-            },
-            'items': [
-            {'label':'Дать объявление', 'url':['/ad/new'], 'visible':not App.user.isGuest},
-            {'label':'Вход', 'url':['/site/login'], 'visible': App.user.isGuest},
-            {'label':'Выйти', 'url':['/site/logout'], 'visible':not App.user.isGuest }
-            ]
-          }, true) }}
-        </div>
-      </nav>
-    </div>
-  </div><!-- end of main-menu -->
+  FileUtils.chdir("../../..")
+end
 
-  <div class="content">
-    <div class="center-block col-sm-12 col-md-10 col-lg-9 nofloat">
-      {% block content %}{% endblock content %}
-    </div>
-  </div>
+Given "I allow the attachment to be submitted" do
+  cd(".") do
+    transform_file("app/controllers/users_controller.rb") do |content|
+      content.gsub("params.require(:user).permit(:name)",
+                   "params.require(:user).permit!")
+    end
+  end
+end
 
-  <footer class="footer">
-    <div class="center-block col-sm-12 col-md-10 col-lg-9 text-muted
-                nofloat footer-content">
-      Classifieds 2016 &copy; All rights reserved<br>
-      {{ Yii.powered() }}
-    </div>
-  </footer>
-</div><!-- endof container -->
+Given "I remove turbolinks" do
+  cd(".") do
+    transform_file("app/assets/javascripts/application.js") do |content|
+      content.gsub("//= require turbolinks", "")
+    end
+    transform_file("app/views/layouts/application.html.erb") do |content|
+      content.gsub(', "data-turbolinks-track" => true', "")
+    end
+  end
+end
 
-</body>
-</html>
+Given /^I comment out lines that contain "([^"]+)" in "([^"]+)"$/ do |contains, glob|
+  cd(".") do
+    Dir.glob(glob).each do |file|
+      transform_file(file) do |content|
+        content.gsub(/^(.*?#{contains}.*?)$/) { |line| "# #{line}" }
+      end
+    end
+  end
+end
+
+Given /^I attach :attachment$/ do
+  attach_attachment("attachment")
+end
+
+Given /^I attach :attachment with:$/ do |definition|
+  attach_attachment("attachment", definition)
+end
+
+def attach_attachment(name, definition = nil)
+  snippet = "has_attached_file :#{name}"
+  if definition
+    snippet += ", \n"
+    snippet += definition
+  end
+  snippet += "\ndo_not_validate_attachment_file_type :#{name}\n"
+  cd(".") do
+    transform_file("app/models/user.rb") do |content|
+      content.sub(/end\Z/, "#{snippet}\nend")
+    end
+  end
+end
+
+Given "I empty the application.js file" do
+  cd(".") do
+    transform_file("app/assets/javascripts/application.js") do |content|
+      ""
+    end
+  end
+end
+
+Given /^I run a rails generator to generate a "([^"]*)" scaffold with "([^"]*)"$/ do |model_name, attributes|
+  step %[I successfully run `rails generate scaffold #{model_name} #{attributes}`]
+end
+
+Given /^I run a paperclip generator to add a paperclip "([^"]*)" to the "([^"]*)" model$/ do |attachment_name, model_name|
+  step %[I successfully run `rails generate paperclip #{model_name} #{attachment_name}`]
+end
+
+Given /^I run a migration$/ do
+  step %[I successfully run `rake db:migrate --trace`]
+end
+
+When /^I rollback a migration$/ do
+  step %[I successfully run `rake db:rollback STEPS=1 --trace`]
+end
+
+Given /^I update my new user view to include the file upload field$/ do
+  steps %{
+    Given I overwrite "app/views/users/new.html.erb" with:
+      """
+      <%= form_for @user, :html => { :multipart => true } do |f| %>
+        <%= f.label :name %>
+        <%= f.text_field :name %>
+        <%= f.label :attachment %>
+        <%= f.file_field :attachment %>
+        <%= submit_tag "Submit" %>
+      <% end %>
+      """
+  }
+end
+
+Given /^I update my user view to include the attachment$/ do
+  steps %{
+    Given I overwrite "app/views/users/show.html.erb" with:
+      """
+      <p>Name: <%= @user.name %></p>
+      <p>Attachment: <%= image_tag @user.attachment.url %></p>
+      """
+  }
+end
+
+Given /^I add this snippet to the User model:$/ do |snippet|
+  file_name = "app/models/user.rb"
+  cd(".") do
+    content = File.read(file_name)
+    File.open(file_name, 'w') { |f| f << content.sub(/end\Z/, "#{snippet}\nend") }
+  end
+end
+
+Given /^I add this snippet to config\/application.rb:$/ do |snippet|
+  file_name = "config/application.rb"
+  cd(".") do
+    content = File.read(file_name)
+    File.open(file_name, 'w') {|f| f << content.sub(/class Application < Rails::Application.*$/, "class Application < Rails::Application\n#{snippet}\n")}
+  end
+end
+
+Given /^I start the rails application$/ do
+  cd(".") do
+    require "rails"
+    require "./config/environment"
+    require "capybara"
+    Capybara.app = Rails.application
+  end
+end
+
+Given /^I reload my application$/ do
+  Rails::Application.reload!
+end
+
+When /^I turn off class caching$/ do
+  cd(".") do
+    file = "config/environments/test.rb"
+    config = IO.read(file)
+    config.gsub!(%r{^\s*config.cache_classes.*$},
+                 "config.cache_classes = false")
+    File.open(file, "w"){|f| f.write(config) }
+  end
+end
+
+Then /^the file at "([^"]*)" should be the same as "([^"]*)"$/ do |web_file, path|
+  expected = IO.read(path)
+  actual = read_from_web(web_file)
+  expect(actual).to eq(expected)
+end
+
+When /^I configure the application to use "([^\"]+)" from this project$/ do |name|
+  append_to_gemfile "gem '#{name}', :path => '#{PROJECT_ROOT}'"
+  steps %{And I successfully run `bundle install --local`}
+end
+
+When /^I configure the application to use "([^\"]+)"$/ do |gem_name|
+  append_to_gemfile "gem '#{gem_name}'"
+end
+
+When /^I append gems from Appraisal Gemfile$/ do
+  File.read(ENV['BUNDLE_GEMFILE']).split(/\n/).each do |line|
+    if line =~ /^gem "(?!rails|appraisal)/
+      append_to_gemfile line.strip
+    end
+  end
+end
+
+When /^I comment out the gem "([^"]*)" from the Gemfile$/ do |gemname|
+  comment_out_gem_in_gemfile gemname
+end
+
+Given(/^I add a "(.*?)" processor in "(.*?)"$/) do |processor, directory|
+  filename = "#{directory}/#{processor}.rb"
+  cd(".") do
+    FileUtils.mkdir_p directory
+    File.open(filename, "w") do |f|
+      f.write(<<-CLASS)
+        module Paperclip
+          class #{processor.capitalize} < Processor
+            def make
+              basename = File.basename(file.path, File.extname(file.path))
+              dst_format = options[:format] ? ".\#{options[:format]}" : ''
+
+              dst = Tempfile.new([basename, dst_format])
+              dst.binmode
+
+              convert(':src :dst',
+                src: File.expand_path(file.path),
+                dst: File.expand_path(dst.path)
+              )
+
+              dst
+            end
+          end
+        end
+      CLASS
+    end
+  end
+end
+
+def transform_file(filename)
+  if File.exist?(filename)
+    content = File.read(filename)
+    File.open(filename, "w") do |f|
+      content = yield(content)
+      f.write(content)
+    end
+  end
+end
     branches: [ "main" ]
 
-jobs: <!DOCTYPE html>
-<html lang="ru">
+jobs: When /^I attach the file "([^"]*)" to "([^"]*)" on S3$/ do |file_path, field|
+  definition = Paperclip::AttachmentRegistry.definitions_for(User)[field.downcase.to_sym]
+  path = "https://paperclip.s3.us-west-2.amazonaws.com#{definition[:path]}"
+  path.gsub!(':filename', File.basename(file_path))
+  path.gsub!(/:([^\/\.]+)/) do |match|
+    "([^\/\.]+)"
+  end
+  FakeWeb.register_uri(:put, Regexp.new(path), :body => "<xml></xml>")
+  step "I attach the file \"#{file_path}\" to \"#{field}\""
+end
 
-<head>
-        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+Then /^the file at "([^"]*)" should be uploaded to S3$/ do |url|
+  FakeWeb.registered_uri?(:put, url)
+end
+  build: # TL;DR: YOU SHOULD DELETE THIS FILE
+#
+# This file was generated by Cucumber-Rails and is only here to get you a head start
+# These step definitions are thin wrappers around the Capybara/Webrat API that lets you
+# visit pages, interact with widgets and make assertions about page content.
+#
+# If you use these step definitions as basis for your features you will quickly end up
+# with features that are:
+#
+# * Hard to maintain
+# * Verbose to read
+#
+# A much better approach is to write your own higher level step definitions, following
+# the advice in the following blog posts:
+#
+# * http://benmabey.com/2008/05/19/imperative-vs-declarative-scenarios-in-user-stories.html
+# * http://dannorth.net/2011/01/31/whose-domain-is-it-anyway/
+# * http://elabs.se/blog/15-you-re-cuking-it-wrong
+#
 
-        <!-- blueprint CSS framework -->
-        <link rel="stylesheet" type="text/css" href="{{App.request.baseUrl}}/css/screen.css" media="screen, projection">
-        <link rel="stylesheet" type="text/css" href="{{App.request.baseUrl}}/css/print.css" media="print">
-        <!--[if lt IE 8]>
-        <link rel="stylesheet" type="text/css" href="{{App.request.baseUrl}}/css/ie.css" media="screen, projection">
-        <![endif]-->
 
-        <link rel="stylesheet" type="text/css" href="{{App.request.baseUrl}}/css/main.css">
-        <link rel="stylesheet" type="text/css" href="{{App.request.baseUrl}}/css/form.css">
-        {% block auxres %}{% endblock auxres %}
-        <title>{% block title %}{{ this.pageTitle }}{% endblock title %}</title>
-</head>
+require 'uri'
+require 'cgi'
+require File.expand_path(File.join(File.dirname(__FILE__), "..", "support", "paths"))
+require File.expand_path(File.join(File.dirname(__FILE__), "..", "support", "selectors"))
 
-<body>
+module WithinHelpers
+  def with_scope(locator)
+    locator ? within(*selector_for(locator)) { yield } : yield
+  end
+end
+World(WithinHelpers)
 
-<div class="container" id="page">
+# Single-line step scoper
+When /^(.*) within (.*[^:])$/ do |step, parent|
+  with_scope(parent) { When step }
+end
 
-        <div id="header">
-                <div id="logo">{{ App.name }}</div>
-        </div><!-- header -->
+# Multi-line step scoper
+When /^(.*) within (.*[^:]):$/ do |step, parent, table_or_string|
+  with_scope(parent) { When "#{step}:", table_or_string }
+end
 
-        <div id="mainmenu">
-                {{ this.widget('zii.widgets.CMenu', {
-                        'items': [
-                                {'label':'На главную', 'url':['/site/index']},
-                                {'label':'Дать объявление', 'url':['/ad/new'], 'visible':not App.user.isGuest},
-                                {'label':'Вход', 'url':['/site/login'], 'visible': App.user.isGuest},
-                                {'label':'Выйти', 'url':['/site/logout'], 'visible':not App.user.isGuest }
-                        ]
-                }, true) }}
-        </div><!-- mainmenu -->
-        <div id="content">
-                {% block content %} {{ content }} {% endblock content %}
-        </div>
-        <div class="clear"></div>
+Given /^(?:|I )am on (.+)$/ do |page_name|
+  visit path_to(page_name)
+end
 
-        <div id="footer">
-                Copyright &copy;
-                {{ "now"|date('Y', timezone="Europe/Kiev") }}
-                by My Company.<br>
-                All Rights Reserved.<br>
-                {{ Yii.powered() }}
-        </div><!-- footer -->
+When /^(?:|I )go to (.+)$/ do |page_name|
+  visit path_to(page_name)
+end
 
-</div><!-- page -->
+When /^(?:|I )press "([^"]*)"$/ do |button|
+  click_button(button)
+end
 
-</body>
-</html>
-  build: <?php
-/* @var $this SiteController */
+When /^(?:|I )follow "([^"]*)"$/ do |link|
+  click_link(link)
+end
 
-$this->pageTitle=Yii::app()->name . ' - About';
-$this->breadcrumbs=array(
-        'About',
-);
-?>
-<h1>About</h1>
+When /^(?:|I )fill in "([^"]*)" with "([^"]*)"$/ do |field, value|
+  fill_in(field, :with => value)
+end
 
-<p>This is a "static" page. You may change the content of this page
-by updating the file <code><?php echo __FILE__; ?></code>.</p>
-    name: <div class="thumbnail preview">
-  <a href="{{App.request.baseUrl~'/ad/view/'~data.id}}">
-    <img src="{{App.request.baseUrl~'/images/thumb/'~
-         'small_'~data.photos[0].id~'_'~data.photos[0].name}}"
-         alt="{{data.title}}">
-  </a>
-  <h3>
-    <a href="{{App.request.baseUrl~'/ad/view/'~data.id}}">
-      {% if data.title|length > 25 %}
-        {{data.title|slice(0,20)~'...'}}
-      {% else %}
-        {{data.title}}
-      {% endif %}
-    </a>
-  </h3>
-  {% if not data.isEavAttributeEmpty('price') %}
-    <h4>{{ data.price }} {{ data.getAttributeUnit('price') }}.</h4>
-  {% else %}
-    <h4>0 {{ data.getAttributeUnit('price') }}.</h4>
-  {% endif %}
-</div>
-    runs-on: <div class="ad-item clearfix">
-  <a href="{{'/ad/view/'~data.id}}" class="pull-left ad-preview">
-    <img src="{{ '/images/thumb/' ~
-      'small_' ~ data.photos[0].id ~ '_' ~ data.photos[0].name}}"
-         alt="{{ data.title }}"
-         class="img-responsive">
-  </a>
+When /^(?:|I )fill in "([^"]*)" for "([^"]*)"$/ do |value, field|
+  fill_in(field, :with => value)
+end
 
-  <h3 class="col-sm-8 nopaddings">
-    <a href="{{'/ad/view/'~data.id}}">{{ data.title }}</a>
-  </h3>
+# Use this to fill in an entire form with data from a table. Example:
+#
+#   When I fill in the following:
+#     | Account Number | 5002       |
+#     | Expiry date    | 2009-11-01 |
+#     | Note           | Nice guy   |
+#     | Wants Email?   |            |
+#
+# TODO: Add support for checkbox, select og option
+# based on naming conventions.
+#
+When /^(?:|I )fill in the following:$/ do |fields|
+  fields.rows_hash.each do |name, value|
+    When %{I fill in "#{name}" with "#{value}"}
+  end
+end
 
-  <div class="ad-price col-sm-4 nopaddings">
-    {% if not data.isEavAttributeEmpty('price') %}
-      {{ data.getEavAttribute('price')~' '~data.getAttributeUnit('price')~'.' }}
-    {% endif %}
-  </div>
+When /^(?:|I )select "([^"]*)" from "([^"]*)"$/ do |value, field|
+  select(value, :from => field)
+end
 
-  <div class="ad-city-added">
-    <div class="ad-city">{{ data.city.name }}</div>
-    <time class="ad-added text-muted">{{ data.added }}</time>
-  </div>
-</div>
-    permissions: <?php
-/* @var $this SiteController */
-/* @var $model ContactForm */
-/* @var $form CActiveForm */
+When /^(?:|I )check "([^"]*)"$/ do |field|
+  check(field)
+end
 
-$this->pageTitle=Yii::app()->name . ' - Contact Us';
-$this->breadcrumbs=array(
-        'Contact',
-);
-?>
+When /^(?:|I )uncheck "([^"]*)"$/ do |field|
+  uncheck(field)
+end
 
-<h1>Contact Us</h1>
+When /^(?:|I )choose "([^"]*)"$/ do |field|
+  choose(field)
+end
 
-<?php if(Yii::app()->user->hasFlash('contact')): ?>
+When /^(?:|I )attach the file "([^"]*)" to "([^"]*)"$/ do |path, field|
+  attach_file(field, File.expand_path(path))
+end
 
-<div class="flash-success">
-        <?php echo Yii::app()->user->getFlash('contact'); ?>
-</div>
+Then /^(?:|I )should see "([^"]*)"$/ do |text|
+  expect(page).to have_content(text)
+end
+    name: class Rails::Boot
+  def run
+    load_initializer
 
-<?php else: ?>
+    Rails::Initializer.class_eval do
+      def load_gems
+        @bundler_loaded ||= Bundler.require :default, Rails.env
+      end
+    end
 
-<p>
-If you have business inquiries or other questions, please fill out the following form to contact us. Thank you.
-</p>
+    Rails::Initializer.run(:set_load_path)
+  end
+end
 
-<div class="form">
+Rails.boot!
+    runs-on: source "http://rubygems.org"
 
-<?php $form=$this->beginWidget('CActiveForm', array(
-        'id'=>'contact-form',
-        'enableClientValidation'=>true,
-        'clientOptions'=>array(
-                'validateOnSubmit'=>true,
-        ),
-)); ?>
+gem "rails", "RAILS_VERSION"
+gem "rdoc"
+gem "sqlite3", "1.3.8"
+    permissions: begin
+  require "rubygems"
+  require "bundler"
+rescue LoadError
+  raise "Could not load the bundler gem. Install it with `gem install bundler`."
+end
 
-        <p class="note">Fields with <span class="required">*</span> are required.</p>
+if Gem::Version.new(Bundler::VERSION) <= Gem::Version.new("0.9.24")
+  raise RuntimeError, "Your bundler version is too old for Rails 2.3." +
+   "Run `gem install bundler` to upgrade."
+end
 
-        <?php echo $form->errorSummary($model); ?>
+begin
+  # Set up load paths for all bundled gems
+  ENV["BUNDLE_GEMFILE"] = File.expand_path("../../Gemfile", __FILE__)
+  Bundler.setup
+rescue Bundler::GemNotFound
+  raise RuntimeError, "Bundler couldn't find some gems." +
+    "Did you run `bundle install`?"
+end
+      contents: require 'aruba/cucumber'
+require 'capybara/cucumber'
+require 'rspec/matchers'
 
-        <div class="row">
-                <?php echo $form->labelEx($model,'name'); ?>
-                <?php echo $form->textField($model,'name'); ?>
-                <?php echo $form->error($model,'name'); ?>
-        </div>
+$CUCUMBER=1
 
-        <div class="row">
-                <?php echo $form->labelEx($model,'email'); ?>
-                <?php echo $form->textField($model,'email'); ?>
-                <?php echo $form->error($model,'email'); ?>
-        </div>
+World(RSpec::Matchers)
 
-        <div class="row">
-                <?php echo $form->labelEx($model,'subject'); ?>
-                <?php echo $form->textField($model,'subject',array('size'=>60,'maxlength'=>128)); ?>
-                <?php echo $form->error($model,'subject'); ?>
-        </div>
+Before do
+  aruba.config.command_launcher = ENV.fetch("DEBUG", nil) ? :debug : :spawn
+  @aruba_timeout_seconds = 120
+end
+      packages: require 'fake_web'
 
-        <div class="row">
-                <?php echo $form->labelEx($model,'body'); ?>
-                <?php echo $form->textArea($model,'body',array('rows'=>6, 'cols'=>50)); ?>
-                <?php echo $form->error($model,'body'); ?>
-        </div>
+FakeWeb.allow_net_connect = false
 
-        <?php if(CCaptcha::checkRequirements()): ?>
-        <div class="row">
-                <?php echo $form->labelEx($model,'verifyCode'); ?>
-                <div>
-                <?php $this->widget('CCaptcha'); ?>
-                <?php echo $form->textField($model,'verifyCode'); ?>
-                </div>
-                <div class="hint">Please enter the letters as they are shown in the image above.
-                <br/>Letters are not case-sensitive.</div>
-                <?php echo $form->error($model,'verifyCode'); ?>
-        </div>
-        <?php endif; ?>
+module FakeWeb
+  class StubSocket
+    def read_timeout=(_ignored)
+    end
 
-        <div class="row buttons">
-                <?php echo CHtml::submitButton('Submit'); ?>
-        </div>
+    def continue_timeout=(_ignored)
+    end
+  end
+end
 
-<?php $this->endWidget(); ?>
+    steps: module FileHelpers
+  def append_to(path, contents)
+    cd(".") do
+      File.open(path, "a") do |file|
+        file.puts
+        file.puts contents
+      end
+    end
+  end
 
-</div><!-- form -->
+  def append_to_gemfile(contents)
+    append_to('Gemfile', contents)
+  end
 
-<?php endif; ?>
-      contents: read
-      packages: write
+  def comment_out_gem_in_gemfile(gemname)
+    cd(".") do
+      gemfile = File.read("Gemfile")
+      gemfile.sub!(/^(\s*)(gem\s*['"]#{gemname})/, "\\1# \\2")
+      File.open("Gemfile", 'w'){ |file| file.write(gemfile) }
+    end
+  end
 
-    steps: <?php
-/* @var $this SiteController */
-/* @var $error array */
+  def read_from_web(url)
+    file = if url.match %r{^https?://}
+             Net::HTTP.get(URI.parse(url))
+           else
+             visit(url)
+             page.source
+           end
+    file.force_encoding("UTF-8") if file.respond_to?(:force_encoding)
+  end
+end
 
-$this->pageTitle=Yii::app()->name . ' - Error';
-$this->breadcrumbs=array(
-        'Error',
-);
-?>
-
-<h2>Error <?php echo $code; ?></h2>
-
-<div class="error">
-<?php echo CHtml::encode($message); ?>
-</div>
+World(FileHelpers)
     - uses: actions/checkout@v4
     - name: Set up Ruby 2.6
     # To automatically get bug fixes and new Ruby versions for ruby/setup-ruby,
     # change this to (see https://github.com/ruby/setup-ruby#versioning):
     # uses: ruby/setup-ruby@v1
       uses: ruby/setup-ruby@55283cc23133118229fd3f97f9336ee23a179fcf # v1.146.0
-      with: {% extends 'views/layouts/main.twig' %}
+      with: module NavigationHelpers
+  # Maps a name to a path. Used by the
+  #
+  #   When /^I go to (.+)$/ do |page_name|
+  #
+  # step definition in web_steps.rb
+  #
+  def path_to(page_name)
+    case page_name
 
-{% block title %}{{ App.name }} &mdash; главная{% endblock title %}
+    when /the home\s?page/
+      '/'
+    when /the new user page/
+      '/users/new'
+    else
+      begin
+        page_name =~ /the (.*) page/
+        path_components = $1.split(/\s+/)
+        self.send(path_components.push('path').join('_').to_sym)
+      rescue Object
+        raise "Can't find mapping from \"#{page_name}\" to a path.\n" +
+          "Now, go and add a mapping in #{__FILE__}"
+      end
+    end
+  end
+end
 
-{% block auxres %}
-  <link rel="stylesheet" href="/css/select2.css">
-  <link rel="stylesheet" href="/css/select2-bootstrap.min.css">
-  <link rel="stylesheet" href="{{ App.request.baseUrl~'/css/mainpage.css' }}">
-  <script src="/js/select2.js"></script>
-  <script src="/js/select2_locale_ru.js"></script>
-  <script src="/js/main-page.js"></script>
-  {{ Yii.void(App.clientScript.registerScriptFile(
-  App.request.baseUrl~'/js/citiesDropDown.js', constant('CClientScript::POS_END'))) }}
-{% endblock auxres %}
-
-{% block content %}
-
-  {{ C.Html.beginForm(
-    App.createUrl('site/search'),
-    'get',
-    {'class': 'form-inline clearfix'}
-  ) }}
-
-  <div class="col-sm-4">
-  {{ C.Html.activeTextField(form, 'word', {
-    'name':'word',
-    'placeholder':'поиск по фразе',
-    'class': 'form-control'
-  }) }}
-  </div>
-
-  {% if this.beginCache('dropDownRegion', {'duration': 1}) %}
-    <div class="col-sm-3">
-      {{ C.Html.activeDropDownList(
-        form,
-        'region_id',
-        regionList,
-        {
-          'id': 'id_region',
-          'prompt': 'область',
-          'name': 'region',
-          'class': 'form-control'
-        }
-      ) }}
-    </div>
-    {{ Yii.void(this.endCache()) }}
-  {% endif %}
-
-  <div class="col-sm-3">
-    {{ C.Html.activeDropDownList(
-      form,
-      'city_id',
-      {},
-      {'id':'id_city', 'prompt':'город', 'name':'city', 'class': 'form-control'}
-    ) }}
-  </div>
-
-  <div class="col-sm-2">
-    {{ C.Html.submitButton(
-      '',
-      {
-        'name': '',
-        'value':'Найти',
-        'class':'btn btn-default pull-right'
-      }
-    ) }}
-  </div>
-
-  {{ C.Html.endForm() }}
-
-  {% if this.beginCache('roots', {'duration': 1}) %}
-    <div class="roots clearfix">
-      {% for category in categories %}
-        {% if category.level == 1 %}
-          <h3 class="root root-{{category.root}} col-sm-3">
-            <a href="{{ App.request.baseUrl~'/site/search/'~category.id }}"
-               data-root="{{category.root}}">
-              {{ category.title }}
-            </a>
-          </h3>
-        {% endif %}
-      {% endfor %}
-    </div>
-
-    {% for i in 1..10 %}
-      <div class="children root-{{ i }} clearfix" data-root="{{ i }}">
-        {% for category in categories %}
-          {% if category.level != 1 and category.root == i %}
-            <div class="child root-{{category.root}} col-sm-3">
-              <a href="{{ App.request.baseUrl~'/site/search/'~category.id }}">
-                {{ category.title }}
-              </a>
-            </div>
-          {% endif %}
-        {% endfor %}
-      </div>
-    {% endfor %}
-    {{ Yii.void(this.endCache()) }}
-  {% endif %}
-
-  {% if this.beginCache('_new', {'duration': 5}) %}
-    <h2>Новые объявления</h2>
-    <div class="new-ads clearfix">
-      {{ this.widget('zii.widgets.CListView', {
-        'dataProvider':dataProvider,
-        'itemView':'_new',
-        'summaryText':false
-      }, true) }}
-    </div>
-    {{ Yii.void(this.endCache()) }}
-  {% endif %}
-
-{% endblock content %}
+World(NavigationHelpers)
         ruby-version: 2.6.x
 
     - name: Publish to GPR
@@ -436,236 +627,318 @@ $this->breadcrumbs=array(
         mkdir -p $HOME/.gem
         touch $HOME/.gem/credentials
         chmod 0600 $HOME/.gem/credentials
-        printf -- "---\n:github: ${GEM_HOST_API_KEY}\n" > $HOME/.gem/credentials
+        printf -- "---\n:github: PROJECT_ROOT     = File.expand_path(File.join(File.dirname(__FILE__), '..', '..')).freeze
+APP_NAME         = 'testapp'.freeze
+BUNDLE_ENV_VARS = %w(RUBYOPT BUNDLE_PATH BUNDLE_BIN_PATH BUNDLE_GEMFILE)
+ORIGINAL_BUNDLE_VARS = Hash[ENV.select{ |key,value| BUNDLE_ENV_VARS.include?(key) }]
+
+ENV['RAILS_ENV'] = 'test'
+
+Before do
+  gemfile = ENV['BUNDLE_GEMFILE'].to_s
+  ENV['BUNDLE_GEMFILE'] = File.join(Dir.pwd, gemfile) unless gemfile.start_with?(Dir.pwd)
+  @framework_version = nil
+end
+
+After do
+  ORIGINAL_BUNDLE_VARS.each_pair do |key, value|
+    ENV[key] = value
+  end
+end
+
+When /^I reset Bundler environment variable$/ do
+  BUNDLE_ENV_VARS.each do |key|
+    ENV[key] = nil
+  end
+end
+
+module RailsCommandHelpers
+  def framework_version?(version_string)
+    framework_version =~ /^#{version_string}/
+  end
+
+  def framework_version
+    @framework_version ||= `rails -v`[/^Rails (.+)$/, 1]
+  end
+
+  def framework_major_version
+    framework_version.split(".").first.to_i
+  end
+end
+World(RailsCommandHelpers) " > $HOME/.gem/credentials
         gem build *.gemspec
         gem push --KEY github --host https://rubygems.pkg.github.com/${OWNER} *.gem
-      env: {% extends 'views/layouts/main.twig' %}
-{% block title %}{{ App.name }} : вход{% endblock title %}
-{% block content %}
+      env: module HtmlSelectorsHelpers
+  # Maps a name to a selector. Used primarily by the
+  #
+  #   When /^(.+) within (.+)$/ do |step, scope|
+  #
+  # step definitions in web_steps.rb
+  #
+  def selector_for(locator)
+    case locator
+    when "the page"
+      "html > body"
+    else
+      raise "Can't find mapping from \"#{locator}\" to a selector.\n" +
+        "Now, go and add a mapping in #{__FILE__}"
+    end
+  end
+end
 
-<h1>Login</h1>
+World(HtmlSelectorsHelpers)
+        GEM_HOST_API_KEY: "Bearer Feature: Rails integration
 
-<p>Please fill out the following form with your login credentials:</p>
+  Background:
+    Given I generate a new rails application
+    And I run a rails generator to generate a "User" scaffold with "name:string"
+    And I run a paperclip generator to add a paperclip "attachment" to the "User" model
+    And I run a migration
+    And I update my new user view to include the file upload field
+    And I update my user view to include the attachment
+    And I allow the attachment to be submitted
 
-<div class="form">
-
-{% set form = this.beginWidget('CActiveForm', {
-        'id':'login-form',
-        'enableClientValidation':true,
-        'enableAjaxValidation':true,
-        'clientOptions':{'validateOnSubmit':true}
-}, true) %}
-
-        <p class="note">Fields with <span class="required">*</span> are required.</p>
-
-        <div class="row">
-                {{ form.labelEx(model,'username') }}
-                {{ form.textField(model,'username') }}
-                {{ form.error(model,'username') }}
-        </div>
-
-        <div class="row">
-                {{ form.labelEx(model,'password') }}
-                {{ form.passwordField(model,'password') }}
-                {{ form.error(model,'password') }}
-        </div>
-
-        <div class="row rememberMe">
-                {{ form.checkBox(model,'rememberMe') }}
-                {{ form.label(model,'rememberMe') }}
-                {{ form.error(model,'rememberMe') }}
-        </div>
-
-        <div class="row buttons">
-                {{ C.Html.submitButton('Login') }}
-        </div>
-
-{{ Yii.void(this.endWidget()) }}
-
-</div><!-- form -->
-
-{% endblock content %}
-        GEM_HOST_API_KEY: "Bearer ${{secrets.GITHUB_TOKEN}}"
-        OWNER: ${{ {% extends 'views/layouts/main.twig' %}
-
-{% block auxres %}
-  <link rel="stylesheet" href="/css/select2.css">
-  <link rel="stylesheet" href="/css/select2-bootstrap.min.css">
-  <link rel="stylesheet" href="{{ App.request.baseUrl~'/css/search.css' }}">
-  <script src="/js/select2.js"></script>
-  <script src="/js/select2_locale_ru.js"></script>
-  <script>
-    $(function(){
-      $("#id_region").select2();
-      $("#id_city").select2();
-    });
-  </script>
-{% endblock auxres %}
-
-{% block title %}{{ App.name }} &mdash; поиск{% endblock title %}
-
-{% block content %}
-
-  {{ Yii.void(App.clientScript.registerScriptFile(
-    App.request.baseUrl~'/js/citiesDropDown.js', constant('CClientScript::POS_END')))
-  }}
-
-  <!-- begin form -->
-  {{ C.Html.beginForm(App.createUrl(
-    'site/search/'~App.request.getQuery('id')),
-    'get',
-    {
-      'class': 'clearfix'
-    }
-  ) }}
-
-  <div class="clearfix">
-    <div class="col-sm-6">
-    {{ C.Html.textField(
-      'word',
-      form.word,
-      {
-        'placeholder':'поиск по фразе',
-        'class': 'form-control'
+  Scenario: Configure defaults for all attachments through Railtie
+    Given I add this snippet to config/application.rb:
+      """
+      config.paperclip_defaults = {
+        :url => "/paperclip/custom/:attachment/:style/:filename",
+        :validate_media_type => false
       }
-    ) }}
-    </div>
+      """
+    And I attach :attachment
+    And I start the rails application
+    When I go to the new user page
+    And I fill in "Name" with "something"
+    And I attach the file "spec/support/fixtures/animated.unknown" to "Attachment"
+    And I press "Submit"
+    Then I should see "Name: something"
+    And I should see an image with a path of "/paperclip/custom/attachments/original/animated.unknown"
+    And the file at "/paperclip/custom/attachments/original/animated.unknown" should be the same as "spec/support/fixtures/animated.unknown"
 
-    <div class="col-sm-3">
-    {{ C.Html.dropDownList(
-      'region_id',
-      form.region_id ? form.region_id : 'empty',
-      regions,
-      {
-        'empty':'область',
-        'id':'id_region',
-        'class': 'form-control'
-      }
-    ) }}
-    </div>
+  Scenario: Add custom processors
+    Given I add a "test" processor in "lib/paperclip"
+    And I add a "cool" processor in "lib/paperclip_processors"
+    And I attach :attachment with:
+      """
+      styles: { original: {} }, processors: [:test, :cool]
+      """
+    And I start the rails application
+    When I go to the new user page
+    And I fill in "Name" with "something"
+    And I attach the file "spec/support/fixtures/5k.png" to "Attachment"
+    And I press "Submit"
+    Then I should see "Name: something"
+    And I should see an image with a path of "/paperclip/custom/attachments/original/5k.png"
 
-    <div class="col-sm-3">
-    {{ C.Html.dropDownList(
-      'city_id',
-      form.city_id ? form.city_id : 'empty',
-      {},
-      {
-        'empty':'город',
-        'id':'id_city',
-        'class':'form-control'
-      }
-    ) }}
-    </div>
-  </div>
+  Scenario: Filesystem integration test
+    Given I attach :attachment with:
+      """
+        :url => "/system/:attachment/:style/:filename"
+      """
+    And I start the rails application
+    When I go to the new user page
+    And I fill in "Name" with "something"
+    And I attach the file "spec/support/fixtures/5k.png" to "Attachment"
+    And I press "Submit"
+    Then I should see "Name: something"
+    And I should see an image with a path of "/system/attachments/original/5k.png"
+    And the file at "/system/attachments/original/5k.png" should be the same as "spec/support/fixtures/5k.png"
 
-  <div class="eav-wrapper clearfix">
-    <div class="form-group">
-    {% for attribute, value in form.eav %}
-      {% if form.model.getEavVariants(attribute) %}
-        {% include 'views/eav/dropDownSearch.twig' %}
-      {% else %}
-        {% include 'views/eav/doubleTextInput.twig' %}
-      {% endif %}
-    {% endfor %}
-    </div>
-  </div>
-  <div class="clearfix form-buttons pull-right">
-    {{ C.Html.resetButton('очистить', {'class': 'btn btn-default'}) }}
-    {{ C.Html.submitButton('Поиск', {'class': 'btn btn-default'}) }}
-  </div>
+  Scenario: S3 Integration test
+    Given I attach :attachment with:
+      """
+        :storage => :s3,
+        :path => "/:attachment/:style/:filename",
+        :s3_credentials => Rails.root.join("config/s3.yml"),
+        :styles => { :square => "100x100#" }
+      """
+    And I write to "config/s3.yml" with:
+      """
+      bucket: paperclip
+      access_key_id: access_key
+      secret_access_key: secret_key
+      s3_region: us-west-2
+      """
+    And I start the rails application
+    When I go to the new user page
+    And I fill in "Name" with "something"
+    And I attach the file "spec/support/fixtures/5k.png" to "Attachment" on S3
+    And I press "Submit"
+    Then I should see "Name: something"
+    And I should see an image with a path of "//s3.amazonaws.com/paperclip/attachments/original/5k.png"
+    And the file at "//s3.amazonaws.com/paperclip/attachments/original/5k.png" should be uploaded to S3 }}"
+        OWNER: ${{ Feature: Migration
 
-  {{ C.Html.endForm() }}
-  <!-- end form -->
+  Background:
+    Given I generate a new rails application
+    And I write to "app/models/user.rb" with:
+      """
+      class User < ActiveRecord::Base; end
+      """
 
-  {{ this.widget('zii.widgets.CListView', {
-    'dataProvider':dataProvider,
-    'itemView':'_search_item',
-    'htmlOptions': {
-      'class': 'list-view clearfix'
-    },
-    'pager': {
-      'htmlOptions': {
-        'class': 'pagination'
-      },
-      'prevPageLabel': '&laquo;',
-      'nextPageLabel': '&raquo;',
-      'firstPageCssClass': 'hidden',
-      'lastPageCssClass': 'hidden',
-      'hiddenPageCssClass': 'disabled',
-      'selectedPageCssClass': 'active',
-      'header': ''
-    },
-    'pagerCssClass': 'my-pager'
-  }, true) }}
-{% endblock content %} }}
+  Scenario: Vintage syntax
+    When I write to "db/migrate/01_add_attachment_to_users.rb" with:
+      """
+      class AddAttachmentToUsers < ActiveRecord::Migration
+        def self.up
+          create_table :users do |t|
+            t.has_attached_file :avatar
+          end
+        end
+
+        def self.down
+          drop_attached_file :users, :avatar
+        end
+      end
+      """
+    And I run a migration
+    Then I should have attachment columns for "avatar"
+
+    When I rollback a migration
+    Then I should not have attachment columns for "avatar"
+
+  Scenario: New syntax with create_table
+    When I write to "db/migrate/01_add_attachment_to_users.rb" with:
+      """
+      class AddAttachmentToUsers < ActiveRecord::Migration
+        def self.up
+          create_table :users do |t|
+            t.attachment :avatar
+          end
+        end
+      end
+      """
+    And I run a migration
+    Then I should have attachment columns for "avatar"
+
+  Scenario: New syntax outside of create_table
+    When I write to "db/migrate/01_create_users.rb" with:
+      """
+      class CreateUsers < ActiveRecord::Migration
+        def self.up
+          create_table :users
+        end
+      end
+      """
+    And I write to "db/migrate/02_add_attachment_to_users.rb" with:
+      """
+      class AddAttachmentToUsers < ActiveRecord::Migration
+        def self.up
+          add_attachment :users, :avatar
+        end
+
+        def self.down
+          remove_attachment :users, :avatar
+        end
+      end
+      """
+    And I run a migration
+    Then I should have attachment columns for "avatar"
+
+    When I rollback a migration
+    Then I should not have attachment columns for "avatar" }}
 
     - name: Publish to RubyGems
       run: |
         mkdir -p $HOME/.gem
         touch $HOME/.gem/credentials
         chmod 0600 $HOME/.gem/credentials
-        printf -- "---\n:rubygems_api_key: ${GEM_HOST_API_KEY}\n" > $HOME/.gem/credentials
+        printf -- "---\n:rubygems_api_key: Feature: Rake tasks
+
+  Background:
+    Given I generate a new rails application
+    And I run a rails generator to generate a "User" scaffold with "name:string"
+    And I run a paperclip generator to add a paperclip "attachment" to the "User" model
+    And I run a migration
+    And I attach :attachment with:
+      """
+        :path => ":rails_root/public/system/:attachment/:style/:filename"
+      """
+
+  Scenario: Paperclip refresh thumbnails task
+    When I modify my attachment definition to:
+      """
+      has_attached_file :attachment, :path => ":rails_root/public/system/:attachment/:style/:filename",
+                                     :styles => { :medium => "200x200#" }
+      """
+    And I upload the fixture "5k.png"
+    Then the attachment "medium/5k.png" should have a dimension of 200x200
+    When I modify my attachment definition to:
+      """
+      has_attached_file :attachment, :path => ":rails_root/public/system/:attachment/:style/:filename",
+                                     :styles => { :medium => "100x100#" }
+      """
+    When I successfully run `bundle exec rake paperclip:refresh:thumbnails CLASS=User --trace`
+    Then the attachment "original/5k.png" should exist
+    And the attachment "medium/5k.png" should have a dimension of 100x100
+
+  Scenario: Paperclip refresh metadata task
+    When I upload the fixture "5k.png"
+    And I swap the attachment "original/5k.png" with the fixture "12k.png"
+    And I successfully run `bundle exec rake paperclip:refresh:metadata CLASS=User --trace`
+    Then the attachment should have the same content type as the fixture "12k.png"
+    And the attachment should have the same file size as the fixture "12k.png"
+
+  Scenario: Paperclip refresh missing styles task
+    When I upload the fixture "5k.png"
+    Then the attachment file "original/5k.png" should exist
+    And the attachment file "medium/5k.png" should not exist
+    When I modify my attachment definition to:
+      """
+      has_attached_file :attachment, :path => ":rails_root/public/system/:attachment/:style/:filename",
+                                     :styles => { :medium => "200x200#" }
+      """
+    When I successfully run `bundle exec rake paperclip:refresh:missing_styles --trace`
+    Then the attachment file "original/5k.png" should exist
+    And the attachment file "medium/5k.png" should exist
+
+  Scenario: Paperclip clean task
+    When I upload the fixture "5k.png"
+    And I upload the fixture "12k.png"
+    Then the attachment file "original/5k.png" should exist
+    And the attachment file "original/12k.png" should exist
+    When I modify my attachment definition to:
+      """
+      has_attached_file :attachment, :path => ":rails_root/public/system/:attachment/:style/:filename"
+      validates_attachment_size :attachment, :less_than => 10.kilobytes
+      """
+    And I successfully run `bundle exec rake paperclip:clean CLASS=User --trace`
+    Then the attachment file "original/5k.png" should exist
+    But the attachment file "original/12k.png" should not exist " > $HOME/.gem/credentials
         gem build *.gemspec
         gem push *.gem
-      env: <div class="form">
+      env: # This file was generated by Appraisal
 
-{% set form = this.beginWidget('CActiveForm', {
-        'id':'user-form',
-        'enableAjaxValidation':true,
-        'enableClientValidation':true
-}, true) %}
+source "https://rubygems.org"
 
-        <p class="note">Fields with <span class="required">*</span> are required.</p>
+gem "sqlite3", "~> 1.3.8", :platforms => :ruby
+gem "pry"
+gem "rails", "~> 4.2.0"
 
-        {{ form.errorSummary(model) }}
+group :development, :test do
+  gem "activerecord-import"
+  gem "mime-types"
+  gem "builder"
+  gem "rubocop", :require => false
+  gem "rspec"
+end
 
-        <div class="row">
-                {{ form.labelEx(model,'email') }}
-                {{ form.textField(model, 'email', {'size':40,'maxlength':255}) }}
-                {{ form.error(model,'email') }}
-        </div>
+gemspec :path => "../"
+        GEM_HOST_API_KEY: # This file was generated by Appraisal
 
-        <div class="row">
-                {{ form.labelEx(model,'password') }}
-                {{ form.passwordField(model,'password', {'size':40,'maxlength':255}) }}
-                {{ form.error(model,'password') }}
-        </div>
+source "https://rubygems.org"
 
-        <div class="row">
-                {{ form.labelEx(model,'name') }}
-                {{ form.textField(model,'name',{'size':40,'maxlength':255}) }}
-                {{ form.error(model,'name') }}
-        </div>
+gem "sqlite3", "~> 1.3.8", :platforms => :ruby
+gem "pry"
+gem "rails", "~> 5.0.0"
 
-        <div class="row">
-                {{ form.labelEx(model,'phone') }}
-                {{ form.textField(model,'phone',{'size':20,'maxlength':13}) }}
-                {{ form.error(model,'phone') }}
-        </div>
+group :development, :test do
+  gem "activerecord-import"
+  gem "mime-types"
+  gem "builder"
+  gem "rubocop", :require => false
+  gem "rspec"
+end
 
-        <div class="row">
-                {{ form.labelEx(model,'vk') }}
-                {{ form.textField(model,'vk',{'size':40,'maxlength':255}) }}
-                {{ form.error(model,'vk') }}
-        </div>
-
-        <div class="row">
-                {{ form.labelEx(model,'skype') }}
-                {{ form.textField(model,'skype',{'size':40,'maxlength':255}) }}
-                {{ form.error(model,'skype') }}
-        </div>
-
-        <div class="row buttons">
-                {{ C.Html.submitButton(model.isNewRecord ? 'Register' : 'Save') }}
-        </div>
-
-{{ Yii.void(this.endWidget()) }}
-
-</div><!-- form -->
-        GEM_HOST_API_KEY: " {% extends 'views/layouts/main.twig' %}
-{% block title %}{{ App.name }} : регистрация{% endblock title %}
-{% block content %}
-<h1>Register</h1>
-
-{{ this.renderPartial('_form', {'model':model}) }}
-{% endblock content %}"
+gemspec :path => "../" " }}"
