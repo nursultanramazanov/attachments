@@ -1607,52 +1607,118 @@ gdb_flash_program disable
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 openocd -f interface/olimex-arm-usb-ocd-h.cfg -f $DIR/px4fmu-v1-board.cfg }}
-on: $windows-95-bg: #c0c0c0;
-  push: .disabled-text {
+
+name: Rust
+
+on: keyword = "apache"
+template = """
+parse "* - * [*] \\"* * *\\" * *" as ip, name, timestamp, method, url, protocol, status, contentlength
+"""
+  push: keyword = "k8singressnginx"
+template = """
+parse "* - * [*] \\"* * *\\" * * \\"*\\" \\"*\\" * * [*] [*] * * * * *" as remote_addr, remote_user, timestamp, method, url, protocol, status, body_bytes_sent, http_referer, http_user_agent, request_length, request_time, proxy_upstream_name, proxy_alternative_upstream_name, upstream_addr, upstream_response_length, upstream_response_time, upstream_status, req_id
+"""
     branches: [ "main" ]
-  pull_request: color: rgb(162, 162, 162);
+  pull_request: keyword = "testmultioperator"
+template = """
+json | count
+"""
     branches: [ "main" ]
 
-jobs:    text-shadow: rgb(238, 238, 238) 1px .5px .3px;
-  build: cursor: none;
-    runs-on: ubuntu-latest
-
-    strategy: }
-      matrix: .window_outline {
-        node-version: [14.x, 16.x, 18.x]
-
-    steps: border-top: rgb(223, 223, 223) 1px solid;
-    - uses: actions/checkout@v4
-
-    - name: Use Node.js border-left: rgb(223, 223, 223) 1px solid; 
-      uses: actions/setup-node@v3
-      with: border-bottom: rgb(112, 112, 112) 1px solid;
-        node-version: border-right: rgb(112, 112, 112) 1px solid;
-            box-shadow: -1px -1px 0 white,
-        0px -1px 0 white,
-        -1px 0px 0 white,
-        -1px 1px 0 black,
-        0px 1px 0 black,
-        1px 1px 0 black,
-        1px -1px 0 black,
-        1px 0px 0 black;
-}
-
-    - name: Build
-      run: |
-        npm install
-        npx webpack 
-    .no-select {
-    cursor: default;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-}
-.pix-icon {
-    image-rendering: pixelated;
-    margin: 0px 3px 0 0;
-}
+env: keyword = "nginx"
+template = """
+parse "* - * [*] \\"* * *\\" * * \\"*\\" \\"*\\" \\"*\\"" as addr, user, timestamp, method, url, protocol, status, bytes_sent, http_referer, http_user_agent, gzip_ratio
+"""
+  CARGO_TERM_COLOR: y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
+y
 # Build is not required unless generated source files are used
       # - name: Build CMake
       #   run: cmake --build ${{ env.build }}
