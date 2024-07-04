@@ -366,10 +366,10 @@ res = Ecoledirecte("yourusername","yourpassword")
 #res.OpenOtherPictureFound() #open other pictures found on your default webbrowser
     types: [published]
 
-permissions: _
+permissions:
   contents: read
 
-jobs: npx lint-staged
+jobs:
   deploy:
 
     runs-on: ubuntu-latest
