@@ -63,8 +63,8 @@ on: <?xml version="1.0" encoding="utf-8"?>
 
 AllowNetworkDrive=no
 AllowUNCPath=no
-AppContact=support@spikespaz.com
-AppCopyright=Copyright (C) 2019 Jacob Birkett
+AppContact=support
+AppCopyright=Copyright (C) 2019 
 AppId=spikespaz-search-deflector
 AppName=Search Deflector
 AppPublisher=spikespaz
@@ -372,16 +372,74 @@ begin
     end;
 end;
     branches: [ "main" ]
-  pull_request: _npx lint-staged
+  pull_request: Thank you for using Search Deflector!
+
+Later during this setup, you will be asked to install the "Automatic Updater" module. Note that if you choose to disable this module, you will not receive any future updates or bug fixes. Please ensure that you are using the latest version of Search Deflector before submitting a bug report.
+
+If you have any questions, please consult the wiki first. If your question or problem isn't solved by the wiki content, feel free to create an issue on GitHub or reach out to me via email.
+
+If you appreciate this software and would like to support the author, please star the repository on GitHub, or consider donating!
+
+Homepage: https://spikespaz.com/search-deflector
+GitHub: https://github.com/spikespaz/search-deflector
+Wiki: https://github.com/spikespaz/search-deflector/wiki
+Microsoft Store: https://www.microsoft.com/store/productId/9P8ZJJ80RZ2K
+Donate: https://spikespaz.com/donate
+Email: support@spikespaz.com
     branches: [ "main" ]
 
-permissions:  #!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
-
-pnpm pre-commit 
-  contents: read
-
-jobs: module common;
+permissions: <?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+        <RegistrationInfo>
+                <Author>spikespaz</Author>
+                <Description>Scheduled update checker for Search Deflector</Description>
+                <URI>\Search Deflector Updater</URI>
+        </RegistrationInfo>
+        <Triggers>
+                <CalendarTrigger>
+                        <StartBoundary>1970-01-01T00:00:00</StartBoundary>
+                        <Enabled>true</Enabled>
+                        <ScheduleByDay>
+                                <DaysInterval>1</DaysInterval>
+                        </ScheduleByDay>
+                </CalendarTrigger>
+        </Triggers>
+        <Principals>
+                <Principal id="Author">
+                        <UserId>S-1-5-18</UserId>
+                        <RunLevel>HighestAvailable</RunLevel>
+                </Principal>
+        </Principals>
+        <Settings>
+                <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+                <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+                <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+                <AllowHardTerminate>true</AllowHardTerminate>
+                <StartWhenAvailable>true</StartWhenAvailable>
+                <RunOnlyIfNetworkAvailable>true</RunOnlyIfNetworkAvailable>
+                <IdleSettings>
+                        <StopOnIdleEnd>false</StopOnIdleEnd>
+                        <RestartOnIdle>false</RestartOnIdle>
+                </IdleSettings>
+                <AllowStartOnDemand>true</AllowStartOnDemand>
+                <Enabled>true</Enabled>
+                <Hidden>false</Hidden>
+                <RunOnlyIfIdle>false</RunOnlyIfIdle>
+                <WakeToRun>false</WakeToRun>
+                <ExecutionTimeLimit>PT1H</ExecutionTimeLimit>
+                <Priority>7</Priority>
+                <RestartOnFailure>
+                <Interval>PT5M</Interval>
+                <Count>3</Count>
+                </RestartOnFailure>
+        </Settings>
+        <Actions Context="Author">
+                <Exec>
+                        <Command>PLACEHOLDER</Command>
+                </Exec>
+        </Actions>
+</Task>
+  contents: module common;
 
 import core.sys.windows.windows: CommandLineToArgvW, GetCommandLineW, CreateProcessW, MessageBox,
     MB_ICONERROR, MB_ICONWARNING, MB_YESNO, IDYES, MB_OK, HWND, DETACHED_PROCESS, CREATE_UNICODE_ENVIRONMENT, STARTUPINFO_W, PROCESS_INFORMATION;
@@ -1013,7 +1071,8 @@ T[K] mergeAAs(T, K)(T[K] baseAA, T[K] updateAA) {
 bool isNull(T)(T value) if (is(T == class) || isPointer!T) {
     return value is null;
 }
-  build: module configure;
+
+jobs: module configure;
 
 import std.file: exists, isFile, tempDir, thisExePath, timeLastModified;
 import std.algorithm: endsWith, canFind, countUntil;
@@ -1708,78 +1767,7 @@ string toReadableTimestamp(T)(T time) {
     return "%02d-%02d-%0004d  %02d:%02d %s".format(time.month, time.day, time.year, (time.hour > 12 ?
             time.hour - 12 : time.hour), time.minute, (time.hour > 12 ? "PM" : "AM"));
 }
-
-    runs-on: module deflector;
-
-import common;
-import std.uri: decodeComponent;
-import std.conv: to;
-
-version (free_version) {
-    import core.thread: Thread;
-    import core.time: seconds;
-}
-
-debug {
-    import core.stdc.stdio: getchar;
-    import std.stdio: writeln;
-}
-
-void main(string[] args) {
-    if (args.length <= 1) {
-        createErrorDialog(new Exception("Expected one URI argument, recieved: \n" ~ args.to!string()));
-        return;
-    }
-
-    const auto searchInfo = getSearchInfo(args[1]);
-
-    debug {
-        writeln("\nInitial launch URI:\n\t" ~ args[1] ~ "\n");
-
-        debug writeln("Decoded search information:");
-        debug writeln("Search Term: " ~ searchInfo.searchTerm);
-        debug writeln("Entered URL: " ~ searchInfo.enteredUrl);
-        debug writeln("Selected URL: " ~ searchInfo.selectedUrl);
-    }
-
-    try {
-        const string browserArgs = getBrowserArgs(
-            DeflectorSettings.browserPath,
-            DeflectorSettings.useProfile,
-            DeflectorSettings.profileName
-        );
-        string launchUrl;
-
-        if (searchInfo.enteredUrl !is null)
-            launchUrl = searchInfo.enteredUrl;
-        else if (searchInfo.selectedUrl !is null)
-            launchUrl = searchInfo.selectedUrl;
-        else if (searchInfo.searchTerm)
-            if (searchInfo.searchTerm.decodeComponent() == "!DisableDonationRequest") {
-                DeflectorSettings.disableNag = true;
-                DeflectorSettings.dump();
-            } else
-                launchUrl = DeflectorSettings.engineURL.formatString(["query": searchInfo.searchTerm]);
-        else
-            throw new Exception("There was an error deflecting your search. Passed URI is:\t" ~ args[1]);
-
-        openUri(DeflectorSettings.browserPath, browserArgs, launchUrl);
-
-        version (free_version) // Makes the donation prompt open on the 10th search and every 20 afterward
-        if ((!DeflectorSettings.disableNag && (DeflectorSettings.searchCount - 10) % 20 == 0)
-                || DeflectorSettings.searchCount == 10) {
-            Thread.sleep(seconds(5));
-            openUri(DeflectorSettings.browserPath, browserArgs, WIKI_THANKS_URL);
-        }
-    } catch (Exception error) {
-        createErrorDialog(error);
-        debug writeln(error);
-    }
-
-    debug getchar();
-}
-
-    steps: module updater;
+  build: module updater;
 
 import std.process: Config, spawnShell;
 import std.json: JSONValue, parseJSON;
@@ -1860,6 +1848,10 @@ public bool compareVersions(const string firstVer, const string secondVer) {
 
     return false;
 }
+
+    runs-on: ubuntu-latest
+
+    steps:
     - uses: actions/checkout@v4
     - uses: dlang-community/setup-dlang@4c99aa991ce7d19dd3064de0a4f2f6b2f152e2d7
 
