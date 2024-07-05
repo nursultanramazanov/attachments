@@ -1,1 +1,0 @@
-noprecache -nomemrestrict -norestrictions -height 1024 -width 1280 -refreshrate 75 -texturequality 0 -renderquality 2 -viewdistance 0 -shadowdensity 0
