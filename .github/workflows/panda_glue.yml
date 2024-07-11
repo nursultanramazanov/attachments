@@ -1,0 +1,442 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+#
+# Find more information at:
+# https://github.com/microsoft/msvc-code-analysis-action
+
+name: Microsoft C++ Code Analysis
+
+on: ARG base_image
+ARG python_version=base
+
+FROM ${base_image} AS base
+
+RUN yum install -y \
+    boost-devel \
+    jemalloc-devel \
+    libxml2-devel \
+    libxslt-devel \
+    bison \
+    make \
+    gcc \
+    gcc-c++ \
+    flex \
+    autoconf \
+    zip \
+    git \
+    ninja-build
+
+WORKDIR /root
+
+FROM ${python_version}
+COPY pyproject.toml poetry.lock ./
+
+RUN pip3 install --upgrade pip wheel
+RUN pip3 install --upgrade urllib3==1.26.16  # temporary to avoid https://github.com/urllib3/urllib3/issues/2168 (TODO remove when the AL2 image updates to support OpenSSL 1.1.1+)
+RUN pip3 install --upgrade six cython==3.0.8 cmake hypothesis poetry
+RUN poetry config virtualenvs.create false --local && poetry install --no-root --only main
+
+RUN rm -f pyproject.toml poetry.lock
+
+ENTRYPOINT ["/bin/sh"]
+  push: ARG base_image
+ARG python_version=base
+
+FROM ${base_image} AS base
+
+RUN dnf install -y \
+    boost-devel \
+    jemalloc-devel \
+    libxml2-devel \
+    libxslt-devel \
+    bison \
+    make \
+    gcc \
+    gcc-c++ \
+    flex \
+    autoconf \
+    zip \
+    git \
+    ninja-build
+
+WORKDIR /root
+
+FROM ${python_version}
+COPY pyproject.toml poetry.lock ./
+
+RUN pip3 install --upgrade pip wheel
+RUN pip3 install --upgrade six cython==3.0.8 cmake hypothesis poetry
+RUN poetry config virtualenvs.create false --local && poetry install --no-root --only main
+
+RUN rm -f pyproject.toml poetry.lock
+
+ENTRYPOINT ["/bin/sh"]
+    branches: [ "main" ]
+  pull_request: #!/usr/bin/env bash
+set -ex
+
+cp ../../pyproject.toml .
+cp ../../poetry.lock .
+
+export DOCKER_BUILDKIT=1
+
+PYTHON_VERSION=${1:-ALL}
+
+# Python 3.8
+if [[ $PYTHON_VERSION == "ALL" || $PYTHON_VERSION == "3.8" ]]
+then
+  docker build \
+    --pull \
+    --tag awswrangler-build-py38 \
+    --build-arg base_image=public.ecr.aws/lambda/python:3.8 \
+    .
+fi
+
+# Python 3.9
+if [[ $PYTHON_VERSION == "ALL" || $PYTHON_VERSION == "3.9" ]]
+then
+  docker build \
+    --pull \
+    --tag awswrangler-build-py39 \
+    --build-arg base_image=public.ecr.aws/lambda/python:3.9 \
+    .
+fi
+
+# Python 3.10
+if [[ $PYTHON_VERSION == "ALL" || $PYTHON_VERSION == "3.10" ]]
+then
+  docker build \
+    --pull \
+    --tag awswrangler-build-py310 \
+    --build-arg base_image=public.ecr.aws/lambda/python:3.10 \
+    .
+fi
+
+# Python 3.11
+if [[ $PYTHON_VERSION == "ALL" || $PYTHON_VERSION == "3.11" ]]
+then
+  docker build \
+    --pull \
+    --tag awswrangler-build-py311 \
+    --build-arg base_image=public.ecr.aws/lambda/python:3.11 \
+    .
+fi
+
+# Python 3.12
+if [[ $PYTHON_VERSION == "ALL" || $PYTHON_VERSION == "3.12" ]]
+then
+  docker build \
+    --pull \
+    --tag awswrangler-build-py312 \
+    --build-arg base_image=public.ecr.aws/lambda/python:3.12 \
+    --file Dockerfile.al2023 \
+    .
+fi
+
+rm -rf pyproject.toml poetry.lock
+    branches: [ "main" ]
+  schedule: #!/usr/bin/env bash
+set -ex
+
+FILENAME="awswrangler-layer-${1}.zip"
+NINJA=${2}
+
+pushd /aws-sdk-pandas
+rm -rf python dist/pyarrow_files "dist/${FILENAME}" "${FILENAME}"
+popd
+
+rm -rf dist arrow
+
+export ARROW_HOME=$(pwd)/dist
+export LD_LIBRARY_PATH=$(pwd)/dist/lib:$LD_LIBRARY_PATH
+export CMAKE_PREFIX_PATH=$ARROW_HOME:$CMAKE_PREFIX_PATH
+
+git clone \
+  --depth 1 \
+  --branch apache-arrow-16.1.0 \
+  --single-branch \
+  https://github.com/apache/arrow.git
+
+mkdir $ARROW_HOME
+mkdir arrow/cpp/build
+pushd arrow/cpp/build
+
+cmake \
+    -DCMAKE_INSTALL_PREFIX=$ARROW_HOME \
+    -DCMAKE_INSTALL_LIBDIR=lib \
+    -DARROW_PYTHON=ON \
+    -DARROW_PARQUET=ON \
+    -DARROW_DATASET=ON \
+    -DARROW_WITH_SNAPPY=ON \
+    -DARROW_WITH_ZLIB=ON \
+    -DARROW_FLIGHT=OFF \
+    -DARROW_GANDIVA=OFF \
+    -DARROW_ORC=OFF \
+    -DARROW_CSV=ON \
+    -DARROW_JSON=ON \
+    -DARROW_COMPUTE=ON \
+    -DARROW_FILESYSTEM=ON \
+    -DARROW_PLASMA=OFF \
+    -DARROW_WITH_BZ2=OFF \
+    -DARROW_WITH_ZSTD=OFF \
+    -DARROW_WITH_LZ4=OFF \
+    -DARROW_WITH_BROTLI=OFF \
+    -DARROW_BUILD_TESTS=OFF \
+    -GNinja \
+    ..
+
+eval $NINJA
+eval "${NINJA} install"
+
+popd
+
+pushd arrow/python
+
+export CMAKE_PREFIX_PATH=${ARROW_HOME}${CMAKE_PREFIX_PATH:+:${CMAKE_PREFIX_PATH}}
+export ARROW_PRE_0_15_IPC_FORMAT=0
+export PYARROW_WITH_HDFS=0
+export PYARROW_WITH_FLIGHT=0
+export PYARROW_WITH_GANDIVA=0
+export PYARROW_WITH_ORC=0
+export PYARROW_WITH_CUDA=0
+export PYARROW_WITH_PLASMA=0
+export PYARROW_WITH_PARQUET=1
+export PYARROW_WITH_DATASET=1
+export PYARROW_WITH_FILESYSTEM=1
+export PYARROW_WITH_CSV=1
+export PYARROW_WITH_JSON=1
+export PYARROW_WITH_COMPUTE=1
+
+python3 setup.py build_ext \
+  --build-type=release \
+  --bundle-arrow-cpp \
+  bdist_wheel
+
+pip3 install dist/pyarrow-*.whl -t /aws-sdk-pandas/dist/pyarrow_files
+
+popd
+
+pushd /aws-sdk-pandas
+
+pip3 install . -t ./python ".[redshift,mysql,postgres,gremlin,opensearch,openpyxl]"
+
+rm -rf python/pyarrow*
+rm -rf python/boto*
+rm -rf python/urllib3*
+rm -rf python/s3transfer*
+
+cp -r /aws-sdk-pandas/dist/pyarrow_files/pyarrow* python/
+
+# Removing nonessential files
+find python -name '*.so' -type f -exec strip "{}" \;
+find python -wholename "*/tests/*" -type f -delete
+find python -regex '^.*\(__pycache__\|\.py[co]\)$' -delete
+
+zip -r9 "${FILENAME}" ./python
+mv "${FILENAME}" dist/
+
+rm -rf python dist/pyarrow_files "${FILENAME}"
+
+popd
+
+rm -rf dist arrow
+    - cron: #!/usr/bin/env bash
+set -ex
+
+pushd ..
+rm -rf docs/build docs/source/stubs
+make -C docs/ html
+doc8 --ignore-path docs/source/stubs --max-line-length 120 docs/source
+
+env: #!/usr/bin/env bash
+set -ex
+
+VERSION=$(poetry version --short)
+DIR_NAME=$(dirname "$PWD")
+
+PYTHON_VERSION=${1:-ALL}
+
+ARCH=$(arch)
+[ "${ARCH}" = "aarch64" ] && ARCH_SUFFIX="-arm64" # AWS Lambda, the name arm64 is used instead of aarch64
+
+if [[ $PYTHON_VERSION == "ALL" ]]
+then
+  echo "Building Lambda Layers for AWS SDK for pandas ${VERSION} (ALL supported Python versions)"
+else
+  echo "Building Lambda Layers for AWS SDK for pandas ${VERSION} (ONLY Python $PYTHON_VERSION)"
+fi
+
+pushd lambda
+
+# Building all related docker images
+./build-docker-images.sh $PYTHON_VERSION
+
+# Python 3.8
+if [[ $PYTHON_VERSION == "ALL" || $PYTHON_VERSION == "3.8" ]]
+then
+  docker run \
+    --volume "$DIR_NAME":/aws-sdk-pandas/ \
+    --workdir /aws-sdk-pandas/building/lambda \
+    --rm \
+    awswrangler-build-py38 \
+    build-lambda-layer.sh "${VERSION}-py3.8${ARCH_SUFFIX}" "ninja-build"
+fi
+
+# Python 3.9
+if [[ $PYTHON_VERSION == "ALL" || $PYTHON_VERSION == "3.9" ]]
+then
+  docker run \
+    --volume "$DIR_NAME":/aws-sdk-pandas/ \
+    --workdir /aws-sdk-pandas/building/lambda \
+    --rm \
+    awswrangler-build-py39 \
+    build-lambda-layer.sh "${VERSION}-py3.9${ARCH_SUFFIX}" "ninja-build"
+fi
+
+# Python 3.10
+if [[ $PYTHON_VERSION == "ALL" || $PYTHON_VERSION == "3.10" ]]
+then
+  docker run \
+    --volume "$DIR_NAME":/aws-sdk-pandas/ \
+    --workdir /aws-sdk-pandas/building/lambda \
+    --rm \
+    awswrangler-build-py310 \
+    build-lambda-layer.sh "${VERSION}-py3.10${ARCH_SUFFIX}" "ninja-build"
+fi
+
+# Python 3.11
+if [[ $PYTHON_VERSION == "ALL" || $PYTHON_VERSION == "3.11" ]]
+then
+  docker run \
+    --volume "$DIR_NAME":/aws-sdk-pandas/ \
+    --workdir /aws-sdk-pandas/building/lambda \
+    --rm \
+    awswrangler-build-py311 \
+    build-lambda-layer.sh "${VERSION}-py3.11${ARCH_SUFFIX}" "ninja-build"
+fi
+
+# Python 3.12
+if [[ $PYTHON_VERSION == "ALL" || $PYTHON_VERSION == "3.12" ]]
+then
+  docker run \
+    --volume "$DIR_NAME":/aws-sdk-pandas/ \
+    --workdir /aws-sdk-pandas/building/lambda \
+    --rm \
+    awswrangler-build-py312 \
+    build-lambda-layer.sh "${VERSION}-py3.12${ARCH_SUFFIX}" "ninja-build"
+fi
+  # Path to the CMake build directory.
+  build: '${{ #!/usr/bin/env bash
+set -ex
+
+pushd ..
+rm -rf dist/*.whl
+poetry build -f wheel }}/build'
+
+permissions: #!/usr/bin/env bash
+set -ex
+
+pushd ..
+rm -fr dist
+poetry publish --build
+rm -fr dist
+  contents: #!/usr/bin/env bash
+set -ex
+
+pushd ..
+rm -fr awswrangler.zip
+
+# Zip the library
+git archive HEAD:awswrangler --format zip --prefix awswrangler/awswrangler/ --output awswrangler.zip
+
+# Upload the Zip file
+s3_location=$(aws cloudformation describe-stacks --stack-name aws-sdk-pandas-glueray --query "Stacks[0].Outputs[?OutputKey=='AWSSDKforpandasZIPLocation'].OutputValue" --output text)
+aws s3 cp awswrangler.zip $s3_location
+
+rm -fr awswrangler.zip
+
+jobs: /*
+You can now create a spinner using any of the variants below:
+$("#el").spin(); // Produces default Spinner using the text color of #el.
+$("#el").spin("small"); // Produces a 'small' Spinner using the text color of #el.
+$("#el").spin("large", "white"); // Produces a 'large' Spinner in white (or any valid CSS color).
+$("#el").spin({ ... }); // Produces a Spinner using your custom settings.
+$("#el").spin(false); // Kills the spinner.
+*/
+(function($) {
+	$.fn.spin = function(opts, color) {
+		var presets = {
+			"tiny": { lines: 8, length: 2, width: 2, radius: 3 },
+			"small": { lines: 8, length: 4, width: 3, radius: 5 },
+			"large": { lines: 10, length: 8, width: 4, radius: 8 }
+		};
+		if (Spinner) {
+			return this.each(function() {
+				var $this = $(this),
+					data = $this.data();
+				
+				if (data.spinner) {
+					data.spinner.stop();
+					delete data.spinner;
+				}
+				if (opts !== false) {
+					if (typeof opts === "string") {
+						if (opts in presets) {
+							opts = presets[opts];
+						} else {
+							opts = {};
+						}
+						if (color) {
+							opts.color = color;
+						}
+					}
+					data.spinner = new Spinner($.extend({color: $this.css('color')}, opts)).spin(this);
+				}
+			});
+		} else {
+			throw "Spinner class not available.";
+		}
+	};
+})(jQuery);
+  analyze: 'use strict';
+    permissions:
+      contents: read # for actions/checkout to fetch code
+      security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
+      actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
+    name: Analyze
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure CMake
+        run: cmake -B ${{ env.build }}
+
+      # Build is not required unless generated source files are used
+      # - name: Build CMake
+      #   run: cmake --build ${{ env.build }}
+
+      - name: Initialize MSVC Code Analysis
+        uses: microsoft/msvc-code-analysis-action@04825f6d9e00f87422d6bf04e1a38b1f3ed60d99
+        # Provide a unique ID to access the sarif output path
+        id: run-analysis
+        with:
+          cmakeBuildDirectory: ${{ env.build }}
+          # Ruleset file that will determine what checks will be run
+          ruleset: NativeRecommendedRules.ruleset
+
+      # Upload SARIF file to GitHub Code Scanning Alerts
+      - name: Upload SARIF to GitHub
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: ${{ steps.run-analysis.outputs.sarif }}
+
+      # Upload SARIF file as an Artifact to download and view
+      # - name: Upload SARIF as an Artifact
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: sarif-file
+      #     path: ${{ steps.run-analysis.outputs.sarif }}
