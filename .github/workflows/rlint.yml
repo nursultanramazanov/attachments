@@ -1,0 +1,5258 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+#
+# See https://github.com/r-lib/actions/tree/master/examples#readme for
+# additional example workflows available for the R community.
+
+name: R
+
+on: library("biomod2")
+
+#Artocarpus altilis presence data
+artocarpus <- read.csv("/home/lly2413/breadfruit/dat_full.csv")
+
+# the name
+myRespName <- 'Artocarpus altilis'
+# the XY coordinates of the presence
+myRespXY <- artocarpus[,c(1,2)]
+# and the presence data
+myResp <-  as.numeric(artocarpus[,3])
+
+
+myExpl = stack( system.file( "external/bioclim/current/bio3.grd", 
+                             package="biomod2"),
+                system.file( "external/bioclim/current/bio4.grd", 
+                             package="biomod2"), 
+                system.file( "external/bioclim/current/bio7.grd", 
+                             package="biomod2"),  
+                system.file( "external/bioclim/current/bio11.grd", 
+                             package="biomod2"), 
+                system.file( "external/bioclim/current/bio12.grd", 
+                             package="biomod2"))
+
+myBiomodData <- BIOMOD_FormatingData(resp.var = myResp,
+                                     expl.var = myExpl,
+                                     resp.xy = myRespXY,
+                                     resp.name = myRespName,
+                                     PA.nb.rep = 3,
+                                     PA.nb.absences = 200,
+                                     PA.strategy = 'random')
+
+
+myBiomodData
+plot(myBiomodData)
+
+  push: # load library
+library(biomod2)
+library(raster)
+library(dplyr)
+library(ggplot2)
+library(usdm)
+
+
+artocarpus <- read.csv("/projects/b1045/yang/gbif_points_10m.csv")
+
+
+
+# the name
+myRespName <- 'Artocarpus altilis'
+# the XY coordinates of the presence
+myRespXY <- artocarpus[,c(1,2)]
+# and the presence data
+myResp <-  as.numeric(artocarpus[,3])
+
+
+# load the environmental raster layers from local computer (currently, all 19 bioclim variables)
+
+
+r = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bio_1.asc",
+           "/projects/b1045/yang/wc21/10m/wc2.1_10m_bio_2.asc",
+           "/projects/b1045/yang/wc21/10m/wc2.1_10m_bio_3.asc",
+           "/projects/b1045/yang/wc21/10m/wc2.1_10m_bio_4.asc",
+           "/projects/b1045/yang/wc21/10m/wc2.1_10m_bio_5.asc",
+           "/projects/b1045/yang/wc21/10m/wc2.1_10m_bio_6.asc",
+           "/projects/b1045/yang/wc21/10m/wc2.1_10m_bio_7.asc",
+           "/projects/b1045/yang/wc21/10m/wc2.1_10m_bio_8.asc",
+           "/projects/b1045/yang/wc21/10m/wc2.1_10m_bio_9.asc",
+           "/projects/b1045/yang/wc21/10m/wc2.1_10m_bio_10.asc",
+           "/projects/b1045/yang/wc21/10m/wc2.1_10m_bio_11.asc",
+           "/projects/b1045/yang/wc21/10m/wc2.1_10m_bio_12.asc",
+           "/projects/b1045/yang/wc21/10m/wc2.1_10m_bio_13.asc",
+           "/projects/b1045/yang/wc21/10m/wc2.1_10m_bio_14.asc",
+           "/projects/b1045/yang/wc21/10m/wc2.1_10m_bio_15.asc",
+           "/projects/b1045/yang/wc21/10m/wc2.1_10m_bio_16.asc",
+           "/projects/b1045/yang/wc21/10m/wc2.1_10m_bio_17.asc",
+           "/projects/b1045/yang/wc21/10m/wc2.1_10m_bio_18.asc",
+           "/projects/b1045/yang/wc21/10m/wc2.1_10m_bio_19.asc")
+names(r) <- c('bio1', 'bio2', 'bio3', 'bio4', 'bio5', 'bio6', 'bio7', 'bio8', 'bio9', 'bio10', 'bio11', 'bio12', 'bio13', 'bio14', 'bio15', 'bio16', 'bio17', 'bio18', 'bio19')
+
+
+
+  myExpl <- r[[c(2,7,11,12,17:19)]]
+  e <- extent(-180, 180, -45, 45)
+  myExpl <- crop(myExpl, e)
+  myExpl <- stack(myExpl)
+
+
+
+
+#need to create pseudoabsence points - random
+#test with biomod
+myBiomodData <- BIOMOD_FormatingData(resp.var = myResp,
+                                     expl.var = myExpl,
+                                     resp.xy = myRespXY,
+                                     resp.name = myRespName,
+                                     PA.nb.rep = 3,
+                                     PA.nb.absences = 200,
+                                     PA.strategy = 'random')
+
+get_PAtab <- function(bfd){
+  dplyr::bind_cols(
+    x = bfd@coord[, 1],
+    y = bfd@coord[, 2],
+    status = bfd@data.species,
+    bfd@PA
+  )
+}
+
+myBiomodData
+
+
+#extract pseudoabsences, set to 0, add to DataSpecies dataframe with all ground-points
+pres.xy <- get_PAtab(myBiomodData)
+m <- as.data.frame(pres.xy, xy=TRUE)
+m[is.na(m)] <- 0
+
+write.csv(m, "PAloc.csv", row.names = TRUE)
+
+env <- extract(myExpl, m[,c(1,2)])
+DataSpecies <- cbind(m[,1:3], env)
+#DataSpecies
+
+# Defining Models Options using default options.
+myBiomodOption <- BIOMOD_ModelingOptions()
+
+
+# Computing the models
+#early testing only look at GLM and GAM
+myBiomodModelOut <- BIOMOD_Modeling(
+  myBiomodData,
+  models = c('MAXENT.Phillips.2','GLM','GAM','MARS','RF','GBM'),
+  models.options = myBiomodOption,
+  NbRunEval=10,
+  DataSplit=70,
+  Yweights=NULL,
+  VarImport=3,
+  models.eval.meth = c('TSS','ROC','KAPPA'),
+  SaveObj = TRUE,
+  rescal.all.models = TRUE)
+
+
+
+
+myBiomodModelOut
+get_evaluations(myBiomodModelOut)
+modelscores <- get_evaluations(myBiomodModelOut, as.data.frame=TRUE)
+write.csv(modelscores, paste("/projects/b1045/yang/PA",x1,".csv",sep=""), row.names = TRUE)
+#dimnames(modelscores)
+
+get_variables_importance(myBiomodModelOut)
+
+##BOX PLOTS
+modelscores
+##TSS
+scoresTSS <- modelscores[ which(modelscores$Eval.metric=='TSS'),]
+scoresTSS$model <- substr(scoresTSS$Model.name, 0, 3)
+##ROC
+scoresROC <- modelscores[ which(modelscores$Eval.metric=='ROC'),]
+scoresROC$model <- substr(scoresROC$Model.name, 0, 3)
+##KAPPA
+scoresKAPPA <- modelscores[ which(modelscores$Eval.metric=='KAPPA'),]
+scoresKAPPA$model <- substr(scoresKAPPA$Model.name, 0, 3)
+
+#PLOTS
+pdf(paste("boxplot",x1,".pdf",sep=""))
+p1 <- ggplot(scoresTSS, aes(model,Testing.data)) + geom_boxplot() + ggtitle("TSS")
+p2 <- ggplot(scoresROC, aes(model,Testing.data)) + geom_boxplot() + ggtitle("ROC")
+p3 <- ggplot(scoresKAPPA, aes(model,Testing.data)) + geom_boxplot() + ggtitle("KAPPA")
+print(p1)
+print(p2)
+print(p3)
+dev.off()
+
+
+#Seeing variation of parameters
+pdf(paste("modelscores",x1,".pdf",sep=""))
+models_scores_graph(myBiomodModelOut, by = "models", metrics = c("ROC","TSS"), xlim = c(0,1), ylim=c(0,1))
+models_scores_graph(myBiomodModelOut, by = "cv_run", metrics = c("ROC","TSS"), xlim = c(0,1), ylim=c(0,1))
+models_scores_graph(myBiomodModelOut, by = "data_set", metrics = c("ROC","TSS"), xlim = c(0,1), ylim=c(0,1))
+dev.off()
+
+
+#Will this work with multiple???
+#may need to spit out into csv file
+#var_import <- 
+#get_variables_importance(myBiomodModelOut)
+
+
+##RESPONSE CURVES
+#loadmodels
+model_glm <- BIOMOD_LoadModels(myBiomodModelOut, models = 'GLM')
+model_gam <- BIOMOD_LoadModels(myBiomodModelOut, models = 'GAM')
+model_maxent <- BIOMOD_LoadModels(myBiomodModelOut, models = 'MAXENT.Phillips.2')
+model_mars <- BIOMOD_LoadModels(myBiomodModelOut, models = 'MARS')
+model_rf <- BIOMOD_LoadModels(myBiomodModelOut, models = 'RF')
+model_gbm <- BIOMOD_LoadModels(myBiomodModelOut, models = 'GBM')
+
+pdf(paste("responsecurves",x1,".pdf",sep=""))
+glm_eval_strip <- biomod2::response.plot2(
+  models = model_glm,
+  Data = get_formal_data(myBiomodModelOut,'expl.var'), 
+  show.variables = get_formal_data(myBiomodModelOut,'expl.var.names'),
+  do.bivariate = FALSE,
+  fixed.var.metric = 'median',
+#  legend = FALSE,
+#  display_title = FALSE,
+  data_species = get_formal_data(myBiomodModelOut,'resp.var'))
+
+gam_eval_strip <- biomod2::response.plot2(
+  models = model_gam,
+  Data = get_formal_data(myBiomodModelOut,'expl.var'), 
+  show.variables = get_formal_data(myBiomodModelOut,'expl.var.names'),
+  do.bivariate = FALSE,
+  fixed.var.metric = 'median',
+  #  legend = FALSE,
+  #  display_title = FALSE,
+  data_species = get_formal_data(myBiomodModelOut,'resp.var'))
+
+maxent_eval_strip <- biomod2::response.plot2(
+  models = model_maxent,
+  Data = get_formal_data(myBiomodModelOut,'expl.var'),
+  show.variables = get_formal_data(myBiomodModelOut,'expl.var.names'),
+  do.bivariate = FALSE,
+  fixed.var.metric = 'median',
+  #  legend = FALSE,
+  #  display_title = FALSE,
+  data_species = get_formal_data(myBiomodModelOut,'resp.var'))
+
+mars_eval_strip <- biomod2::response.plot2(
+  models = model_mars,
+  Data = get_formal_data(myBiomodModelOut,'expl.var'),
+  show.variables = get_formal_data(myBiomodModelOut,'expl.var.names'),
+  do.bivariate = FALSE,
+  fixed.var.metric = 'median',
+  #  legend = FALSE,
+  #  display_title = FALSE,
+  data_species = get_formal_data(myBiomodModelOut,'resp.var'))
+
+rf_eval_strip <- biomod2::response.plot2(
+  models = model_rf,
+  Data = get_formal_data(myBiomodModelOut,'expl.var'),
+  show.variables = get_formal_data(myBiomodModelOut,'expl.var.names'),
+  do.bivariate = FALSE,
+  fixed.var.metric = 'median',
+  #  legend = FALSE,
+  #  display_title = FALSE,
+  data_species = get_formal_data(myBiomodModelOut,'resp.var'))
+
+gbm_eval_strip <- biomod2::response.plot2(
+  models = model_gbm,
+  Data = get_formal_data(myBiomodModelOut,'expl.var'),
+  show.variables = get_formal_data(myBiomodModelOut,'expl.var.names'),
+  do.bivariate = FALSE,
+  fixed.var.metric = 'median',
+  #  legend = FALSE,
+  #  display_title = FALSE,
+  data_species = get_formal_data(myBiomodModelOut,'resp.var'))
+
+
+
+dev.off()
+###PROJECTION
+#project the potential distribution of the species over space and time
+# projection over the globe under current conditions
+myBiomomodProj <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExpl,
+  proj.name = 'current_wmax',
+  selected.models = 'all',
+  binary.meth = c('TSS','ROC','KAPPA'),
+  compress = 'xz',
+  clamping.mask = F,
+  output.format = '.grd')
+
+myBiomomodProj
+current <- get_predictions(myBiomomodProj)
+#current
+#names(current)
+
+
+GLMstack <- raster::subset(current, grep('Full_GLM', names(current), value = TRUE))
+GLMavg <-  calc(GLMstack, fun = mean, na.rm = T)
+
+GAMstack <- raster::subset(current, grep('Full_GAM', names(current), value = TRUE))
+GAMavg <- calc(GAMstack, fun = mean, na.rm = T)
+
+MAXENTstack <- raster::subset(current, grep('Full_MAXENT', names(current), value = TRUE))
+MAXENTavg <- calc(MAXENTstack, fun = mean, na.rm = T)
+
+MARSstack <- raster::subset(current, grep('Full_MARS', names(current), value = TRUE))
+MARSavg <- calc(MARSstack, fun = mean, na.rm = T)
+
+RFstack <- raster::subset(current, grep('Full_RF', names(current), value = TRUE))
+RFavg <- calc(RFstack, fun = mean, na.rm = T)
+
+GBMstack <- raster::subset(current, grep('Full_GBM', names(current), value = TRUE))
+GBMavg <- calc(GBMstack, fun = mean, na.rm = T)
+
+#GLMstack <- subset(current,c(21,43,65))
+#GAMstack <- subset(current,c(22,44,66))
+#GLMavg <-  calc(GLMstack, fun = mean, na.rm = T)
+#GAMavg <- calc(GAMstack, fun = mean, na.rm = T)
+
+pdf(paste("MAP",x1,".pdf",sep=""))
+plot(myBiomomodProj, str.grep = 'Full_GLM')
+plot(GLMavg)
+
+plot(myBiomomodProj, str.grep = 'Full_GAM')
+plot(GAMavg)
+
+plot(myBiomomodProj, str.grep = 'Full_MAXENT')
+plot(MAXENTavg)
+
+
+plot(myBiomomodProj, str.grep = 'Full_MARS')
+plot(MARSavg)
+
+plot(myBiomomodProj, str.grep = 'Full_RF')
+plot(RFavg)
+
+plot(myBiomomodProj, str.grep = 'Full_GBM')
+plot(GBMavg)
+
+dev.off()
+
+GLMscores <- extract(GLMavg, m[,c(1,2)])
+GLMscores <- as.data.frame(GLMscores)
+GLMscores <- cbind(m,GLMscores)
+
+GAMscores <- extract(GAMavg, m[,c(1,2)])
+GAMscores <- as.data.frame(GAMscores)
+GAMscores <- cbind(m,GAMscores)
+
+MAXENTscores <- extract(MAXENTavg, m[,c(1,2)])
+MAXENTscores <- as.data.frame(MAXENTscores)
+MAXENTscores <- cbind(m,MAXENTscores)
+
+MARSscores <- extract(MARSavg, m[,c(1,2)])
+MARSscores <- as.data.frame(MARSscores)
+MARSscores <- cbind(m,MARSscores)
+
+RFscores <- extract(RFavg, m[,c(1,2)])
+RFscores <- as.data.frame(RFscores)
+RFscores <- cbind(m,RFscores)
+
+GBMscores <- extract(GBMavg, m[,c(1,2)])
+GBMscores <- as.data.frame(GBMscores)
+GBMscores <- cbind(m,GBMscores)
+
+
+GLMscoressorted <- GLMscores
+GLMscoressorted <- GLMscoressorted[order(GLMscoressorted$GLMscores),]
+GLMscoressorted$observation <- 1:nrow(GLMscores)
+GLMscoressorted$cumper <- GLMscoressorted$observation/nrow(GLMscoressorted)
+
+
+GAMscoressorted <- GAMscores
+GAMscoressorted <- GAMscoressorted[order(GAMscoressorted$GAMscores),]
+GAMscoressorted$observation <- 1:nrow(GAMscores)
+GAMscoressorted$cumper <- GAMscoressorted$observation/nrow(GAMscoressorted)
+
+MAXENTscoressorted <- MAXENTscores
+MAXENTscoressorted <- MAXENTscoressorted[order(MAXENTscoressorted$MAXENTscores),]
+MAXENTscoressorted$observation <- 1:nrow(MAXENTscores)
+MAXENTscoressorted$cumper <- MAXENTscoressorted$observation/nrow(MAXENTscoressorted)
+
+MARSscoressorted <- MARSscores
+MARSscoressorted <- MARSscoressorted[order(MARSscoressorted$MARSscores),]
+MARSscoressorted$observation <- 1:nrow(MARSscores)
+MARSscoressorted$cumper <- MARSscoressorted$observation/nrow(MARSscoressorted)
+
+RFscoressorted <- RFscores
+RFscoressorted <- RFscoressorted[order(RFscoressorted$RFscores),]
+RFscoressorted$observation <- 1:nrow(RFscores)
+RFscoressorted$cumper <- RFscoressorted$observation/nrow(RFscoressorted)
+
+GBMscoressorted <- GBMscores
+GBMscoressorted <- GBMscoressorted[order(GBMscoressorted$GBMscores),]
+GBMscoressorted$observation <- 1:nrow(GBMscores)
+GBMscoressorted$cumper <- GBMscoressorted$observation/nrow(GBMscoressorted)
+
+pdf(paste("cum",x1,".pdf",sep=""))
+plot(GLMscoressorted$GLMscores,GLMscoressorted$cumper,main="GLM",xlab="Model Value",ylab="Cumulative Percent")
+plot(GAMscoressorted$GAMscores,GAMscoressorted$cumper, main="GAM",xlab="Model Value",ylab="Cumulative Percent")
+plot(MAXENTscoressorted$MAXENTscores,MAXENTscoressorted$cumper, main="MAXENT",xlab="Model Value",ylab="Cumulative Percent")
+
+plot(MARSscoressorted$MARSscores,MARSscoressorted$cumper, main="MARS",xlab="Model Value",ylab="Cumulative Percent")
+
+plot(RFscoressorted$RFscores,RFscoressorted$cumper, main="RF",xlab="Model Value",ylab="Cumulative Percent")
+
+plot(GBMscoressorted$GBMscores,GBMscoressorted$cumper, main="GBM",xlab="Model Value",ylab="Cumulative Percent")
+
+dev.off()
+
+##ANOVA
+print("GLM")
+res.aov <- aov(GLMscores ~ status, data = GLMscores)
+aovGLM <- summary(res.aov)
+print(aovGLM)
+print("GAM")
+res.aovGAM <- aov(GAMscores ~ status, data = GAMscores)
+aovGAM <- summary(res.aovGAM)
+print(aovGAM)
+
+print("MAXENT")
+res.aovMAXENT <- aov(MAXENTscores ~ status, data = MAXENTscores)
+aovMAXENT <- summary(res.aovMAXENT)
+print(aovMAXENT)
+
+print("MARS")
+res.aovMARS <- aov(MARSscores ~ status, data = MARSscores)
+aovMARS <- summary(res.aovMARS)
+print(aovMARS)
+
+
+print("RF")
+res.aovRF <- aov(RFscores ~ status, data = RFscores)
+aovRF <- summary(res.aovRF)
+print(aovRF)
+
+print("GBM")
+res.aovGBM <- aov(GBMscores ~ status, data = GBMscores)
+aovGBM <- summary(res.aovGBM)
+print(aovGBM)
+
+#EM
+myBiomodEM <- BIOMOD_EnsembleModeling(
+  modeling.output = myBiomodModelOut,
+  chosen.models = 'all',
+  eval.metric = c('TSS'),
+  eval.metric.quality.threshold = c(0.7),
+  prob.mean = T,
+  prob.cv = T,
+  prob.ci = T,
+  prob.ci.alpha = 0.05,
+  prob.median = T,
+  committee.averaging = T,
+  prob.mean.weight = T,
+  prob.mean.weight.decay = 'proportional' )
+
+myBiomodEM
+getEMeval(myBiomodEM)
+
+
+# make some plots sub-selected by str.grep argument
+pdf("individual.pdf")
+
+plot(myBiomomodProj, str.grep = 'GLM')
+plot(myBiomomodProj, str.grep = 'GAM')
+plot(myBiomomodProj, str.grep = 'GBM')
+plot(myBiomomodProj, str.grep = 'MARS')
+plot(myBiomomodProj, str.grep = 'RF')
+plot(myBiomomodProj, str.grep = 'MAXENT.Phillips.2')
+
+
+
+dev.off()
+
+
+myBiomodEMF <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomomodProj)
+
+
+
+
+
+
+myExplBCC45 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_BCC_CSM2_MR_ssp245_2061_2080_2.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_BCC_CSM2_MR_ssp245_2061_2080_7.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_BCC_CSM2_MR_ssp245_2061_2080_11.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_BCC_CSM2_MR_ssp245_2061_2080_12.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_BCC_CSM2_MR_ssp245_2061_2080_17.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_BCC_CSM2_MR_ssp245_2061_2080_18.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_BCC_CSM2_MR_ssp245_2061_2080_19.asc")
+
+names(myExplBCC45) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+
+myBiomodProjBCC45 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExplBCC45,
+  proj.name = '2070_SDM_4_5_BCC_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+myExplBCC85 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_BCC_CSM2_MR_ssp585_2061_2080_2.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_BCC_CSM2_MR_ssp585_2061_2080_7.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_BCC_CSM2_MR_ssp585_2061_2080_11.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_BCC_CSM2_MR_ssp585_2061_2080_12.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_BCC_CSM2_MR_ssp585_2061_2080_17.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_BCC_CSM2_MR_ssp585_2061_2080_18.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_BCC_CSM2_MR_ssp585_2061_2080_19.asc")
+
+names(myExplBCC85) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+
+myBiomodProjBCC85 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExplBCC85,
+  proj.name = '2070_SDM_8_5_BCC_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+
+
+
+#FUTURE FORECASTING
+myBiomodEF_BCC45 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjBCC45
+)
+
+myBiomodEF_BCC45
+
+
+pdf("2070_4_5_BCC_wmax.pdf")
+plot(myBiomodEF_BCC45)
+dev.off()
+
+myBiomodEF_BCC85 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjBCC85
+)
+
+myBiomodEF_BCC85
+
+
+pdf("2070_8_5_BCC_wmax.pdf")
+plot(myBiomodEF_BCC85)
+dev.off()
+
+
+#####CanESM
+myExpl45 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CanESM5_ssp245_2061_2080_2.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CanESM5_ssp245_2061_2080_7.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CanESM5_ssp245_2061_2080_11.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CanESM5_ssp245_2061_2080_12.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CanESM5_ssp245_2061_2080_17.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CanESM5_ssp245_2061_2080_18.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CanESM5_ssp245_2061_2080_19.asc")
+
+names(myExpl45) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+
+myBiomodProjCan45 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExpl45,
+  proj.name = '2070_SDM_4_5_Can_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+myExplCan85 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CanESM5_ssp585_2061_2080_2.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CanESM5_ssp585_2061_2080_7.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CanESM5_ssp585_2061_2080_11.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CanESM5_ssp585_2061_2080_12.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CanESM5_ssp585_2061_2080_17.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CanESM5_ssp585_2061_2080_18.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CanESM5_ssp585_2061_2080_19.asc")
+
+names(myExplCan85) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+
+myBiomodProjCan85 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExplCan85,
+  proj.name = '2070_SDM_8_5_Can_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+#FUTURE FORECASTING
+myBiomodEF_Can45 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjCan45
+)
+
+myBiomodEF_Can45
+
+
+pdf("2070_4_5_Can.pdf")
+plot(myBiomodEF_Can45)
+dev.off()
+
+myBiomodEF_Can85 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjCan85
+)
+
+myBiomodEF_Can85
+
+
+pdf("2070_8_5_Can.pdf")
+plot(myBiomodEF_Can85)
+dev.off()
+
+
+#####CM
+myExpl45 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_CM6_1_ssp245_2061_2080_2.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_CM6_1_ssp245_2061_2080_7.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_CM6_1_ssp245_2061_2080_11.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_CM6_1_ssp245_2061_2080_12.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_CM6_1_ssp245_2061_2080_17.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_CM6_1_ssp245_2061_2080_18.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_CM6_1_ssp245_2061_2080_19.asc")
+
+names(myExpl45) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+
+myBiomodProjCM45 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExpl45,
+  proj.name = '2070_SDM_4_5_CM_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+myExplCM85 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_CM6_1_ssp585_2061_2080_2.asc",
+                    "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_CM6_1_ssp585_2061_2080_7.asc",
+                    "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_CM6_1_ssp585_2061_2080_11.asc",
+                    "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_CM6_1_ssp585_2061_2080_12.asc",
+                    "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_CM6_1_ssp585_2061_2080_17.asc",
+                    "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_CM6_1_ssp585_2061_2080_18.asc",
+                    "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_CM6_1_ssp585_2061_2080_19.asc")
+
+names(myExplCM85) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+
+myBiomodProjCM85 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExplCM85,
+  proj.name = '2070_SDM_8_5_CM_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+#FUTURE FORECASTING
+myBiomodEF_CM45 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjCM45
+)
+
+myBiomodEF_CM45
+
+
+
+pdf("2070_4_5_CM.pdf")
+plot(myBiomodEF_CM45)
+dev.off()
+
+myBiomodEF_CM85 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjCM85
+)
+
+myBiomodEF_CM85
+
+
+
+pdf("2070_8_5_CM.pdf")
+plot(myBiomodEF_CM85)
+dev.off()
+
+###ESM
+myExpl45 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_ESM2_1_ssp245_2061_2080_2.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_ESM2_1_ssp245_2061_2080_7.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_ESM2_1_ssp245_2061_2080_11.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_ESM2_1_ssp245_2061_2080_12.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_ESM2_1_ssp245_2061_2080_17.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_ESM2_1_ssp245_2061_2080_18.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_ESM2_1_ssp245_2061_2080_19.asc")
+
+names(myExpl45) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+
+myBiomodProjESM45 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExpl45,
+  proj.name = '2070_SDM_4_5_ESM_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+myExplESM85 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_ESM2_1_ssp585_2061_2080_2.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_ESM2_1_ssp585_2061_2080_7.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_ESM2_1_ssp585_2061_2080_11.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_ESM2_1_ssp585_2061_2080_12.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_ESM2_1_ssp585_2061_2080_17.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_ESM2_1_ssp585_2061_2080_18.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_ESM2_1_ssp585_2061_2080_19.asc")
+
+names(myExplESM85) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+
+myBiomodProjESM85 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExplESM85,
+  proj.name = '2070_SDM_8_5_ESM_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+#FUTURE FORECASTING
+myBiomodEF_ESM45 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjESM45
+)
+
+myBiomodEF_ESM45
+
+
+
+pdf("2070_4_5_ESM.pdf")
+plot(myBiomodEF_ESM45)
+dev.off()
+
+myBiomodEF_ESM85 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjESM85
+)
+
+myBiomodEF_ESM85
+
+#writeRaster(myBiomodEF, filename="future_SDM.grd", overwrite=TRUE, format="raster")
+
+
+pdf("2070_8_5_ESM.pdf")
+plot(myBiomodEF_ESM85)
+dev.off()
+
+###IPSL
+myExpl45 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_IPSL_CM6A_LR_ssp245_2061_2080_2.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_IPSL_CM6A_LR_ssp245_2061_2080_7.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_IPSL_CM6A_LR_ssp245_2061_2080_11.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_IPSL_CM6A_LR_ssp245_2061_2080_12.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_IPSL_CM6A_LR_ssp245_2061_2080_17.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_IPSL_CM6A_LR_ssp245_2061_2080_18.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_IPSL_CM6A_LR_ssp245_2061_2080_19.asc")
+
+names(myExpl45) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+
+myBiomodProjIPSL45 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExpl45,
+  proj.name = '2070_SDM_4_5_IPSL_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+myExplIPSL85 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_IPSL_CM6A_LR_ssp585_2061_2080_2.asc",
+                      "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_IPSL_CM6A_LR_ssp585_2061_2080_7.asc",
+                      "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_IPSL_CM6A_LR_ssp585_2061_2080_11.asc",
+                      "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_IPSL_CM6A_LR_ssp585_2061_2080_12.asc",
+                      "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_IPSL_CM6A_LR_ssp585_2061_2080_17.asc",
+                      "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_IPSL_CM6A_LR_ssp585_2061_2080_18.asc",
+                      "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_IPSL_CM6A_LR_ssp585_2061_2080_19.asc")
+
+names(myExplIPSL85) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+
+myBiomodProjIPSL85 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExplIPSL85,
+  proj.name = '2070_SDM_8_5_IPSL_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+#FUTURE FORECASTING
+myBiomodEF_IPSL45 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjIPSL45
+)
+
+myBiomodEF_IPSL45
+
+
+
+pdf("2070_4_5_IPSL.pdf")
+plot(myBiomodEF_IPSL45)
+dev.off()
+
+myBiomodEF_IPSL85 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjIPSL85
+)
+
+myBiomodEF_IPSL85
+
+
+
+pdf("2070_8_5_IPSL.pdf")
+plot(myBiomodEF_IPSL85)
+dev.off()
+
+####ES
+myExpl45 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC_ES2L_ssp245_2061_2080_2.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC_ES2L_ssp245_2061_2080_7.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC_ES2L_ssp245_2061_2080_11.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC_ES2L_ssp245_2061_2080_12.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC_ES2L_ssp245_2061_2080_17.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC_ES2L_ssp245_2061_2080_18.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC_ES2L_ssp245_2061_2080_19.asc")
+
+names(myExpl45) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+
+myBiomodProjES45 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExpl45,
+  proj.name = '2070_SDM_4_5_ES_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+myExplES85 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC_ES2L_ssp585_2061_2080_2.asc",
+                    "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC_ES2L_ssp585_2061_2080_7.asc",
+                    "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC_ES2L_ssp585_2061_2080_11.asc",
+                    "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC_ES2L_ssp585_2061_2080_12.asc",
+                    "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC_ES2L_ssp585_2061_2080_17.asc",
+                    "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC_ES2L_ssp585_2061_2080_18.asc",
+                    "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC_ES2L_ssp585_2061_2080_19.asc")
+
+names(myExplES85) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+
+myBiomodProjES85 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExplES85,
+  proj.name = '2070_SDM_8_5_ES_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+#FUTURE FORECASTING
+myBiomodEF_ES45 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjES45
+)
+
+myBiomodEF_ES45
+
+
+
+pdf("2070_4_5_ES.pdf")
+plot(myBiomodEF_ES45)
+dev.off()
+
+myBiomodEF_ES85 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjES85
+)
+
+myBiomodEF_ES85
+
+
+
+pdf("2070_8_5_ES.pdf")
+plot(myBiomodEF_ES85)
+dev.off()
+
+
+##MIROC6 (MIR)
+myExpl45 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC6_ssp245_2061_2080_2.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC6_ssp245_2061_2080_7.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC6_ssp245_2061_2080_11.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC6_ssp245_2061_2080_12.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC6_ssp245_2061_2080_17.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC6_ssp245_2061_2080_18.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC6_ssp245_2061_2080_19.asc")
+
+names(myExpl45) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+
+myBiomodProjMIR45 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExpl45,
+  proj.name = '2070_SDM_4_5_MIR_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+myExplMIR85 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC6_ssp585_2061_2080_2.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC6_ssp585_2061_2080_7.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC6_ssp585_2061_2080_11.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC6_ssp585_2061_2080_12.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC6_ssp585_2061_2080_17.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC6_ssp585_2061_2080_18.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC6_ssp585_2061_2080_19.asc")
+
+names(myExplMIR85) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+
+myBiomodProjMIR85 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExplMIR85,
+  proj.name = '2070_SDM_8_5_MIR_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+#FUTURE FORECASTING
+myBiomodEF_MIR45 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjMIR45
+)
+
+myBiomodEF_MIR45
+
+
+
+pdf("2070_4_5_MIR.pdf")
+plot(myBiomodEF_MIR45)
+dev.off()
+
+myBiomodEF_MIR85 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjMIR85
+)
+
+myBiomodEF_MIR85
+
+
+
+pdf("2070_8_5_MIR.pdf")
+plot(myBiomodEF_MIR85)
+dev.off()
+
+###MRI
+myExpl45 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MRI_ESM2_0_ssp245_2061_2080_2.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MRI_ESM2_0_ssp245_2061_2080_7.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MRI_ESM2_0_ssp245_2061_2080_11.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MRI_ESM2_0_ssp245_2061_2080_12.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MRI_ESM2_0_ssp245_2061_2080_17.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MRI_ESM2_0_ssp245_2061_2080_18.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MRI_ESM2_0_ssp245_2061_2080_19.asc")
+
+names(myExpl45) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+
+myBiomodProjMRI45 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExpl45,
+  proj.name = '2070_SDM_4_5_MRI_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+myExplMRI85 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MRI_ESM2_0_ssp585_2061_2080_2.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MRI_ESM2_0_ssp585_2061_2080_7.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MRI_ESM2_0_ssp585_2061_2080_11.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MRI_ESM2_0_ssp585_2061_2080_12.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MRI_ESM2_0_ssp585_2061_2080_17.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MRI_ESM2_0_ssp585_2061_2080_18.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MRI_ESM2_0_ssp585_2061_2080_19.asc")
+
+names(myExplMRI85) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+
+myBiomodProjMRI85 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExplMRI85,
+  proj.name = '2070_SDM_8_5_MRI_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+#FUTURE FORECASTING
+myBiomodEF_MRI45 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjMRI45
+)
+
+myBiomodEF_MRI45
+
+
+
+pdf("2070_4_5_MRI.pdf")
+plot(myBiomodEF_MRI45)
+dev.off()
+
+myBiomodEF_MRI85 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjMRI85
+)
+
+myBiomodEF_MRI85
+
+
+
+pdf("2070_8_5_MRI.pdf")
+plot(myBiomodEF_MRI85)
+dev.off()
+
+
+
+
+
+sink()
+    branches: [ "main" ]
+  pull_request: # load library
+library(biomod2)
+library(raster)
+library(dplyr)
+library(ggplot2)
+library(usdm)
+
+#Ensemble Model
+(myBiomodEM <-load("/projects/b1045/yang/Artocarpus.altilis/Artocarpus.altilis.1611612758ensemble.models.out"))
+myBiomodEM <- get(myBiomodEM)
+
+
+(myBiomodModelOut <-load("/projects/b1045/yang/Artocarpus.altilis/Artocarpus.altilis.1611612758.models.out"))
+myBiomodModelOut <- get(myBiomodModelOut)
+
+
+
+myExplBCC45 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_BCC_CSM2_MR_ssp245_2061_2080_2.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_BCC_CSM2_MR_ssp245_2061_2080_7.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_BCC_CSM2_MR_ssp245_2061_2080_11.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_BCC_CSM2_MR_ssp245_2061_2080_12.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_BCC_CSM2_MR_ssp245_2061_2080_17.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_BCC_CSM2_MR_ssp245_2061_2080_18.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_BCC_CSM2_MR_ssp245_2061_2080_19.asc")
+
+names(myExplBCC45) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+e <- extent(-180, 180, -45, 45)
+myExplBCC45 <- crop(myExplBCC45, e)
+myExplBCC45 <- stack(myExplBCC45)
+
+
+
+myBiomodProjBCC45 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExplBCC45,
+  proj.name = '2070_SDM_4_5_BCC_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+myExplBCC85 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_BCC_CSM2_MR_ssp585_2061_2080_2.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_BCC_CSM2_MR_ssp585_2061_2080_7.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_BCC_CSM2_MR_ssp585_2061_2080_11.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_BCC_CSM2_MR_ssp585_2061_2080_12.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_BCC_CSM2_MR_ssp585_2061_2080_17.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_BCC_CSM2_MR_ssp585_2061_2080_18.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_BCC_CSM2_MR_ssp585_2061_2080_19.asc")
+
+names(myExplBCC85) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+myExplBCC85 <- crop(myExplBCC85, e)
+myExplBCC85 <- stack(myExplBCC85)
+
+myBiomodProjBCC85 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExplBCC85,
+  proj.name = '2070_SDM_8_5_BCC_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+
+
+print(4)
+
+#FUTURE FORECASTING
+myBiomodEF_BCC45 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjBCC45,
+  proj.name = 'BCC45'
+)
+
+
+
+myBiomodEF_BCC45
+
+
+
+pdf("2070_4_5_BCC.pdf")
+plot(myBiomodEF_BCC45)
+dev.off()
+
+myBiomodEF_BCC85 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjBCC85
+)
+
+myBiomodEF_BCC85
+
+#writeRaster(myBiomodEF, filename="future_SDM.grd", overwrite=TRUE, format="raster")
+
+
+ pdf("2070_8_5_BCC.pdf")
+ plot(myBiomodEF_BCC85)
+ dev.off()
+
+
+#####CanESM
+myExpl45 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CanESM5_ssp245_2061_2080_2.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CanESM5_ssp245_2061_2080_7.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CanESM5_ssp245_2061_2080_11.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CanESM5_ssp245_2061_2080_12.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CanESM5_ssp245_2061_2080_17.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CanESM5_ssp245_2061_2080_18.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CanESM5_ssp245_2061_2080_19.asc")
+
+names(myExpl45) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+myExpl45 <- crop(myExpl45, e)
+myExpl45 <- stack(myExpl45)
+
+
+myBiomodProjCan45 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExpl45,
+  proj.name = '2070_SDM_4_5_Can_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+myExplCan85 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CanESM5_ssp585_2061_2080_2.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CanESM5_ssp585_2061_2080_7.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CanESM5_ssp585_2061_2080_11.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CanESM5_ssp585_2061_2080_12.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CanESM5_ssp585_2061_2080_17.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CanESM5_ssp585_2061_2080_18.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CanESM5_ssp585_2061_2080_19.asc")
+
+names(myExplCan85) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+
+myExplCan85 <- crop(myExplCan85, e)
+myExplCan85 <- stack(myExplCan85)
+
+myBiomodProjCan85 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExplCan85,
+  proj.name = '2070_SDM_8_5_Can_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+#FUTURE FORECASTING
+myBiomodEF_Can45 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjCan45
+)
+
+myBiomodEF_Can45
+
+
+
+pdf("2070_4_5_Can.pdf")
+plot(myBiomodEF_Can45)
+dev.off()
+
+myBiomodEF_Can85 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjCan85
+)
+
+myBiomodEF_Can85
+
+
+
+pdf("2070_8_5_Can.pdf")
+plot(myBiomodEF_Can85)
+dev.off()
+
+
+#####CM
+myExpl45 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_CM6_1_ssp245_2061_2080_2.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_CM6_1_ssp245_2061_2080_7.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_CM6_1_ssp245_2061_2080_11.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_CM6_1_ssp245_2061_2080_12.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_CM6_1_ssp245_2061_2080_17.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_CM6_1_ssp245_2061_2080_18.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_CM6_1_ssp245_2061_2080_19.asc")
+
+names(myExpl45) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+myExpl45 <- crop(myExpl45, e)
+myExpl45 <- stack(myExpl45)
+
+myBiomodProjCM45 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExpl45,
+  proj.name = '2070_SDM_4_5_CM_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+myExplCM85 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_CM6_1_ssp585_2061_2080_2.asc",
+                    "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_CM6_1_ssp585_2061_2080_7.asc",
+                    "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_CM6_1_ssp585_2061_2080_11.asc",
+                    "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_CM6_1_ssp585_2061_2080_12.asc",
+                    "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_CM6_1_ssp585_2061_2080_17.asc",
+                    "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_CM6_1_ssp585_2061_2080_18.asc",
+                    "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_CM6_1_ssp585_2061_2080_19.asc")
+
+names(myExplCM85) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+myExplCM85 <- crop(myExplCM85, e)
+myExplCM85 <- stack(myExplCM85)
+
+
+myBiomodProjCM85 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExplCM85,
+  proj.name = '2070_SDM_8_5_CM_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+#FUTURE FORECASTING
+myBiomodEF_CM45 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjCM45
+)
+
+myBiomodEF_CM45
+
+
+
+pdf("2070_4_5_CM.pdf")
+plot(myBiomodEF_CM45)
+dev.off()
+
+myBiomodEF_CM85 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjCM85
+)
+
+myBiomodEF_CM85
+
+
+
+pdf("2070_8_5_CM.pdf")
+plot(myBiomodEF_CM85)
+dev.off()
+
+###ESM
+myExpl45 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_ESM2_1_ssp245_2061_2080_2.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_ESM2_1_ssp245_2061_2080_7.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_ESM2_1_ssp245_2061_2080_11.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_ESM2_1_ssp245_2061_2080_12.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_ESM2_1_ssp245_2061_2080_17.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_ESM2_1_ssp245_2061_2080_18.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_ESM2_1_ssp245_2061_2080_19.asc")
+
+names(myExpl45) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+myExpl45 <- crop(myExpl45, e)
+myExpl45 <- stack(myExpl45)
+
+myBiomodProjESM45 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExpl45,
+  proj.name = '2070_SDM_4_5_ESM_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+myExplESM85 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_ESM2_1_ssp585_2061_2080_2.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_ESM2_1_ssp585_2061_2080_7.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_ESM2_1_ssp585_2061_2080_11.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_ESM2_1_ssp585_2061_2080_12.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_ESM2_1_ssp585_2061_2080_17.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_ESM2_1_ssp585_2061_2080_18.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_CNRM_ESM2_1_ssp585_2061_2080_19.asc")
+
+names(myExplESM85) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+myExplESM85 <- crop(myExplESM85, e)
+myExplESM85 <- stack(myExplESM85)
+
+
+
+myBiomodProjESM85 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExplESM85,
+  proj.name = '2070_SDM_8_5_ESM_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+#FUTURE FORECASTING
+myBiomodEF_ESM45 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjESM45
+)
+
+myBiomodEF_ESM45
+
+
+
+pdf("2070_4_5_ESM.pdf")
+plot(myBiomodEF_ESM45)
+dev.off()
+
+myBiomodEF_ESM85 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjESM85
+)
+
+myBiomodEF_ESM85
+
+
+
+pdf("2070_8_5_ESM.pdf")
+plot(myBiomodEF_ESM85)
+dev.off()
+
+###IPSL
+myExpl45 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_IPSL_CM6A_LR_ssp245_2061_2080_2.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_IPSL_CM6A_LR_ssp245_2061_2080_7.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_IPSL_CM6A_LR_ssp245_2061_2080_11.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_IPSL_CM6A_LR_ssp245_2061_2080_12.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_IPSL_CM6A_LR_ssp245_2061_2080_17.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_IPSL_CM6A_LR_ssp245_2061_2080_18.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_IPSL_CM6A_LR_ssp245_2061_2080_19.asc")
+
+names(myExpl45) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+myExpl45 <- crop(myExpl45, e)
+myExpl45 <- stack(myExpl45)
+
+
+myBiomodProjIPSL45 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExpl45,
+  proj.name = '2070_SDM_4_5_IPSL_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+myExplIPSL85 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_IPSL_CM6A_LR_ssp585_2061_2080_2.asc",
+                      "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_IPSL_CM6A_LR_ssp585_2061_2080_7.asc",
+                      "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_IPSL_CM6A_LR_ssp585_2061_2080_11.asc",
+                      "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_IPSL_CM6A_LR_ssp585_2061_2080_12.asc",
+                      "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_IPSL_CM6A_LR_ssp585_2061_2080_17.asc",
+                      "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_IPSL_CM6A_LR_ssp585_2061_2080_18.asc",
+                      "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_IPSL_CM6A_LR_ssp585_2061_2080_19.asc")
+
+names(myExplIPSL85) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+myExplIPSL85 <- crop(myExplIPSL85, e)
+myExplIPSL85 <- stack(myExplIPSL85)
+
+
+
+myBiomodProjIPSL85 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExplIPSL85,
+  proj.name = '2070_SDM_8_5_IPSL_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+#FUTURE FORECASTING
+myBiomodEF_IPSL45 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjIPSL45
+)
+
+myBiomodEF_IPSL45
+
+
+
+pdf("2070_4_5_IPSL.pdf")
+plot(myBiomodEF_IPSL45)
+dev.off()
+
+myBiomodEF_IPSL85 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjIPSL85
+)
+
+myBiomodEF_IPSL85
+
+#writeRaster(myBiomodEF, filename="future_SDM.grd", overwrite=TRUE, format="raster")
+
+
+pdf("2070_8_5_IPSL.pdf")
+plot(myBiomodEF_IPSL85)
+dev.off()
+
+####ES
+myExpl45 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC_ES2L_ssp245_2061_2080_2.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC_ES2L_ssp245_2061_2080_7.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC_ES2L_ssp245_2061_2080_11.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC_ES2L_ssp245_2061_2080_12.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC_ES2L_ssp245_2061_2080_17.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC_ES2L_ssp245_2061_2080_18.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC_ES2L_ssp245_2061_2080_19.asc")
+
+names(myExpl45) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+myExpl45 <- crop(myExpl45, e)
+myExpl45 <- stack(myExpl45)
+
+
+myBiomodProjES45 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExpl45,
+  proj.name = '2070_SDM_4_5_ES_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+myExplES85 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC_ES2L_ssp585_2061_2080_2.asc",
+                    "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC_ES2L_ssp585_2061_2080_7.asc",
+                    "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC_ES2L_ssp585_2061_2080_11.asc",
+                    "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC_ES2L_ssp585_2061_2080_12.asc",
+                    "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC_ES2L_ssp585_2061_2080_17.asc",
+                    "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC_ES2L_ssp585_2061_2080_18.asc",
+                    "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC_ES2L_ssp585_2061_2080_19.asc")
+
+names(myExplES85) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+myExplES85 <- crop(myExplES85, e)
+myExplES85 <- stack(myExplES85)
+
+
+
+myBiomodProjES85 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExplES85,
+  proj.name = '2070_SDM_8_5_ES_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+#FUTURE FORECASTING
+myBiomodEF_ES45 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjES45
+)
+
+myBiomodEF_ES45
+
+
+
+pdf("2070_4_5_ES.pdf")
+plot(myBiomodEF_ES45)
+dev.off()
+
+myBiomodEF_ES85 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjES85
+)
+
+myBiomodEF_ES85
+
+
+
+pdf("2070_8_5_ES.pdf")
+plot(myBiomodEF_ES85)
+dev.off()
+
+
+##MIROC6 (MIR)
+myExpl45 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC6_ssp245_2061_2080_2.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC6_ssp245_2061_2080_7.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC6_ssp245_2061_2080_11.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC6_ssp245_2061_2080_12.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC6_ssp245_2061_2080_17.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC6_ssp245_2061_2080_18.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC6_ssp245_2061_2080_19.asc")
+
+names(myExpl45) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+myExpl45 <- crop(myExpl45, e)
+myExpl45 <- stack(myExpl45)
+
+myBiomodProjMIR45 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExpl45,
+  proj.name = '2070_SDM_4_5_MIR_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+myExplMIR85 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC6_ssp585_2061_2080_2.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC6_ssp585_2061_2080_7.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC6_ssp585_2061_2080_11.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC6_ssp585_2061_2080_12.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC6_ssp585_2061_2080_17.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC6_ssp585_2061_2080_18.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MIROC6_ssp585_2061_2080_19.asc")
+
+names(myExplMIR85) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+myExplMIR85 <- crop(myExplMIR85, e)
+myExplMIR85 <- stack(myExplMIR85)
+
+
+
+myBiomodProjMIR85 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExplMIR85,
+  proj.name = '2070_SDM_8_5_MIR_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+#FUTURE FORECASTING
+myBiomodEF_MIR45 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjMIR45
+)
+
+myBiomodEF_MIR45
+
+
+
+pdf("2070_4_5_MIR.pdf")
+plot(myBiomodEF_MIR45)
+dev.off()
+
+myBiomodEF_MIR85 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjMIR85
+)
+
+myBiomodEF_MIR85
+
+
+
+pdf("2070_8_5_MIR.pdf")
+plot(myBiomodEF_MIR85)
+dev.off()
+
+###MRI
+myExpl45 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MRI_ESM2_0_ssp245_2061_2080_2.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MRI_ESM2_0_ssp245_2061_2080_7.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MRI_ESM2_0_ssp245_2061_2080_11.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MRI_ESM2_0_ssp245_2061_2080_12.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MRI_ESM2_0_ssp245_2061_2080_17.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MRI_ESM2_0_ssp245_2061_2080_18.asc",
+                  "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MRI_ESM2_0_ssp245_2061_2080_19.asc")
+
+names(myExpl45) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+myExpl45 <- crop(myExpl45, e)
+myExpl45 <- stack(myExpl45)
+
+myBiomodProjMRI45 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExpl45,
+  proj.name = '2070_SDM_4_5_MRI_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+myExplMRI85 = stack( "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MRI_ESM2_0_ssp585_2061_2080_2.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MRI_ESM2_0_ssp585_2061_2080_7.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MRI_ESM2_0_ssp585_2061_2080_11.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MRI_ESM2_0_ssp585_2061_2080_12.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MRI_ESM2_0_ssp585_2061_2080_17.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MRI_ESM2_0_ssp585_2061_2080_18.asc",
+                     "/projects/b1045/yang/wc21/10m/wc2.1_10m_bioc_MRI_ESM2_0_ssp585_2061_2080_19.asc")
+
+names(myExplMRI85) <- c('bio2', 'bio7', 'bio11', 'bio12', 'bio17', 'bio18', 'bio19')
+
+myExplMRI85 <- crop(myExplMRI85, e)
+myExplMRI85 <- stack(myExplMRI85)
+
+myBiomodProjMRI85 <- BIOMOD_Projection(
+  modeling.output = myBiomodModelOut,
+  new.env = myExplMRI85,
+  proj.name = '2070_SDM_8_5_MRI_wmax',
+  selected.models = 'all',
+  binary.meth = 'TSS',
+  compress = 'xz',
+  clamping.mask = T,
+  output.format = '.grd')
+
+#FUTURE FORECASTING
+myBiomodEF_MRI45 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjMRI45
+)
+
+myBiomodEF_MRI45
+
+
+
+pdf("2070_4_5_MRI.pdf")
+plot(myBiomodEF_MRI45)
+dev.off()
+
+myBiomodEF_MRI85 <- BIOMOD_EnsembleForecasting(
+  EM.output = myBiomodEM,
+  projection.output = myBiomodProjMRI85
+)
+
+myBiomodEF_MRI85
+
+
+
+pdf("2070_8_5_MRI.pdf")
+plot(myBiomodEF_MRI85)
+dev.off()
+    branches: [ "main" ]
+
+permissions: 3.0 (native)
+  contents: mint-l-icons (1.7.2) wilma; urgency=medium
+
+  [ Michael Webster ]
+  * Add view-compact-symbolic.svg.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Wed, 17 Jul 2024 15:55:35 +0100
+
+mint-l-icons (1.7.1) wilma; urgency=medium
+
+  [ Clement Lefebvre ]
+  * Remove geary
+  * Remove lollypop
+  * Remove pitivi
+  * Remove uberwriter
+
+  [ Sakii ]
+  * Add missing Flatpak app icon links
+
+  [ Hokiper ]
+  * Add Kotlin mimetype (#9)
+
+ -- Clement Lefebvre <root@linuxmint.com>  Sun, 16 Jun 2024 12:26:54 +0100
+
+mint-l-icons (1.7.0) wilma; urgency=medium
+
+  * Add element and mintchat
+
+ -- Clement Lefebvre <root@linuxmint.com>  Tue, 23 Apr 2024 11:36:27 +0100
+
+mint-l-icons (1.6.9) wilma; urgency=medium
+
+  * folder-color-switcher: Add missing choice for Yellow
+  * Add a link for org.gnome.FileRoller
+
+ -- Clement Lefebvre <root@linuxmint.com>  Sun, 21 Apr 2024 12:35:02 +0100
+
+mint-l-icons (1.6.8) wilma; urgency=medium
+
+  * Add gnome-online-accounts-gtk
+
+ -- Clement Lefebvre <root@linuxmint.com>  Wed, 27 Mar 2024 17:28:52 +0000
+
+mint-l-icons (1.6.7) virginia; urgency=medium
+
+  * Mint-L: Add missing icons from Adwaita's 'legacy' set.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Thu, 14 Dec 2023 14:05:22 +0000
+
+mint-l-icons (1.6.6) virginia; urgency=medium
+
+  * Add cs-actions
+
+ -- Clement Lefebvre <root@linuxmint.com>  Mon, 27 Nov 2023 13:00:44 +0000
+
+mint-l-icons (1.6.5) victoria; urgency=medium
+
+  [ Michael Webster ]
+  * Add document-new and document-revert color icons.
+  * Add missing 16px fullcolor help icons.
+  * Remove all generic symbolic action icons, and those color icons added in 8777c2a23, 4449605ef.
+  * Add cs-gestures icon.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Sat, 08 Jul 2023 18:39:30 +0200
+
+mint-l-icons (1.6.4) vera; urgency=medium
+
+  [ hduelme ]
+  * General refactoring (#1)
+
+  [ Clement Lefebvre ]
+  * Add definitions for folder-color-switcher
+
+ -- Clement Lefebvre <root@linuxmint.com>  Wed, 03 May 2023 12:27:31 +0100
+
+mint-l-icons (1.6.3) vera; urgency=medium
+
+  * Fix dark themes
+
+ -- Clement Lefebvre <root@linuxmint.com>  Thu, 24 Nov 2022 21:51:09 +0000
+
+mint-l-icons (1.6.2) vanessa; urgency=medium
+
+  * Legacy theme
+
+ -- Clement Lefebvre <root@linuxmint.com>  Wed, 09 Nov 2022 10:00:00 +0100
+
+jobs: Source: mint-l-icons
+Section: gnome
+Priority: optional
+Maintainer: Linux Mint <root@linuxmint.com>
+Build-Depends:
+ debhelper-compat (= 12)
+Standards-Version: 4.5.1
+Rules-Requires-Root: no
+Homepage: https://github.com/linuxmint/mint-l-icons
+
+Package: mint-l-icons
+Breaks: mint-y-icons-legacy
+Replaces: mint-y-icons-legacy
+Architecture: all
+Description: Mint-L icon theme
+ A flat, colorful, and modern theme based on
+ Paper and Moka.
+  build: Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: mint-l-icons
+Upstream-Contact: Linux Mint <root@linuxmint.com>
+Source: https://github.com/linuxmint/mint-l-icons
+
+Files: *
+Copyright: 2010-2014 Linux Mint <root@linuxmint.com>
+License: GPL-3+
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or (at
+ your option) any later version.
+ .
+ This program is distributed in the hope that it will be useful, but
+ WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program. If not, see <http://www.gnu.org/licenses/>.
+ .
+ On Debian systems, the complete text of the GNU General
+ Public License version 3 can be found in "/usr/share/common-licenses/GPL-3".
+
+Files: usr/share/icons/*
+Copyright: 2015 Sam Hewitt <sam@snwh.org>, Alexey Varfolomeev
+License: CC-BY-SA-4
+    runs-on: usr
+    strategy: if [ "$1" = "configure" ] || [ "$1" = "abort-upgrade" ] || [ "$1" = "abort-deconfigure" ] || [ "$1" = "abort-remove" ] ; then
+        if which update-icon-caches >/dev/null 2>&1 ; then
+                update-icon-caches /usr/share/icons/Mint-L /usr/share/icons/Mint-L-Aqua /usr/share/icons/Mint-L-Blue /usr/share/icons/Mint-L-Brown /usr/share/icons/Mint-L-Grey /usr/share/icons/Mint-L-Orange /usr/share/icons/Mint-L-Pink /usr/share/icons/Mint-L-Purple /usr/share/icons/Mint-L-Red /usr/share/icons/Mint-L-Sand /usr/share/icons/Mint-L-Teal /usr/share/icons/Mint-L-Yellow
+                update-icon-caches /usr/share/icons/Mint-L-Dark /usr/share/icons/Mint-L-Dark-Aqua /usr/share/icons/Mint-L-Dark-Blue /usr/share/icons/Mint-L-Dark-Brown /usr/share/icons/Mint-L-Dark-Grey /usr/share/icons/Mint-L-Dark-Orange /usr/share/icons/Mint-L-Dark-Pink /usr/share/icons/Mint-L-Dark-Purple /usr/share/icons/Mint-L-Dark-Red /usr/share/icons/Mint-L-Dark-Sand /usr/share/icons/Mint-L-Dark-Teal /usr/share/icons/Mint-L-Dark-Yellow
+        fi
+fi
+      matrix: #!/usr/bin/make -f
+
+%:
+        dh ${@}
+
+override_dh_builddeb:
+        dh_builddeb -- -Zxz -z9
+        r-version: ['3.6.3', '4.1.1']
+
+    steps: ; *** Inno Setup version 6.1.0+ arabic messages ***
+;
+; Translated by nacer baaziz (nacerstile@gmail.com)
+;   http://www.jrsoftware.org/files/istrans/
+;
+; Note: When translating this text, do not add periods (.) to the end of
+; messages that didn't have them already, because on those messages Inno
+; Setup adds the periods automatically (appending a period would result in
+; two periods being displayed).
+
+[LangOptions]
+; The following three entries are very important. Be sure to read and 
+; understand the '[LangOptions] section' topic in the help file.
+LanguageName=arabic
+LanguageID=$0401
+LanguageCodePage=0
+RightToLeft=yes
+; If the language you are translating to requires special font faces or
+; sizes, uncomment any of the following entries and change them accordingly.
+;DialogFontName=
+;DialogFontSize=8
+;WelcomeFontName=Verdana
+;WelcomeFontSize=12
+;TitleFontName=Arial
+;TitleFontSize=29
+;CopyrightFontName=Arial
+;CopyrightFontSize=8
+
+[Messages]
+
+; *** Application titles
+SetupAppTitle=إعداد
+SetupWindowTitle=إعداد - %1
+UninstallAppTitle=إزالة التثبيت
+UninstallAppFullTitle=إزالة تثبيت %1
+
+; *** Misc. common
+InformationTitle=معلومات
+ConfirmTitle=تأكيد
+ErrorTitle=خطأ
+
+; *** SetupLdr messages
+SetupLdrStartupMessage=هذا المعالج سيقوم بتثبيت %1. هل تريد المتابعة?
+LdrCannotCreateTemp=تعذر إنشاء الملفات المؤقتة, تم فشل معالج التثبيت.
+LdrCannotExecTemp=تعذر تشغيل الملفات من المجلد المؤقت. فشل معالج التثبيت.
+HelpTextNote=
+
+; *** Startup error messages
+LastErrorMessage=%1.%n%n خطأ %2: %3
+SetupFileMissing=الملف %1 مفقود من دليل التثبيت. الرجاء تصحيح المشكلة أو الحصول على نسخة جديدة من البرنامج.
+SetupFileCorrupt=ملفات الإعداد تالفة. الرجاء الحصول على نسخة جديدة من البرنامج.
+SetupFileCorruptOrWrongVer=ملفات الإعداد تالفة أو غير متوافقة مع هذا الإصدار من برنامج الإعداد. الرجاء تصحيح المشكلة أو الحصول على نسخة جديدة من البرنامج.
+InvalidParameter=تم تمرير أوامر غير صالحة على سطر الأوامر : %n%n%1
+SetupAlreadyRunning=برنامج الإعداد قيد التشغيل بالفعل.
+WindowsVersionNotSupported=لا يدعم هذا البرنامج إصدار Windows الذي يعمل به الكمبيوتر.
+WindowsServicePackRequired=هذا البرنامج يتطلب %1 حزمة الخدمة %2 أو أعلى.
+NotOnThisPlatform=لن يتم تشغيل هذا البرنامج على %1.
+OnlyOnThisPlatform=يجب تشغيل هذا البرنامج على %1.
+OnlyOnTheseArchitectures=يمكن تثبيت هذا البرنامج فقط على إصدارات Windows المصممة لهندسة المعالج التالية : %n%n%1
+WinVersionTooLowError=هذا البرنامج يتطلب %1 الإصدار %2 أو أعلى.
+WinVersionTooHighError=لا يمكن تثبيت هذا البرنامج على %1 الإصدار %2 أو أعلى.
+AdminPrivilegesRequired=يجب أن يتم تسجيل دخولك كمسؤول عند تثبيت هذا البرنامج.
+PowerUserPrivilegesRequired=يجب أن يتم تسجيل دخولك كمسؤول أو كعضو في مجموعة Power Users عند تثبيت هذا البرنامج.
+SetupAppRunningError=لقد كشف معالج الإعداد أن  %1 يعمل بالفعل. %n%n يرجى إغلاق كل أجزائه الآن , ثم إضغط حسنا للمتابعة أو إلغاء الأمر للخروج.
+UninstallAppRunningError=كشف معالج إلغاء التثبيت بأن %1 يعمل بالفعل.%n%n يرجى إغلاق كل أجزائه الآن , ثم إضغط حسنا للمتابعة أو إلغاء الأمر للخروج.
+
+; *** Startup questions
+PrivilegesRequiredOverrideTitle=تحديد وضع تثبيت الإعداد
+PrivilegesRequiredOverrideInstruction=تحديد وضع التثبيت
+PrivilegesRequiredOverrideText1=يمكن ل %1 أن يُثَبَّت على جميع المستخدمين (يتطلب إمتيازات المسؤول), أو لك فقط..
+PrivilegesRequiredOverrideText2=.يمكن ل %1  أن يُثَبَّت لك فقط, أو أن يُثَبَّت على جميع المستخدمين (يتطلب إمتيازات المسؤول).
+PrivilegesRequiredOverrideAllUsers=التثبيت ل&كافة المستخدمين
+PrivilegesRequiredOverrideAllUsersRecommended=تثبيت ل&كافة المستخدمين (مستحسن)
+PrivilegesRequiredOverrideCurrentUser=تثبيت لي &فقط
+PrivilegesRequiredOverrideCurrentUserRecommended=تثبيت بالنسبة لي &فقط (مستحسن)
+
+; *** Misc. errors
+ErrorCreatingDir=تعذر على برنامج الإعداد إنشاء الدليل "%1"
+ErrorTooManyFilesInDir=تعذر إنشاء ملف في الدليل  "%1" لأنه يحتوي على ملفات كثيرة جداً
+
+; *** Setup common messages
+ExitSetupTitle=الخروج من معالج التثبيت
+ExitSetupMessage=لم يكتمل الإعداد. إذا قمت بالخروج الآن، لن يتم تثبيت البرنامج.%n%nYou يمكنك تشغيل برنامج الإعداد مرة أخرى في وقت آخر لإكمال التثبيت.%n%n إنهاء الإعداد؟
+AboutSetupMenuItem=&حول الإعداد...
+AboutSetupTitle=حول برنامج الإعداد
+AboutSetupMessage=%1 الإصدار %2%n%3%n%n%1 صفحة الأنترنت:%n%4
+AboutSetupNote=
+TranslatorNote=تم ترجمة المعالج إلى اللغة العربية بواسطة ناصر بعزيز
+
+; *** Buttons
+ButtonBack=< ال&سابق
+ButtonNext=ال&تالي >
+ButtonInstall=&تثبيت
+ButtonOK=&حسنا
+ButtonCancel=إل&غاء الأمر
+ButtonYes=&نعم
+ButtonYesToAll=نعم لل&كل
+ButtonNo=&لا
+ButtonNoToAll=لا &للكل
+ButtonFinish=إ&نهاء
+ButtonBrowse=اس&تعراض...
+ButtonWizardBrowse=اس&تعراض...
+ButtonNewFolder=إن&شاء مجلد جديد
+
+; *** "Select Language" dialog messages
+SelectLanguageTitle=إختر لغة معالج الإعداد
+SelectLanguageLabel=حدد اللغة التي يجب استخدامها أثناء التثبيت.
+
+; *** Common wizard text
+ClickNext=انقر فوق التالي للمتابعة، أو إلغاء الأمر لإنهاء الإعداد.
+BeveledLabel=
+BrowseDialogTitle=تصفح لاختيار مجلد
+BrowseDialogLabel=حدد مجلدًا في القائمة أدناه، ثم انقر فوق حسنا.
+NewFolderName=مجلد جديد
+
+; *** "Welcome" wizard page
+WelcomeLabel1=مرحبا بكم في معالج تثبيت [name]
+WelcomeLabel2=هذا المعالج سيقوم بتثبيت  [name/ver] على جهازك. %n%nمن المستحسن أن تقوم بإغلاق كافة التطبيقات الأخرى قبل المتابعة.
+
+; *** "Password" wizard page
+WizardPassword=كلمة السر
+PasswordLabel1=هذا التثبيت محمي بكلمة سر.
+PasswordLabel3=الرجاء تقديم كلمة المرور، ثم انقر فوق التالي للمتابعة. كلمات المرور حساسة لحالة الأحرف.
+PasswordEditLabel=&كلمة السر:
+IncorrectPassword=كلمة السر التي أدخلتها غير صحيحة. يرجى إعادة المحاولة.
+
+; *** "License Agreement" wizard page
+WizardLicense=اتفاقية الترخيص
+LicenseLabel=يرجى قراءة المعلومات الهامة التالية قبل المتابعة.
+LicenseLabel3=الرجاء قراءة اتفاقية الترخيص التالية. يجب قبول شروط هذه الاتفاقية قبل متابعة التثبيت.
+LicenseAccepted=أنا أواف&ق على هذه الإتفاقية
+LicenseNotAccepted=أنا &لا أوافق على الإتفاقية
+
+; *** "Information" wizard pages
+WizardInfoBefore=معلومات
+InfoBeforeLabel=يرجى قراءة المعلومات الهامة التالية قبل المتابعة.
+InfoBeforeClickLabel=عندما تكون جاهزًا للمتابعة مع الإعداد، انقر فوق التالي.
+WizardInfoAfter=معلومات
+InfoAfterLabel=يرجى قراءة المعلومات الهامة التالية قبل المتابعة.
+InfoAfterClickLabel=عندما تكون جاهزًا للمتابعة مع الإعداد، انقر فوق التالي.
+
+; *** "User Information" wizard page
+WizardUserInfo=معلومات المستخدم
+UserInfoDesc=يرجى إدخال معلوماتك.
+UserInfoName=إسم ال&مستخدم :
+UserInfoOrg=المن&ظمة:
+UserInfoSerial=&الرقم التسلسلي:
+UserInfoNameRequired=يجب إدخال إسم.
+
+; *** "Select Destination Location" wizard page
+WizardSelectDir=تحديد موقع الوِجْهة
+SelectDirDesc=أين يجب تثبيت [name]؟
+SelectDirLabel3=سيقوم معالج التثبيت بتثبيت  [name] في المجلد التالي.
+SelectDirBrowseLabel=للمتابعة، انقر فوق التالي. إذا كنت ترغب في تحديد مجلد آخر، انقر فوق استعراض.
+DiskSpaceGBLabel=تحتاج على الأقل [gb] GB من المساحة لتثبيت البرنامج. 
+DiskSpaceMBLabel=تحتاج على الأقل [mb] MB من المساحة لتثبيت البرنامج.
+CannotInstallToNetworkDrive=يتعذر على برنامج الإعداد التثبيت على محرك أقراص شبكة اتصال.
+CannotInstallToUNCPath=يتعذر على برنامج الإعداد تثبيت مسار UNC.
+InvalidPath=يجب إدخال مسار كامل مع حرف محرك الأقراص; على سبيل المثال: %n%nC:\APP%n%أو مسار UNC في النموذج:%n%n\\server\share
+InvalidDrive=محرك الأقراص أو مشاركة UNC التي حددتها غير موجود أو غير قابل للوصول. الرجاء تحديد آخر.
+DiskSpaceWarningTitle=مساحة القرص غير كافية
+DiskSpaceWarning=Sيتطلب الإعداد على الأقل %1 KB من المساحة الفارغة للتثبيت، ولكن محرك الأقراص المحدد فيه فقط %2 KB متوفرة.%n%nهل تريد المتابعة على أية حال؟
+DirNameTooLong=اسم المجلد أو المسار طويل جداً.
+InvalidDirName=اسم المجلد غير صالح.
+BadDirName32=لا يمكن لأسماء المجلدات تضمين أي من الأحرف التالية:%n%n%1
+DirExistsTitle=المجلد موجود بالفعل
+DirExists=المجلد:%n%n%1%n%n موجود بالفعل. هل ترغب في التثبيت على هذا المجلد على أي حال؟
+DirDoesntExistTitle=المجلد غير موجود
+DirDoesntExist=المجلد:%n%n%1%n%nغير موجود. هل تريد إنشاء المجلد؟
+
+; *** "Select Components" wizard page
+WizardSelectComponents=تحديد المكونات
+SelectComponentsDesc=ما هي المكونات التي يجب تثبيتها؟
+SelectComponentsLabel2=حدد المكونات التي تريد تثبيتها ؛ امسح المكونات التي لا تريد تثبيتها. انقر فوق "التالي" عندما تكون مستعدًا للمتابعة.
+FullInstallation=تثبيت كامل
+; if possible don't translate 'Compact' as 'Minimal' (I mean 'Minimal' in your language)
+CompactInstallation=تثبيت مدمج
+CustomInstallation=تثبيت مخصص
+NoUninstallWarningTitle=مكونات موجودة
+NoUninstallWarning=اكتشف برنامج الإعداد أن المكونات التالية مثبتة بالفعل على جهاز الكمبيوتر الخاص بك: %n%n%1%n%nلن يؤدي إلغاء تحديد هذه المكونات إلى إزالة تثبيتها.%n%nهل ترغب في الاستمرار على أي حال?
+ComponentSize1=%1 KB
+ComponentSize2=%1 MB
+ComponentsDiskSpaceGBLabel=الاختيار الحالي يتطلب على الأقل [gb] GB من مساحة القرص.
+ComponentsDiskSpaceMBLabel=الاختيار الحالي يتطلب على الأقل [mb] MB من مساحة القرص.
+
+; *** "Select Additional Tasks" wizard page
+WizardSelectTasks=حدد المهام الإضافية
+SelectTasksDesc=ما المهام الإضافية التي ينبغي تنفيذها؟
+SelectTasksLabel2=حدد المهام الإضافية التي ترغب في أن يقوم الإعداد بتنفيذها أثناء تثبيت [name], ثم إضغط التالي.
+
+; *** "Select Start Menu Folder" wizard page
+WizardSelectProgramGroup=حدد مجلد قائمة ابدأ
+SelectStartMenuFolderDesc=أين يجب أن يضع الإعداد اختصارات البرنامج؟
+SelectStartMenuFolderLabel3=سيقوم برنامج الإعداد بإنشاء اختصارات البرنامج في مجلد قائمة ابدأ التالية.
+SelectStartMenuFolderBrowseLabel=للمتابعة، انقر فوق التالي. إذا كنت ترغب في تحديد مجلد آخر، انقر فوق استعراض.
+MustEnterGroupName=يجب إدخال اسم مجلد.
+GroupNameTooLong=اسم المجلد أو المسار طويل جداً.
+InvalidGroupName=اسم المجلد غير صالح.
+BadGroupName=لا يمكن أن يتضمن اسم المجلد أي من الأحرف التالية:%n%n%1
+NoProgramGroupCheck2=&عدم إنشاء مجلد قائمة ابدأ
+
+; *** "Ready to Install" wizard page
+WizardReady=جاهز للتثبيت
+ReadyLabel1=الإعداد جاهز الآن لبدء تثبيت [name] على جهازك.
+ReadyLabel2a=انقر فوق تثبيت لمتابعة التثبيت، أو انقر فوق "السابق" إذا كنت ترغب في مراجعة أو تغيير أية إعدادات.
+ReadyLabel2b=انقر فوق تثبيت لمتابعة التثبيت.
+ReadyMemoUserInfo=معلومات المستخدم:
+ReadyMemoDir=مسار الوِجْهة:
+ReadyMemoType=نوع الإعداد:
+ReadyMemoComponents=المكونات المحددة:
+ReadyMemoGroup=مجلد قائمة ابدأ:
+ReadyMemoTasks=مهام إضافية:
+
+; *** TDownloadWizardPage wizard page and DownloadTemporaryFile
+DownloadingLabel=تحميل الملفات الإضافية...
+ButtonStopDownload=إي&قاف التحميل
+StopDownload=هل أنت متأكد من أنك ترغب في إيقاف التحميل؟
+ErrorDownloadAborted=تم إلغاء التحميل
+ErrorDownloadFailed=فشل التحميل: %1 %2
+ErrorDownloadSizeFailed=خطأ في قراءة الحجم: %1 %2
+ErrorFileHash1=خطأ في قراءة الهاش الخاص بالملف: %1
+ErrorFileHash2=خطأ في هاش الملف: كان من المتوقع أن يكن : %1, بينما تم إيجاد : %2
+ErrorProgress=خطأ في الحصول على نسبة التقدم: %1 من %2
+ErrorFileSize=خطأ في حجم الملف: المتوقع هو : %1, الحجم الذي وجدناه هو : %2
+
+; *** "Preparing to Install" wizard page
+WizardPreparing=التحضير للتثبيت
+PreparingDesc=الإعداد يستعد لتثبيت [name] على جهازك.
+PreviousInstallNotCompleted=لم يكتمل التثبيت / إزالة البرنامج السابق. ستحتاج إلى إعادة تشغيل الكمبيوتر لإكمال هذا التثبيت.%n%nبعد إعادة تشغيل جهاز الكمبيوتر الخاص بك ، شغّل برنامج الإعداد مرة أخرى لإكمال تثبيت [name].
+CannotContinue=لا يمكن لبرنامج الإعداد المتابعة. يرجى النقر فوق "إلغاء" للخروج.
+ApplicationsFound=تستخدم التطبيقات التالية الملفات التي تحتاج إلى تحديث بواسطة برنامج الإعداد. يوصى بالسماح لبرنامج الإعداد بإغلاق هذه التطبيقات تلقائيًا.
+ApplicationsFound2=تستخدم التطبيقات التالية الملفات التي تحتاج إلى تحديث بواسطة برنامج الإعداد. يوصى بالسماح لبرنامج الإعداد بإغلاق هذه التطبيقات تلقائيًا. بعد اكتمال التثبيت ، سيحاول برنامج الإعداد إعادة تشغيل التطبيقات.
+CloseApplications=أغلق التطبيقات &تلقائيًا
+DontCloseApplications=&لا تغلق التطبيقات
+ErrorCloseApplications=لم يتمكن الإعداد من إغلاق جميع التطبيقات تلقائيًا. يوصى بإغلاق جميع التطبيقات التي تستخدم الملفات التي تحتاج إلى تحديث بواسطة برنامج الإعداد قبل المتابعة.
+PrepareToInstallNeedsRestart=برنامج الإعداد يجب أن يقوم بإعادة تشغيل الجهاز. بعد إعادة تشغيل جهازك, قم بتشغيل برنامج الإعداد مرة أخرى لإكمال تثبيت [name].%n%nهل تحب إعادة التشغيل الآن?
+
+; *** "Installing" wizard page
+WizardInstalling=جاري التثبيت
+InstallingLabel=يرجى الانتظار حتى يقوم برنامج الإعداد بتثبي [name] على جهازك.
+
+; *** "Setup Completed" wizard page
+FinishedHeadingLabel=إنهاء معالج تثبيت [name]
+FinishedLabelNoIcons=إكتمل معالج التثبيت من تثبيت [name] على جهازك.
+FinishedLabel=اكتمل معالج التثبيت من تثبيت [name] على جهازك. قد يتم تشغيل التطبيق عن طريق تحديد الاختصارات المثبتة.
+ClickFinish=إضغط إنهاء للخروج من معالج التثبيت
+FinishedRestartLabel=لاستكمال تثبيت [name], يجب على برنامج الإعداد إعادة تشغيل جهاز الكمبيوتر الخاص بك. هل ترغب في إعادة التشغيل الآن؟
+FinishedRestartMessage=لاستكمال تثبيت [name], يجب على برنامج الإعداد إعادة تشغيل جهاز الكمبيوتر الخاص بك.%n%nهل ترغب في إعادة التشغيل الآن؟
+ShowReadmeCheck=نعم ، أرغب عرض ملف README
+YesRadio=&نعم أعد تشغيل الكومبيوتر الان
+NoRadio=&لا ، سأعيد تشغيل الكمبيوتر لاحقًا
+; used for example as 'Run MyProg.exe'
+RunEntryExec=تشغيل %1
+; used for example as 'View Readme.txt'
+RunEntryShellExec=عرض %1
+
+; *** "Setup Needs the Next Disk" stuff
+ChangeDiskTitle=يحتاج برنامج الإعداد إلى القرص التالي
+SelectDiskLabel2=الرجاء إدراج القرص %1 وانقر فوق حسنا.%n%nإذا كان يمكن العثور على الملفات الموجودة على هذا القرص في مجلد غير الذي يظهر أدناه، أدخل المسار الصحيح أو انقر فوق استعراض.
+PathLabel=&مسار :
+FileNotInDir2=لم نتمكن من العثور على الملف "%1" في "%2". الرجاء إدراج القرص الصحيح أو تحديد مجلد آخر.
+SelectDirectoryLabel=الرجاء تحديد موقع القرص التالي.
+
+; *** Installation phase messages
+SetupAborted=لم يتم إكمال الإعداد. %n%nالرجاء تصحيح المشكلة وتشغيل الإعداد مرة أخرى.
+AbortRetryIgnoreSelectAction=حدد إجراء
+AbortRetryIgnoreRetry=أ&عد مجددا
+AbortRetryIgnoreIgnore=&تجاهل الخطأ والمتابعة
+AbortRetryIgnoreCancel=إلغاء التثبيت
+
+; *** Installation status messages
+StatusClosingApplications=إغلاق التطبيقات...
+StatusCreateDirs=إنشاء المجلدات...
+StatusExtractFiles=استخراج الملفات...
+StatusCreateIcons=إنشاء الإختصارات...
+StatusCreateIniEntries=إنشاء مدخلات INI...
+StatusCreateRegistryEntries=إنشاء مفاتيح السجل...
+StatusRegisterFiles=تسجيل الملفات...
+StatusSavingUninstall=تسجيل معلومات إزالة التثبيت...
+StatusRunProgram=الإنتهاء من التثبيت...
+StatusRestartingApplications=إعادة تشغيل التطبيقات...
+StatusRollback=التراجع عن التغييرات...
+
+; *** Misc. errors
+ErrorInternal2=خطأ داخلي: %1
+ErrorFunctionFailedNoCode=فشل %1
+ErrorFunctionFailed=فشل %1; رقم الخطء %2
+ErrorFunctionFailedWithMessage=فشل %1; رقم الخطء %2.%n%3
+ErrorExecutingProgram=الإعداد غير قابل على تشغيل الملف:%n%1
+
+; *** Registry errors
+ErrorRegOpenKey=خطأ في فتح مفتاح التسجيل:%n%1\%2
+ErrorRegCreateKey=خطأ في إنشاء مفتاح التسجيل:%n%1\%2
+ErrorRegWriteKey=خطأ في الكتابة على مفتاح التسجيل:%n%1\%2
+
+; *** INI errors
+ErrorIniEntry=حدث خطأ في إنشاء إدخال INI في الملف "%1".
+
+; *** File copying errors
+FileAbortRetryIgnoreSkipNotRecommended=&تخطي هذا الملف (غير مستحسن)
+FileAbortRetryIgnoreIgnoreNotRecommended=&تجاهل الخطأ والمتابعة (غير مستحسن)
+SourceIsCorrupted=الملف المصدر تالف
+SourceDoesntExist=الملف "%1"غير موجود
+ExistingFileReadOnly2=تعذر استبدال الملف الموجود لأنه تم وضع علامة للقراءة فقط.
+ExistingFileReadOnlyRetry=&أزل القراءة فقط عن الملفات ثم حاول مرة أخرى
+ExistingFileReadOnlyKeepExisting=&إحتفظ بالملفات الموجودة
+ErrorReadingExistingDest=حدث خطأ أثناء محاولة قراءة الملف الموجود:
+FileExistsSelectAction=اختر إجراء
+FileExists2=الملف موجود بالفعل.
+FileExistsOverwriteExisting=&استبدال الملف الموجود
+FileExistsKeepExisting=ا&بقاء الملف الموجود
+FileExistsOverwriteOrKeepAll=ا&فعل هذا للنزاعات القادمة
+ExistingFileNewerSelectAction=اختر إجراء
+ExistingFileNewer2=الملف الموجود أحدث من الملف الذي سيقوم معالج الإعداد بتثبيته.
+ExistingFileNewerOverwriteExisting=&&استبدال الملف الموجود
+ExistingFileNewerKeepExisting=ال&ابقاء على الملف الموجود (مستحسن)
+ExistingFileNewerOverwriteOrKeepAll=ا&فعل هذا مع النزاعات القادمة
+ErrorChangingAttr=حدث خطأ أثناء محاولة تغيير سمات الملف الموجود:
+ErrorCreatingTemp=حدث خطأ أثناء محاولة إنشاء ملف في الدليل الوجهة:
+ErrorReadingSource=حدث خطأ أثناء محاولة قراءة ملف مصدر:
+ErrorCopying=حدث خطأ أثناء محاولة نسخ ملف:
+ErrorReplacingExistingFile=حدث خطأ أثناء محاولة استبدال الملف الموجود:
+ErrorRestartReplace=فشل إعادة تشغيل "استبدال":
+ErrorRenamingTemp=حدث خطأ أثناء محاولة إعادة تسمية ملف في الدليل الوجهة:
+ErrorRegisterServer=تعذر تسجيل ملفات DLL/OCX: %1
+ErrorRegSvr32Failed=فشل RegSvr32 مع رمز الخروج %1
+ErrorRegisterTypeLib=الإعداد غير قادر على تسجيل مكتبة النوع: %1
+
+; *** Uninstall display name markings
+; used for example as 'My Program (32-bit)'
+UninstallDisplayNameMark=%1 (%2)
+; used for example as 'My Program (32-bit, All users)'
+UninstallDisplayNameMarks=%1 (%2, %3)
+UninstallDisplayNameMark32Bit=32-bit
+UninstallDisplayNameMark64Bit=64-bit
+UninstallDisplayNameMarkAllUsers=كافة المستخدمين
+UninstallDisplayNameMarkCurrentUser=المستخدم الحالي
+
+; *** Post-installation errors
+ErrorOpeningReadme=حدث خطأ أثناء محاولة فتح ملف إقرأني.
+ErrorRestartingComputer=لم يتمكن برنامج الإعداد من إعادة تشغيل الكمبيوتر. الرجاء القيام بذلك يدوياً.
+
+; *** Uninstaller messages
+UninstallNotFound=الملف "%1" غير موجود. لا يمكن إزالة التثبيت.
+UninstallOpenError=تعذر فتح "%1". لا يمكن إزالة التثبيت.
+UninstallUnsupportedVer=ملف سجل الإزالة "%1" في تنسيق غير معروف من قبل هذا الإصدار من برنامج إلغاء التثبيت. لا يمكن إزالة التثبيت
+UninstallUnknownEntry=إدخال غير معروف (%1) تمت مصادفة في سجل إلغاء التثبيت
+ConfirmUninstall=هل أنت متأكد من أنك تريد إزالة %1 تماما, وجميع مكوناته?
+UninstallOnlyOnWin64=يمكن إلغاء تثبيت هذا التثبيت على Windows 64-بت فقط.
+OnlyAdminCanUninstall=يمكن إلغاء تثبيت هذا التثبيت فقط من قبل مستخدم له امتيازات إدارية.
+UninstallStatusLabel=يرجى الإنتظار ريت ما يتم إزالة تثبيت %1 من جهازك.
+UninstalledAll=تم إزالة %1 تماما من جهازك بنجاح.
+UninstalledMost=اكتمل إزالة %1.%n%nتعذر إزالة بعض العناصر. يمكن إزالة هذه يدوياً.
+UninstalledAndNeedsRestart=لإكمال إلغاء تثبيت %1, يجب إعادة تشغيل الكمبيوتر.%n%nهل تريد إعادة تشغيل الآن؟
+UninstallDataCorrupted=الملف "%1" تالف. لا يمكن إزالة التثبيت
+
+; *** Uninstallation phase messages
+ConfirmDeleteSharedFileTitle=إزالة ملف مشترك؟
+ConfirmDeleteSharedFile2=يشير النظام إلى أن الملف المشترك التالي لم يعد في الاستخدام من قبل أي برامج. هل ترغب في أن يقوم إلغاء التثبيت بإزالة هذا الملف المشترك?%n%nإذا كانت أية برامج لا تزال تستخدم هذا الملف وتتم إزالته، قد لا تعمل هذه البرامج بشكل صحيح. إذا كنت غير متأكد، اختر لا. ترك الملف على النظام الخاص بك لن يسبب أي ضرر.
+SharedFileNameLabel=اسم الملف:
+SharedFileLocationLabel=الموقع :
+WizardUninstalling=حالة إزالة التثبيت
+StatusUninstalling=جاري إزالة تثبيت %1...
+
+; *** Shutdown block reasons
+ShutdownBlockReasonInstallingApp=جاري تثبيت %1.
+ShutdownBlockReasonUninstallingApp=جاري تثبيت %1.
+
+; The custom messages below aren't used by Setup itself, but if you make
+; use of them in your scripts, you'll want to translate them.
+
+[CustomMessages]
+
+NameAndVersion=%1 الإصدار %2
+AdditionalIcons=اختصارات إضافية:
+CreateDesktopIcon=إنشاء اختصار في &سطح المكتب
+CreateQuickLaunchIcon=إنشاء اختصار "الت&شغيل السريع"
+ProgramOnTheWeb=%1 على الأنترنت
+UninstallProgram=إزالة تثبيت %1
+LaunchProgram=تشغيل %1
+AssocFileExtension=اربط %1 مع صيغة ملف %2
+AssocingFileExtension=جاري ربط %1 مع صيغة ملف %2
+AutoStartProgramGroupDescription=بدأ التشغيل:
+AutoStartProgram=تشغيل %1 تلقائيا
+AddonHostProgramNotFound= تعذر العثور على %1 في الموقع الذي إخترته.%n%nهل تريد المتابعة على أية حال؟
+      - uses: ; *** Inno Setup version 6.1.0+ Chinese Simplified messages ***
+;
+; To download user-contributed translations of this file, go to:
+;   https://jrsoftware.org/files/istrans/
+;
+; Note: When translating this text, do not add periods (.) to the end of
+; messages that didn't have them already, because on those messages Inno
+; Setup adds the periods automatically (appending a period would result in
+; two periods being displayed).
+;
+; Maintained by Zhenghan Yang
+; Email: 847320916@QQ.com
+; Translation based on network resource
+; The latest Translation is on https://github.com/kira-96/Inno-Setup-Chinese-Simplified-Translation
+;
+
+[LangOptions]
+; The following three entries are very important. Be sure to read and 
+; understand the '[LangOptions] section' topic in the help file.
+LanguageName=简体中文
+; If Language Name display incorrect, uncomment next line
+; LanguageName=<7B80><4F53><4E2D><6587>
+; About LanguageID, to reference link:
+; https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-lcid/a9eac961-e77d-41a6-90a5-ce1a8b0cdb9c
+LanguageID=$0804
+LanguageCodePage=936
+; If the language you are translating to requires special font faces or
+; sizes, uncomment any of the following entries and change them accordingly.
+;DialogFontName=
+;DialogFontSize=8
+;WelcomeFontName=Verdana
+;WelcomeFontSize=12
+;TitleFontName=Arial
+;TitleFontSize=29
+;CopyrightFontName=Arial
+;CopyrightFontSize=8
+
+[Messages]
+
+; *** 应用程序标题
+SetupAppTitle=安装
+SetupWindowTitle=安装 - %1
+UninstallAppTitle=卸载
+UninstallAppFullTitle=%1 卸载
+
+; *** Misc. common
+InformationTitle=信息
+ConfirmTitle=确认
+ErrorTitle=错误
+
+; *** SetupLdr messages
+SetupLdrStartupMessage=现在将安装 %1。您想要继续吗？
+LdrCannotCreateTemp=不能创建临时文件。安装中断。
+LdrCannotExecTemp=不能执行临时目录中的文件。安装中断。
+HelpTextNote=
+
+; *** 启动错误消息
+LastErrorMessage=%1.%n%n错误 %2: %3
+SetupFileMissing=安装目录中的文件 %1 丢失。请修正这个问题或者获取程序的新副本。
+SetupFileCorrupt=安装文件已损坏。请获取程序的新副本。
+SetupFileCorruptOrWrongVer=安装文件已损坏，或是与这个安装程序的版本不兼容。请修正这个问题或获取新的程序副本。
+InvalidParameter=无效的命令行参数：%n%n%1
+SetupAlreadyRunning=安装程序正在运行。
+WindowsVersionNotSupported=这个程序不支持当前计算机运行的Windows版本。
+WindowsServicePackRequired=这个程序需要 %1 服务包 %2 或更高。
+NotOnThisPlatform=这个程序将不能运行于 %1。
+OnlyOnThisPlatform=这个程序必须运行于 %1。
+OnlyOnTheseArchitectures=这个程序只能在为下列处理器结构设计的Windows版本中进行安装：%n%n%1
+WinVersionTooLowError=这个程序需要 %1 版本 %2 或更高。
+WinVersionTooHighError=这个程序不能安装于 %1 版本 %2 或更高。
+AdminPrivilegesRequired=在安装这个程序时您必须以管理员身份登录。
+PowerUserPrivilegesRequired=在安装这个程序时您必须以管理员身份或有权限的用户组身份登录。
+SetupAppRunningError=安装程序发现 %1 当前正在运行。%n%n请先关闭所有运行的窗口，然后点击“确定”继续，或按“取消”退出。
+UninstallAppRunningError=卸载程序发现 %1 当前正在运行。%n%n请先关闭所有运行的窗口，然后点击“确定”继续，或按“取消”退出。
+
+; *** 启动问题
+PrivilegesRequiredOverrideTitle=选择安装程序模式
+PrivilegesRequiredOverrideInstruction=选择安装模式
+PrivilegesRequiredOverrideText1=%1 可以为所有用户安装(需要管理员权限)，或仅为您安装。
+PrivilegesRequiredOverrideText2=%1 只能为您安装，或为所有用户安装(需要管理员权限)。
+PrivilegesRequiredOverrideAllUsers=为所有用户安装(&A)
+PrivilegesRequiredOverrideAllUsersRecommended=为所有用户安装(&A) (建议选项)
+PrivilegesRequiredOverrideCurrentUser=只为我安装(&M)
+PrivilegesRequiredOverrideCurrentUserRecommended=只为我安装(&M) (建议选项)
+
+; *** 其它错误
+ErrorCreatingDir=安装程序不能创建目录“%1”。
+ErrorTooManyFilesInDir=不能在目录“%1”中创建文件，因为里面的文件太多
+
+; *** 安装程序公共消息
+ExitSetupTitle=退出安装程序
+ExitSetupMessage=安装程序还未完成安装。如果您现在退出，程序将不能安装。%n%n您可以以后再运行安装程序完成安装。%n%n现在退出安装程序吗？
+AboutSetupMenuItem=关于安装程序(&A)...
+AboutSetupTitle=关于安装程序
+AboutSetupMessage=%1 版本 %2%n%3%n%n%1 主页：%n%4
+AboutSetupNote=
+TranslatorNote=
+
+; *** 按钮
+ButtonBack=< 上一步(&B)
+ButtonNext=下一步(&N) >
+ButtonInstall=安装(&I)
+ButtonOK=确定
+ButtonCancel=取消
+ButtonYes=是(&Y)
+ButtonYesToAll=全是(&A)
+ButtonNo=否(&N)
+ButtonNoToAll=全否(&O)
+ButtonFinish=完成(&F)
+ButtonBrowse=浏览(&B)...
+ButtonWizardBrowse=浏览(&R)...
+ButtonNewFolder=新建文件夹(&M)
+
+; *** “选择语言”对话框消息
+SelectLanguageTitle=选择安装语言
+SelectLanguageLabel=选择安装时要使用的语言。
+
+; *** 公共向导文字
+ClickNext=点击“下一步”继续，或点击“取消”退出安装程序。
+BeveledLabel=
+BrowseDialogTitle=浏览文件夹
+BrowseDialogLabel=在下列列表中选择一个文件夹，然后点击“确定”。
+NewFolderName=新建文件夹
+
+; *** “欢迎”向导页
+WelcomeLabel1=欢迎使用 [name] 安装向导
+WelcomeLabel2=现在将安装 [name/ver] 到您的电脑中。%n%n推荐您在继续安装前关闭所有其它应用程序。
+
+; *** “密码”向导页
+WizardPassword=密码
+PasswordLabel1=这个安装程序有密码保护。
+PasswordLabel3=请输入密码，然后点击“下一步”继续。密码区分大小写。
+PasswordEditLabel=密码(&P)：
+IncorrectPassword=您所输入的密码不正确，请重试。
+
+; *** “许可协议”向导页
+WizardLicense=许可协议
+LicenseLabel=继续安装前请阅读下列重要信息。
+LicenseLabel3=请仔细阅读下列许可协议。您在继续安装前必须同意这些协议条款。
+LicenseAccepted=我同意此协议(&A)
+LicenseNotAccepted=我不同意此协议(&D)
+
+; *** “信息”向导页
+WizardInfoBefore=信息
+InfoBeforeLabel=请在继续安装前阅读下列重要信息。
+InfoBeforeClickLabel=如果您想继续安装，点击“下一步”。
+WizardInfoAfter=信息
+InfoAfterLabel=请在继续安装前阅读下列重要信息。
+InfoAfterClickLabel=如果您想继续安装，点击“下一步”。
+
+; *** “用户信息”向导页
+WizardUserInfo=用户信息
+UserInfoDesc=请输入您的信息。
+UserInfoName=用户名(&U)：
+UserInfoOrg=组织(&O)：
+UserInfoSerial=序列号(&S)：
+UserInfoNameRequired=您必须输入用户名。
+
+; *** “选择目标目录”向导页
+WizardSelectDir=选择目标位置
+SelectDirDesc=您想将 [name] 安装在哪里？
+SelectDirLabel3=安装程序将安装 [name] 到下列文件夹中。
+SelectDirBrowseLabel=点击“下一步”继续。如果您想选择其它文件夹，点击“浏览”。
+DiskSpaceGBLabel=至少需要有 [gb] GB 的可用磁盘空间。
+DiskSpaceMBLabel=至少需要有 [mb] MB 的可用磁盘空间。
+CannotInstallToNetworkDrive=安装程序无法安装到一个网络驱动器。
+CannotInstallToUNCPath=安装程序无法安装到一个UNC路径。
+InvalidPath=您必须输入一个带驱动器卷标的完整路径，例如：%n%nC:\APP%n%n或下列形式的UNC路径：%n%n\\server\share
+InvalidDrive=您选定的驱动器或 UNC 共享不存在或不能访问。请选选择其它位置。
+DiskSpaceWarningTitle=没有足够的磁盘空间
+DiskSpaceWarning=安装程序至少需要 %1 KB 的可用空间才能安装，但选定驱动器只有 %2 KB 的可用空间。%n%n您一定要继续吗？
+DirNameTooLong=文件夹名称或路径太长。
+InvalidDirName=文件夹名称无效。
+BadDirName32=文件夹名称不能包含下列任何字符：%n%n%1
+DirExistsTitle=文件夹已存在
+DirExists=文件夹：%n%n%1%n%n已经存在。您一定要安装到这个文件夹中吗？
+DirDoesntExistTitle=文件夹不存在
+DirDoesntExist=文件夹：%n%n%1%n%n不存在。您想要创建此文件夹吗？
+
+; *** “选择组件”向导页
+WizardSelectComponents=选择组件
+SelectComponentsDesc=您想安装哪些程序的组件？
+SelectComponentsLabel2=选择您想要安装的组件；清除您不想安装的组件。然后点击“下一步”继续。
+FullInstallation=完全安装
+; if possible don't translate 'Compact' as 'Minimal' (I mean 'Minimal' in your language)
+CompactInstallation=简洁安装
+CustomInstallation=自定义安装
+NoUninstallWarningTitle=组件已存在
+NoUninstallWarning=安装程序检测到下列组件已在您的电脑中安装：%n%n%1%n%n取消选定这些组件将不能卸载它们。%n%n您一定要继续吗？
+ComponentSize1=%1 KB
+ComponentSize2=%1 MB
+ComponentsDiskSpaceGBLabel=当前选择的组件至少需要 [gb] GB 的磁盘空间。
+ComponentsDiskSpaceMBLabel=当前选择的组件至少需要 [mb] MB 的磁盘空间。
+
+; *** “选择附加任务”向导页
+WizardSelectTasks=选择附加任务
+SelectTasksDesc=您想要安装程序执行哪些附加任务？
+SelectTasksLabel2=选择您想要安装程序在安装 [name] 时执行的附加任务，然后点击“下一步”。
+
+; *** “选择开始菜单文件夹”向导页
+WizardSelectProgramGroup=选择开始菜单文件夹
+SelectStartMenuFolderDesc=安装程序应该在哪里放置程序的快捷方式？
+SelectStartMenuFolderLabel3=安装程序现在将在下列开始菜单文件夹中创建程序的快捷方式。
+SelectStartMenuFolderBrowseLabel=点击“下一步”继续。如果您想选择其它文件夹，点击“浏览”。
+MustEnterGroupName=您必须输入一个文件夹名。
+GroupNameTooLong=文件夹名或路径太长。
+InvalidGroupName=文件夹名是无效的。
+BadGroupName=文件夹名不能包含下列任何字符：%n%n%1
+NoProgramGroupCheck2=不创建开始菜单文件夹(&D)
+
+; *** “准备安装”向导页
+WizardReady=准备安装
+ReadyLabel1=安装程序现在准备开始安装 [name] 到您的电脑中。
+ReadyLabel2a=点击“安装”继续此安装程序。如果您想要回顾或修改设置，请点击“上一步”。
+ReadyLabel2b=点击“安装”继续此安装程序？
+ReadyMemoUserInfo=用户信息：
+ReadyMemoDir=目标位置：
+ReadyMemoType=安装类型：
+ReadyMemoComponents=选定组件：
+ReadyMemoGroup=开始菜单文件夹：
+ReadyMemoTasks=附加任务：
+
+; *** TDownloadWizardPage wizard page and DownloadTemporaryFile
+DownloadingLabel=正在下载附加文件...
+ButtonStopDownload=停止下载(&S)
+StopDownload=您确定要停止下载吗？
+ErrorDownloadAborted=下载已中止
+ErrorDownloadFailed=下载失败：%1 %2
+ErrorDownloadSizeFailed=获取下载大小失败：%1 %2
+ErrorFileHash1=校验文件哈希失败：%1
+ErrorFileHash2=无效的文件哈希：预期 %1，实际 %2
+ErrorProgress=无效的进度：%1，总共%2
+ErrorFileSize=文件大小错误：预期 %1，实际 %2
+
+; *** “正在准备安装”向导页
+WizardPreparing=正在准备安装
+PreparingDesc=安装程序正在准备安装 [name] 到您的电脑中。
+PreviousInstallNotCompleted=先前程序的安装/卸载未完成。您需要重新启动您的电脑才能完成安装。%n%n在重新启动电脑后，再运行安装完成 [name] 的安装。
+CannotContinue=安装程序不能继续。请点击“取消”退出。
+ApplicationsFound=下列应用程序正在使用的文件需要更新设置。它是建议您允许安装程序自动关闭这些应用程序。
+ApplicationsFound2=下列应用程序正在使用的文件需要更新设置。它是建议您允许安装程序自动关闭这些应用程序。安装完成后，安装程序将尝试重新启动应用程序。
+CloseApplications=自动关闭该应用程序(&A)
+DontCloseApplications=不要关闭该应用程序(&D)
+ErrorCloseApplications=安装程序无法自动关闭所有应用程序。在继续之前，我们建议您关闭所有使用需要更新的安装程序文件。
+PrepareToInstallNeedsRestart=安装程序必须重新启动计算机。重新启动计算机后，请再次运行安装程序以完成 [name] 的安装。%n%n是否立即重新启动？
+
+; *** “正在安装”向导页
+WizardInstalling=正在安装
+InstallingLabel=安装程序正在安装 [name] 到您的电脑中，请稍等。
+
+; *** “安装完成”向导页
+FinishedHeadingLabel=[name] 安装完成
+FinishedLabelNoIcons=安装程序已在您的电脑中安装了 [name]。
+FinishedLabel=安装程序已在您的电脑中安装了 [name]。此应用程序可以通过选择安装的快捷方式运行。
+ClickFinish=点击“完成”退出安装程序。
+FinishedRestartLabel=要完成 [name] 的安装，安装程序必须重新启动您的电脑。您想要立即重新启动吗？
+FinishedRestartMessage=要完成 [name] 的安装，安装程序必须重新启动您的电脑。%n%n您想要立即重新启动吗？
+ShowReadmeCheck=是，我想查阅自述文件
+YesRadio=是，立即重新启动电脑(&Y)
+NoRadio=否，稍后重新启动电脑(&N)
+; used for example as 'Run MyProg.exe'
+RunEntryExec=运行 %1
+; used for example as 'View Readme.txt'
+RunEntryShellExec=查阅 %1
+
+; *** “安装程序需要下一张磁盘”提示
+ChangeDiskTitle=安装程序需要下一张磁盘
+SelectDiskLabel2=请插入磁盘 %1 并点击“确定”。%n%n如果这个磁盘中的文件可以在下列文件夹之外的文件夹中找到，请输入正确的路径或点击“浏览”。
+PathLabel=路径(&P)：
+FileNotInDir2=文件“%1”不能在“%2”定位。请插入正确的磁盘或选择其它文件夹。
+SelectDirectoryLabel=请指定下一张磁盘的位置。
+
+; *** 安装状态消息
+SetupAborted=安装程序未完成安装。%n%n请修正这个问题并重新运行安装程序。
+AbortRetryIgnoreSelectAction=选择操作
+AbortRetryIgnoreRetry=重试(&T)
+AbortRetryIgnoreIgnore=忽略错误并继续(&I)
+AbortRetryIgnoreCancel=关闭安装程序
+
+; *** 安装状态消息
+StatusClosingApplications=正在关闭应用程序...
+StatusCreateDirs=正在创建目录...
+StatusExtractFiles=正在解压缩文件...
+StatusCreateIcons=正在创建快捷方式...
+StatusCreateIniEntries=正在创建 INI 条目...
+StatusCreateRegistryEntries=正在创建注册表条目...
+StatusRegisterFiles=正在注册文件...
+StatusSavingUninstall=正在保存卸载信息...
+StatusRunProgram=正在完成安装...
+StatusRestartingApplications=正在重启应用程序...
+StatusRollback=正在撤销更改...
+
+; *** 其它错误
+ErrorInternal2=内部错误：%1
+ErrorFunctionFailedNoCode=%1 失败
+ErrorFunctionFailed=%1 失败；错误代码 %2
+ErrorFunctionFailedWithMessage=%1 失败；错误代码 %2.%n%3
+ErrorExecutingProgram=不能执行文件：%n%1
+
+; *** 注册表错误
+ErrorRegOpenKey=打开注册表项时出错：%n%1\%2
+ErrorRegCreateKey=创建注册表项时出错：%n%1\%2
+ErrorRegWriteKey=写入注册表项时出错：%n%1\%2
+
+; *** INI 错误
+ErrorIniEntry=在文件“%1”中创建INI条目时出错。
+
+; *** 文件复制错误
+FileAbortRetryIgnoreSkipNotRecommended=跳过这个文件(&S) (不推荐)
+FileAbortRetryIgnoreIgnoreNotRecommended=忽略错误并继续(&I) (不推荐)
+SourceIsCorrupted=源文件已损坏
+SourceDoesntExist=源文件“%1”不存在
+ExistingFileReadOnly2=无法替换现有文件，因为它是只读的。
+ExistingFileReadOnlyRetry=移除只读属性并重试(&R)
+ExistingFileReadOnlyKeepExisting=保留现有文件(&K)
+ErrorReadingExistingDest=尝试读取现有文件时出错：
+FileExistsSelectAction=选择操作
+FileExists2=文件已经存在。
+FileExistsOverwriteExisting=覆盖已经存在的文件(&O)
+FileExistsKeepExisting=保留现有的文件(&K)
+FileExistsOverwriteOrKeepAll=为所有的冲突文件执行此操作(&D)
+ExistingFileNewerSelectAction=选择操作
+ExistingFileNewer2=现有的文件比安装程序将要安装的文件更新。
+ExistingFileNewerOverwriteExisting=覆盖已经存在的文件(&O)
+ExistingFileNewerKeepExisting=保留现有的文件(&K) (推荐)
+ExistingFileNewerOverwriteOrKeepAll=为所有的冲突文件执行此操作(&D)
+ErrorChangingAttr=尝试改变下列现有的文件的属性时出错：
+ErrorCreatingTemp=尝试在目标目录创建文件时出错：
+ErrorReadingSource=尝试读取下列源文件时出错：
+ErrorCopying=尝试复制下列文件时出错：
+ErrorReplacingExistingFile=尝试替换现有的文件时出错：
+ErrorRestartReplace=重新启动替换失败：
+ErrorRenamingTemp=尝试重新命名以下目标目录中的一个文件时出错：
+ErrorRegisterServer=无法注册 DLL/OCX：%1
+ErrorRegSvr32Failed=RegSvr32 失败；退出代码 %1
+ErrorRegisterTypeLib=无法注册类型库：%1
+
+; *** 卸载显示名字标记
+; used for example as 'My Program (32-bit)'
+UninstallDisplayNameMark=%1 (%2)
+; used for example as 'My Program (32-bit, All users)'
+UninstallDisplayNameMarks=%1 (%2, %3)
+UninstallDisplayNameMark32Bit=32位
+UninstallDisplayNameMark64Bit=64位
+UninstallDisplayNameMarkAllUsers=所有用户
+UninstallDisplayNameMarkCurrentUser=当前用户
+
+; *** 安装后错误
+ErrorOpeningReadme=尝试打开自述文件时出错。
+ErrorRestartingComputer=安装程序不能重新启动电脑，请手动重启。
+
+; *** 卸载消息
+UninstallNotFound=文件“%1”不存在。无法卸载。
+UninstallOpenError=文件“%1”不能打开。无法卸载。
+UninstallUnsupportedVer=此版本的卸载程序无法识别卸载日志文件“%1”的格式。无法卸载
+UninstallUnknownEntry=在卸载日志中遇到一个未知的条目 (%1)
+ConfirmUninstall=您确认想要完全删除 %1 及它的所有组件吗？
+UninstallOnlyOnWin64=这个安装程序只能在64位Windows中进行卸载。
+OnlyAdminCanUninstall=这个安装的程序需要有管理员权限的用户才能卸载。
+UninstallStatusLabel=正在从您的电脑中删除 %1，请稍等。
+UninstalledAll=%1 已顺利地从您的电脑中删除。
+UninstalledMost=%1 卸载完成。%n%n有一些内容无法被删除。您可以手动删除它们。
+UninstalledAndNeedsRestart=要完成 %1 的卸载，您的电脑必须重新启动。%n%n您想立即重新启动电脑吗？
+UninstallDataCorrupted=文件“%1”已损坏，无法卸载
+
+; *** 卸载状态消息
+ConfirmDeleteSharedFileTitle=删除共享文件吗？
+ConfirmDeleteSharedFile2=系统中包含的下列共享文件已经不再被其它程序使用。您想要卸载程序删除这些共享文件吗？%n%n如果这些文件被删除，但还有程序正在使用这些文件，这些程序可能不能正确执行。如果您不能确定，选择“否”。把这些文件保留在系统中以免引起问题。
+SharedFileNameLabel=文件名：
+SharedFileLocationLabel=位置：
+WizardUninstalling=卸载状态
+StatusUninstalling=正在卸载 %1...
+
+; *** Shutdown block reasons
+ShutdownBlockReasonInstallingApp=正在安装 %1。
+ShutdownBlockReasonUninstallingApp=正在卸载 %1。
+
+; The custom messages below aren't used by Setup itself, but if you make
+; use of them in your scripts, you'll want to translate them.
+
+[CustomMessages]
+
+NameAndVersion=%1 版本 %2
+AdditionalIcons=附加快捷方式：
+CreateDesktopIcon=创建桌面快捷方式(&D)
+CreateQuickLaunchIcon=创建快速运行栏快捷方式(&Q)
+ProgramOnTheWeb=%1 网站
+UninstallProgram=卸载 %1
+LaunchProgram=运行 %1
+AssocFileExtension=将 %2 文件扩展名与 %1 建立关联(&A)
+AssocingFileExtension=正在将 %2 文件扩展名与 %1 建立关联...
+AutoStartProgramGroupDescription=启动组：
+AutoStartProgram=自动启动 %1
+AddonHostProgramNotFound=%1无法找到您所选择的文件夹。%n%n您想要继续吗？
+      - name: Set up R ${{ ; *** Inno Setup version 6.1.0+ Chinese (Traditional) messages ***
+; Name: Enfeng Tsao, nelson22768384@gmail.com
+; Based on 5.5.3+ translations by Samuel Lee, Email: 751555749@qq.com
+; Translation based on network resource
+;
+; Note: When translating this text, do not add periods (.) to the end of
+; messages that didn't have them already, because on those messages Inno
+; Setup adds the periods automatically (appending a period would result in
+; two periods being displayed).
+
+[LangOptions]
+; The following three entries are very important. Be sure to read and 
+; understand the '[LangOptions] section' topic in the help file.
+LanguageName=<7e41><9ad4><4e2d><6587>
+LanguageID=$0404
+LanguageCodepage=950
+; If the language you are translating to requires special font faces or
+; sizes, uncomment any of the following entries and change them accordingly.
+;DialogFontName=
+;DialogFontSize=8
+;TitleFontName=Arial
+;TitleFontSize=29
+;WelcomeFontName=Verdana
+;WelcomeFontSize=12
+;CopyrightFontName=Arial
+;CopyrightFontSize=8
+
+[Messages]
+
+; *** Application titles
+SetupAppTitle=安裝程式
+SetupWindowTitle=%1 安裝程式
+UninstallAppTitle=解除安裝
+UninstallAppFullTitle=解除安裝 %1
+
+; *** Misc. common
+InformationTitle=訊息
+ConfirmTitle=確認
+ErrorTitle=錯誤
+
+; *** SetupLdr messages
+SetupLdrStartupMessage=這將會安裝 %1。您想要繼續嗎？
+LdrCannotCreateTemp=無法建立暫存檔案。安裝程式將會結束。
+LdrCannotExecTemp=無法執行暫存檔案。安裝程式將會結束。
+HelpTextNote=
+
+; *** Startup error messages
+LastErrorMessage=%1%n%n錯誤 %2: %3
+SetupFileMissing=安裝資料夾中遺失檔案 %1。請修正此問題或重新取得此軟體。
+SetupFileCorrupt=安裝檔案已經損毀。請重新取得此軟體。
+SetupFileCorruptOrWrongVer=安裝檔案已經損毀，或與安裝程式的版本不符。請重新取得此軟體。
+InvalidParameter=某個無效的變量已被傳遞到了命令列:%n%n%1
+SetupAlreadyRunning=安裝程式已經在執行。
+WindowsVersionNotSupported=本安裝程式並不支援目前在電腦所運行的 Windows 版本。
+WindowsServicePackRequired=本安裝程式需要 %1 Service Pack %2 或更新。
+NotOnThisPlatform=這個程式無法在 %1 執行。
+OnlyOnThisPlatform=這個程式必須在 %1 執行。
+OnlyOnTheseArchitectures=這個程式只能在專門為以下處理器架構而設計的 Windows 上安裝:%n%n%1
+WinVersionTooLowError=這個程式必須在 %1 版本 %2 或以上的系統執行。
+WinVersionTooHighError=這個程式無法安裝在 %1 版本 %2 或以上的系統。
+AdminPrivilegesRequired=您必須登入成系統管理員以安裝這個程式。
+PowerUserPrivilegesRequired=您必須登入成具有系統管理員或 Power User 權限的使用者以安裝這個程式。
+SetupAppRunningError=安裝程式偵測到 %1 正在執行。%n%n請關閉該程式後按 「確定」 繼續，或按 「取消」 離開。
+UninstallAppRunningError=解除安裝程式偵測到 %1 正在執行。%n%n請關閉該程式後按 「確定」 繼續，或按 「取消」 離開。
+
+; *** Startup questions
+PrivilegesRequiredOverrideTitle=選擇安裝程式安裝模式
+PrivilegesRequiredOverrideInstruction=選擇安裝模式
+PrivilegesRequiredOverrideText1=可以為所有使用者安裝 %1 (需要系統管理權限)，或是僅為您安裝。
+PrivilegesRequiredOverrideText2=可以僅為您安裝 %1，或是為所有使用者安裝 (需要系統管理權限)。
+PrivilegesRequiredOverrideAllUsers=為所有使用者安裝 (&A)
+PrivilegesRequiredOverrideAllUsersRecommended=為所有使用者安裝 (建議選項) (&A)
+PrivilegesRequiredOverrideCurrentUser=僅為我安裝 (&M)
+PrivilegesRequiredOverrideCurrentUserRecommended=僅為我安裝 (建議選項) (&M)
+
+; *** Misc. errors
+ErrorCreatingDir=安裝程式無法建立資料夾“%1”。
+ErrorTooManyFilesInDir=無法在資料夾“%1”內建立檔案，因為資料夾內有太多的檔案。
+
+; *** Setup common messages
+ExitSetupTitle=結束安裝程式
+ExitSetupMessage=安裝尚未完成。如果您現在結束安裝程式，這個程式將不會被安裝。%n%n您可以稍後再執行安裝程式以完成安裝程序。您現在要結束安裝程式嗎?
+AboutSetupMenuItem=關於安裝程式 (&A)...
+AboutSetupTitle=關於安裝程式
+AboutSetupMessage=%1 版本 %2%n%3%n%n%1 網址:%n%4
+AboutSetupNote=
+TranslatorNote=
+
+; *** Buttons
+ButtonBack=< 上一步(&B)
+ButtonInstall=安裝(&I)
+ButtonNext=下一步(&N)  >
+ButtonOK=確定
+ButtonCancel=取消
+ButtonYes=是(&Y)
+ButtonYesToAll=全部皆是 (&A)
+ButtonNo=否(&N)
+ButtonNoToAll=全部皆否 (&O)
+ButtonFinish=完成 (&F)
+ButtonBrowse=瀏覽 (&B)...
+ButtonWizardBrowse=瀏覽 (&R)...
+ButtonNewFolder=建立新資料夾 (&M)
+
+; *** "Select Language" dialog messages
+SelectLanguageTitle=選擇安裝語言
+SelectLanguageLabel=選擇在安裝過程中使用的語言:
+
+; *** Common wizard text
+ClickNext=按 「下一步」 繼續安裝，或按 「取消」 結束安裝程式。
+BeveledLabel=
+BrowseDialogTitle=瀏覽資料夾
+BrowseDialogLabel=在下面的資料夾列表中選擇一個資料夾，然後按 「確定」。
+NewFolderName=新資料夾
+
+; *** "Welcome" wizard page
+WelcomeLabel1=歡迎使用 [name] 安裝程式
+WelcomeLabel2=這個安裝程式將會安裝 [name/ver] 到您的電腦。%n%n我們強烈建議您在安裝過程中關閉其它的應用程式，以避免與安裝程式發生沖突。
+
+; *** "Password" wizard page
+WizardPassword=密碼
+PasswordLabel1=這個安裝程式具有密碼保護。
+PasswordLabel3=請輸入密碼，然後按 「下一步」 繼續。密碼是區分大小寫的。
+PasswordEditLabel=密碼 (&P):
+IncorrectPassword=您輸入的密碼不正確，請重新輸入。
+
+; *** "License Agreement" wizard page
+WizardLicense=授權合約
+LicenseLabel=請閱讀以下授權合約。
+LicenseLabel3=請閱讀以下授權合約，您必須接受合約的各項條款才能繼續安裝。
+LicenseAccepted=我同意 (&A)
+LicenseNotAccepted=我不同意 (&D)
+
+; *** "Information" wizard pages
+WizardInfoBefore=訊息
+InfoBeforeLabel=在繼續安裝之前請閱讀以下重要資訊。
+InfoBeforeClickLabel=當您準備好繼續安裝，請按 「下一步」。
+WizardInfoAfter=訊息
+InfoAfterLabel=在繼續安裝之前請閱讀以下重要資訊。
+InfoAfterClickLabel=當您準備好繼續安裝，請按 「下一步」。
+
+; *** "User Information" wizard page
+WizardUserInfo=使用者資訊
+UserInfoDesc=請輸入您的資料。
+UserInfoName=使用者名稱(&U):
+UserInfoOrg=組織(&O):
+UserInfoSerial=序號(&S):
+UserInfoNameRequired=您必須輸入您的名稱。
+
+; *** "Select Destination Location" wizard page
+WizardSelectDir=選擇目的資料夾
+SelectDirDesc=選擇安裝程式安裝 [name] 的位置。
+SelectDirLabel3=安裝程式將會把 [name] 安裝到下面的資料夾。
+SelectDirBrowseLabel=按 「下一步」 繼續，如果您想選擇另一個資料夾，請按 「瀏覽」。
+DiskSpaceGBLabel=最少需要 [gb] GB 磁碟空間。
+DiskSpaceMBLabel=最少需要 [mb] MB 磁碟空間。
+CannotInstallToNetworkDrive=安裝程式無法安裝於網絡磁碟機。
+CannotInstallToUNCPath=安裝程式無法安裝於 UNC 路徑。
+InvalidPath=您必須輸入完整的路徑名稱及磁碟機代碼。%n%n例如 C:\App 或 UNC 路徑格式 \\伺服器\共用資料夾。
+InvalidDrive=您選取的磁碟機或 UNC 名稱不存在或無法存取，請選擇其他的目的地。
+DiskSpaceWarningTitle=磁碟空間不足
+DiskSpaceWarning=安裝程式需要至少 %1 KB 的磁碟空間，您所選取的磁碟只有 %2 KB 可用空間。%n%n您要繼續安裝嗎？
+DirNameTooLong=資料夾名稱或路徑太長。
+InvalidDirName=資料夾名稱不正確。
+BadDirName32=資料夾名稱不得包含以下特殊字元:%n%n%1
+DirExistsTitle=資料夾已經存在
+DirExists=資料夾：%n%n%1%n%n 已經存在。仍要安裝到該資料夾嗎？
+DirDoesntExistTitle=資料夾不存在
+DirDoesntExist=資料夾：%n%n%1%n%n 不存在。要建立該資料夾嗎？
+
+; *** "Select Components" wizard page
+WizardSelectComponents=選擇元件
+SelectComponentsDesc=選擇將會被安裝的元件。
+SelectComponentsLabel2=選擇您想要安裝的元件；清除您不想安裝的元件。然後按 「下一步」 繼續安裝。
+FullInstallation=完整安裝
+; if possible don't translate 'Compact' as 'Minimal' (I mean 'Minimal' in your language)
+CompactInstallation=最小安裝
+CustomInstallation=自訂安裝
+NoUninstallWarningTitle=元件已存在
+NoUninstallWarning=安裝程式偵測到以下元件已經安裝在您的電腦上:%n%n%1%n%n取消選擇這些元件將不會移除它們。%n%n您仍然要繼續嗎？
+ComponentSize1=%1 KB
+ComponentSize2=%1 MB
+ComponentsDiskSpaceGBLabel=目前的選擇需要至少 [gb] GB 磁碟空間。
+ComponentsDiskSpaceMBLabel=目前的選擇需要至少 [mb] MB 磁碟空間。
+
+; *** "Select Additional Tasks" wizard page
+WizardSelectTasks=選擇附加的工作
+SelectTasksDesc=選擇要執行的附加工作。
+SelectTasksLabel2=選擇安裝程式在安裝 [name] 時要執行的附加工作，然後按 「下一步」。
+
+; *** "Select Start Menu Folder" wizard page
+WizardSelectProgramGroup=選擇「開始」功能表的資料夾
+SelectStartMenuFolderDesc=選擇安裝程式建立程式的捷徑的位置。
+SelectStartMenuFolderLabel3=安裝程式將會把程式的捷徑建立在下面的「開始」功能表資料夾。
+SelectStartMenuFolderBrowseLabel=按 「下一步」 繼續，如果您想選擇另一個資料夾，請按 「瀏覽」。
+MustEnterGroupName=您必須輸入一個資料夾的名稱。
+GroupNameTooLong=資料夾名稱或路徑太長。
+InvalidGroupName=資料夾名稱不正確。
+BadGroupName=資料夾名稱不得包含下列字元:%n%n%1
+NoProgramGroupCheck2=不要在「開始」功能表中建立資料夾 (&D)
+
+; *** "Ready to Install" wizard page
+WizardReady=準備安裝
+ReadyLabel1=安裝程式將開始安裝 [name] 到您的電腦中。
+ReadyLabel2a=按下 「安裝」 繼續安裝，或按 「上一步」 重新檢視或設定各選項的內容。
+ReadyLabel2b=按下 「安裝」 繼續安裝。
+ReadyMemoUserInfo=使用者資訊
+ReadyMemoDir=目的資料夾:
+ReadyMemoType=安裝型態:
+ReadyMemoComponents=選擇的元件:
+ReadyMemoGroup=「開始」功能表資料夾:
+ReadyMemoTasks=附加工作:
+
+; *** TDownloadWizardPage wizard page and DownloadTemporaryFile
+DownloadingLabel=正在下載額外檔案...
+ButtonStopDownload=停止下載 (&S)
+StopDownload=您確定要停止下載嗎？
+ErrorDownloadAborted=已停止下載
+ErrorDownloadFailed=下載失敗: %1 %2
+ErrorDownloadSizeFailed=取得檔案大小失敗: %1 %2
+ErrorFileHash1=檔案雜湊失敗: %1
+ErrorFileHash2=檔案雜湊無效: 必須為 %1，收到 %2
+ErrorProgress=進度無效: %1 之 %2
+ErrorFileSize=檔案大小無效: 必須為 %1，收到 %2
+
+; *** "Preparing to Install" wizard page
+WizardPreparing=準備安裝程式
+PreparingDesc=安裝程式準備將 [name] 安裝到您的電腦上。
+PreviousInstallNotCompleted=先前的安裝/ 解除安裝尚未完成，您必須重新啟動電腦以完成該安裝。%n%n在重新啟動電腦之後，請再執行這個程式來安裝 [name]。
+CannotContinue=安裝程式無法繼續。請按 「取消」 離開。
+ApplicationsFound=下面的應用程式正在使用安裝程式所需要更新的檔案。建議您允許安裝程式自動關閉這些應用程式。
+ApplicationsFound2=下面的應用程式正在使用安裝程式所需要更新的檔案。建議您允許安裝程式自動關閉這些應用程式。當安裝過程結束後，本安裝程式將會嘗試重新開啟該應用程式。
+CloseApplications=關閉應用程式 (&A)
+DontCloseApplications=不要關閉應用程式 (&D)
+ErrorCloseApplications=安裝程式無法自動關閉所有應用程式。建議您在繼續前先關閉所有應用程式使用的檔案。
+PrepareToInstallNeedsRestart=安裝程式必須重新啟動您的電腦。重新啟動後，請再次執行安裝程式以完成 [name] 的安裝。%n%n您想要現在重新啟動電腦嗎？
+
+; *** "Installing" wizard page
+WizardInstalling=正在安裝
+InstallingLabel=請稍候，安裝程式正在將 [name] 安裝到您的電腦上
+
+; *** "Setup Completed" wizard page
+FinishedHeadingLabel=安裝完成
+FinishedLabelNoIcons=安裝程式已經將 [name] 安裝在您的電腦上。
+FinishedLabel=安裝程式已經將 [name] 安裝在您的電腦中，您可以選擇程式的圖示來執行該應用程式。
+ClickFinish=按 「完成」 以結束安裝程式。
+FinishedRestartLabel=要完成 [name] 的安裝，安裝程式必須重新啟動您的電腦。您想要現在重新啟動電腦嗎？
+FinishedRestartMessage=要完成 [name] 的安裝，安裝程式必須重新啟動您的電腦。%n%n您想要現在重新啟動電腦嗎？
+ShowReadmeCheck=是，我要閱讀讀我檔案。
+YesRadio=是，立即重新啟動電腦(&Y)
+NoRadio=否，我稍後重新啟動電腦(&N)
+; used for example as 'Run MyProg.exe'
+RunEntryExec=執行 %1
+; used for example as 'View Readme.txt'
+RunEntryShellExec=檢視 %1
+
+; *** "Setup Needs the Next Disk" 
+ChangeDiskTitle=安裝程式需要下一張磁片
+SelectDiskLabel2=請插入磁片 %1，然後按 「確定」。%n%n如果檔案不在以下所顯示的資料夾之中，請輸入正確的資料夾名稱或按 [瀏覽] 選取。
+PathLabel=路徑(&P):
+FileNotInDir2=檔案“%1”無法在“%2”找到。請插入正確的磁片或選擇其它的資料夾。
+SelectDirectoryLabel=請指定下一張磁片的位置。
+
+; *** Installation phase messages
+SetupAborted=安裝沒有完成。%n%n請更正問題後重新安裝一次。
+AbortRetryIgnoreSelectAction=選取動作
+AbortRetryIgnoreRetry=請再試一次 (&T)
+AbortRetryIgnoreIgnore=略過錯誤並繼續 (&I)
+AbortRetryIgnoreCancel=取消安裝
+
+; *** Installation status messages
+StatusClosingApplications=正在關閉應用程式...
+StatusCreateDirs=正在建立資料夾...
+StatusExtractFiles=正在解壓縮檔案...
+StatusCreateIcons=正在建立程式集圖示...
+StatusCreateIniEntries=寫入 INI 檔案的項目...
+StatusCreateRegistryEntries=正在更新系統登錄...
+StatusRegisterFiles=正在登錄檔案...
+StatusSavingUninstall=儲存解除安裝資訊...
+StatusRunProgram=正在完成安裝...
+StatusRestartingApplications=正在重新開啟應用程式...
+StatusRollback=正在復原變更...
+
+; *** Misc. errors
+ErrorInternal2=內部錯誤: %1
+ErrorFunctionFailedNoCode=%1 失敗
+ErrorFunctionFailed=%1 失敗；代碼 %2
+ErrorFunctionFailedWithMessage=%1 失敗；代碼 %2.%n%3
+ErrorExecutingProgram=無法執行檔案:%n%1
+
+; *** Registry errors
+ErrorRegOpenKey=無法開啟登錄鍵:%n%1\%2
+ErrorRegCreateKey=無法建立登錄項目:%n%1\%2
+ErrorRegWriteKey=無法變更登錄項目:%n%1\%2
+
+; *** INI errors
+ErrorIniEntry=在檔案“%1”建立 INI 項目錯誤。
+
+; *** File copying errors
+FileAbortRetryIgnoreSkipNotRecommended=略過這個檔案 (不建議) (&S)
+FileAbortRetryIgnoreIgnoreNotRecommended=略過錯誤並繼續 (不建議) (&I)
+SourceDoesntExist=來源檔案“%1”不存在。
+SourceIsCorrupted=來源檔案已經損毀。
+ExistingFileReadOnly2=無法取代現有檔案，因為檔案已標示為唯讀。
+ExistingFileReadOnlyRetry=移除唯讀屬性並重試 (&R)
+ExistingFileReadOnlyKeepExisting=保留現有檔案 (&K)
+ErrorReadingExistingDest=讀取一個已存在的檔案時發生錯誤:
+FileExistsSelectAction=選擇操作
+FileExists2=檔案已存在。
+FileExistsOverwriteExisting=覆寫現有檔案
+FileExistsKeepExisting=保留現有檔案 (&O)
+FileExistsOverwriteOrKeepAll=對下次衝突執行相同操作 (&D)
+ExistingFileNewerSelectAction=選擇操作
+ExistingFileNewer2=現有檔案比安裝程式嘗試安裝的檔案還新。
+ExistingFileNewerOverwriteExisting=覆寫現有檔案 (&O)
+ExistingFileNewerKeepExisting=保留現有檔案 (&K) (建議選項)
+ExistingFileNewerOverwriteOrKeepAll=對下次衝突執行相同操作 (&D)
+ErrorChangingAttr=在變更檔案屬性時發生錯誤:
+ErrorCreatingTemp=在目的資料夾中建立檔案時發生錯誤:
+ErrorReadingSource=讀取原始檔案時發生錯誤:
+ErrorCopying=複製檔案時發生錯誤:
+ErrorReplacingExistingFile=取代檔案時發生錯誤:
+ErrorRestartReplace=重新啟動電腦後取代檔案失敗:
+ErrorRenamingTemp=在目的資料夾變更檔案名稱時發生錯誤:
+ErrorRegisterServer=無法注冊 DLL/OCX 檔案: %1。
+ErrorRegSvr32Failed=RegSvr32 失敗；退出代碼 %1
+ErrorRegisterTypeLib=無法注冊類型庫: %1。
+
+; *** Uninstall display name markings
+; used for example as 'My Program (32-bit)'
+UninstallDisplayNameMark=%1 (%2)
+; used for example as 'My Program (32-bit, All users)'
+UninstallDisplayNameMarks=%1 (%2, %3)
+UninstallDisplayNameMark32Bit=32 位元
+UninstallDisplayNameMark64Bit=64 位元
+UninstallDisplayNameMarkAllUsers=所有使用者
+UninstallDisplayNameMarkCurrentUser=目前使用者
+
+; *** Post-installation errors
+ErrorOpeningReadme=開啟讀我檔案時發生錯誤。
+ErrorRestartingComputer=安裝程式無法重新啟動電腦，請自行重新啟動。
+
+; *** Uninstaller messages
+UninstallNotFound=檔案“%1”不存在，無法解除安裝。
+UninstallOpenError=無法開啟檔案“%1”，無法解除安裝
+UninstallUnsupportedVer=這個版本的解除安裝程式無法辨識記錄檔 “%1” 之格式，無法解除安裝。
+UninstallUnknownEntry=解除安裝記錄檔中發現未知的記錄 (%1)。
+ConfirmUninstall=您確定要完全移除 %1 及其相關的檔案嗎？
+UninstallOnlyOnWin64=這個程式只能在 64 位元的 Windows 上解除安裝。
+OnlyAdminCanUninstall=這個程式要具備系統管理員權限的使用者方可解除安裝。
+UninstallStatusLabel=正在從您的電腦移除 %1 中，請稍候...
+UninstalledAll=%1 已經成功從您的電腦中移除。
+UninstalledMost=%1 解除安裝完成。%n%n某些檔案及元件無法移除，您可以自行刪除這些檔案。
+UninstalledAndNeedsRestart=要完成 %1 的解除安裝程序，您必須重新啟動電腦。%n%n您想要現在重新啟動電腦嗎？
+UninstallDataCorrupted=檔案“%1”已經損毀，無法解除安裝
+
+; *** Uninstallation phase messages
+ConfirmDeleteSharedFileTitle=移除共用檔案
+ConfirmDeleteSharedFile2=系統顯示下列共用檔案已不再被任何程式所使用，您要移除這些檔案嗎?%n%n%1%n%n倘若您移除了以上檔案但仍有程式需要使用它們，將造成這些程式無法正常執行，因此您若無法確定請選擇 [否]。保留這些檔案在您的系統中不會造成任何損害。
+SharedFileNameLabel=檔案名稱:
+SharedFileLocationLabel=位置:
+WizardUninstalling=解除安裝狀態
+StatusUninstalling=正在解除安裝 %1...
+
+; *** Shutdown block reasons
+ShutdownBlockReasonInstallingApp=正在安裝 %1。
+ShutdownBlockReasonUninstallingApp=正在解除安裝 %1。
+
+; The custom messages below aren't used by Setup itself, but if you make
+; use of them in your scripts, you'll want to translate them.
+
+[CustomMessages]
+
+NameAndVersion=%1 版本 %2
+AdditionalIcons=附加圖示:
+CreateDesktopIcon=建立桌面圖示(&D)
+CreateQuickLaunchIcon=建立快速啟動圖示(&Q)
+ProgramOnTheWeb=%1 的網站
+UninstallProgram=解除安裝 %1
+LaunchProgram=啟動 %1
+AssocFileExtension=將 %1 與檔案副檔名 %2 產生關聯(&A)
+AssocingFileExtension=正在將 %1 與檔案副檔名 %2 產生關聯...
+AutoStartProgramGroupDescription=開啟:
+AutoStartProgram=自動開啟 %1
+AddonHostProgramNotFound=%1 無法在您所選的資料夾中找到。%n%n您是否還要繼續？ }}
+        uses: ; *** Inno Setup version 6.1.0+ Greek messages ***
+;
+; To download user-contributed translations of this file, go to:
+;   https://jrsoftware.org/files/istrans/
+;
+; Note: When translating this text, do not add periods (.) to the end of
+; messages that didn't have them already, because on those messages Inno
+; Setup adds the periods automatically (appending a period would result in
+; two periods being displayed).
+;
+; Originally translated by Anastasis Chatzioglou, baldycom@hotmail.com
+; Updated by XhmikosR [XhmikosR, my_nickname at yahoo dot com]
+; Updated to version 6.1.0+ by Vasileios Karamichail, v.karamichail@outlook.com
+;
+
+[LangOptions]
+; The following three entries are very important. Be sure to read and 
+; understand the '[LangOptions] section' topic in the help file.
+LanguageName=Ελληνικά
+LanguageID=$0408
+LanguageCodePage=1253
+; If the language you are translating to requires special font faces or
+; sizes, uncomment any of the following entries and change them accordingly.
+;DialogFontName=
+;DialogFontSize=8
+;WelcomeFontName=Verdana
+;WelcomeFontSize=12
+;TitleFontName=Arial
+;TitleFontSize=29
+;CopyrightFontName=Arial
+;CopyrightFontSize=8
+
+[Messages]
+
+; *** Application titles
+SetupAppTitle=Εγκατάσταση
+SetupWindowTitle=Εγκατάσταση - %1
+UninstallAppTitle=Απεγκατάσταση
+UninstallAppFullTitle=%1 Απεγκατάσταση
+
+; *** Misc. common
+InformationTitle=Πληροφορίες
+ConfirmTitle=Επιβεβαίωση
+ErrorTitle=Σφάλμα
+
+; *** SetupLdr messages
+SetupLdrStartupMessage=Θα εκτελεστεί η εγκατάσταση του %1. Θέλετε να συνεχίσετε;
+LdrCannotCreateTemp=Σφάλμα στη δημιουργία προσωρινού αρχείου. Η εγκατάσταση τερματίστηκε
+LdrCannotExecTemp=Αδύνατη η εκτέλεση αρχείου στον φάκελο προσωρινών αρχείων. Η εγκατάσταση τερματίστηκε
+HelpTextNote=
+
+; *** Startup error messages
+LastErrorMessage=%1.%n%nΣφάλμα %2: %3
+SetupFileMissing=Το αρχείο %1 λείπει από τον κατάλογο εγκατάστασης. Διορθώστε το πρόβλημα ή αποκτήστε ένα νέο αντίγραφο του προγράμματος.
+SetupFileCorrupt=Το αρχείο εγκατάστασης είναι κατεστραμμένο. Παρακαλώ προμηθευτείτε ένα νέο αντίγραφο του προγράμματος.
+SetupFileCorruptOrWrongVer=Το αρχείο εγκατάστασης είναι κατεστραμμένο ή δεν είναι συμβατό με αυτήν την έκδοση του προγράμματος εγκατάστασης. Διορθώστε το πρόβλημα ή αποκτήστε ένα νέο αντίγραφο του προγράμματος.
+InvalidParameter=Μία μη έγκυρη παράμετρος χρησιμοποιήθηκε στη γραμμή εντολών:%n%n%1
+SetupAlreadyRunning=Η εγκατάσταση τρέχει ήδη.
+WindowsVersionNotSupported=Αυτό το πρόγραμμα δεν υποστηρίζει την έκδοση των Windows που εκτελεί ο υπολογιστής σας.
+WindowsServicePackRequired=Αυτό το πρόγραμμα χρειάζεται το %1 Service Pack %2 ή νεότερο.
+NotOnThisPlatform=Αυτό το πρόγραμμα δεν μπορεί να εκτελεστεί σε %1.
+OnlyOnThisPlatform=Αυτό το πρόγραμμα μπορεί να εκτελεστεί μόνο σε %1.
+OnlyOnTheseArchitectures=Αυτό το πρόγραμμα μπορεί να εγκατασταθεί μόνο σε εκδόσεις των Windows που έχουν σχεδιαστεί για τις ακόλουθες αρχιτεκτονικές επεξεργαστών:%n%n%1
+WinVersionTooLowError=Αυτό το πρόγραμμα απαιτεί %1 έκδοση %2 ή μεταγενέστερη.
+WinVersionTooHighError=Αυτό το πρόγραμμα δεν μπορεί να εγκατασταθεί σε %1 έκδοση %2 ή μεταγενέστερη.
+AdminPrivilegesRequired=Πρέπει να είστε συνδεδεμένοι ως διαχειριστής κατά την εγκατάσταση αυτού του προγράμματος.
+PowerUserPrivilegesRequired=Πρέπει να είστε συνδεδεμένοι ως διαχειριστής ή ως μέλος της ομάδας Power User κατά την εγκατάσταση αυτού του προγράμματος.
+SetupAppRunningError=Ο Οδηγός Εγκατάστασης εντόπισε ότι η εφαρμογή %1 εκτελείται ήδη.%n%nΠαρακαλώ κλείστε την εφαρμογή τώρα και πατήστε ΟΚ για να συνεχίσετε, ή Άκυρο για έξοδο.
+UninstallAppRunningError=Ο Οδηγός Απεγκατάστασης εντόπισε ότι η εφαρμογή %1 εκτελείται ήδη.%n%nΠαρακαλώ κλείστε την εφαρμογή τώρα και πατήστε ΟΚ για να συνεχίσετε, ή Άκυρο για έξοδο.
+
+; *** Startup questions
+PrivilegesRequiredOverrideTitle=Επιλέξτε Τρόπο Εγκατάστασης
+PrivilegesRequiredOverrideInstruction=Επιλέξτε τον τρόπο εγκατάστασης
+PrivilegesRequiredOverrideText1=Το %1 μπορεί να εγκατασταθεί για όλους τους χρήστες (απαιτεί δικαιώματα διαχειριστή) ή μόνο για εσάς.
+PrivilegesRequiredOverrideText2=Το %1 μπορεί να εγκατασταθεί μόνο για εσάς ή για όλους τους χρήστες (απαιτεί δικαιώματα διαχειριστή).
+PrivilegesRequiredOverrideAllUsers=Εγκατάσταση για &όλους τους χρήστες
+PrivilegesRequiredOverrideAllUsersRecommended=Εγκατάσταση για όλ&ους τους χρήστες (συνιστάται)
+PrivilegesRequiredOverrideCurrentUser=Εγκατάσταση μόνο για &εμένα
+PrivilegesRequiredOverrideCurrentUserRecommended=Εγκατάσταση μόνο για &εμένα (συνιστάται)
+
+; *** Misc. errors
+ErrorCreatingDir=Η εγκατάσταση δεν μπόρεσε να δημιουργήσει τον φάκελο "%1"
+ErrorTooManyFilesInDir=Δεν είναι δυνατή η δημιουργία ενός αρχείου στον φάκελο "%1" επειδή περιέχει πολλά αρχεία
+
+; *** Setup common messages
+ExitSetupTitle=Τέλος Εγκατάστασης
+ExitSetupMessage=Η εγκατάσταση δεν έχει ολοκληρωθεί. Αν την τερματίσετε τώρα, το πρόγραμμα δεν θα εγκατασταθεί.%n%nΜπορείτε να εκτελέσετε ξανά την εγκατάσταση αργότερα.%n%nΈξοδος;
+AboutSetupMenuItem=&Σχετικά με την Εγκατάσταση...
+AboutSetupTitle=Σχετικά με την Εγκατάσταση
+AboutSetupMessage=%1 έκδοση %2%n%3%n%n%1 αρχική σελίδα:%n%4
+AboutSetupNote=
+TranslatorNote=
+
+; *** Buttons
+ButtonBack=< &Πίσω
+ButtonNext=&Επόμενο >
+ButtonInstall=&Εγκατάσταση
+ButtonOK=ΟΚ
+ButtonCancel=&Ακυρο
+ButtonYes=Ν&αι
+ButtonYesToAll=Ναι σε &Ολα
+ButtonNo=Ό&χι
+ButtonNoToAll=Όχι &σε όλα
+ButtonFinish=&Τέλος
+ButtonBrowse=&Αναζήτηση...
+ButtonWizardBrowse=Ανα&ζήτηση...
+ButtonNewFolder=&Δημιουργία νέου φακέλου
+
+; *** "Select Language" dialog messages
+SelectLanguageTitle=Επιλογή Γλώσσας Οδηγού Εγκατάστασης
+SelectLanguageLabel=Επιλέξτε τη γλώσσα που θέλετε να χρησιμοποιήσετε κατά την εγκατάσταση.
+
+; *** Common wizard text
+ClickNext=Πατήστε Επόμενο για να συνεχίσετε ή Άκυρο για να τερματίσετε την εγκατάσταση.
+BeveledLabel=
+BrowseDialogTitle=Αναζήτηση Φακέλου
+BrowseDialogLabel=Επιλέξτε ένα φάκελο από την ακόλουθη λίστα και πατήστε ΟΚ.
+NewFolderName=Νέος φάκελος
+
+; *** "Welcome" wizard page
+WelcomeLabel1=Καλως ορίσατε στον Οδηγό Εγκατάστασης του [name]
+WelcomeLabel2=Θα γίνει εγκατάσταση του [name/ver] στον υπολογιστή σας.%n%nΣυνιστάται να κλείσετε όλες τις άλλες εφαρμογές πριν συνεχίσετε.
+
+; *** "Password" wizard page
+WizardPassword=Κωδικός Πρόσβασης
+PasswordLabel1=Αυτή η εγκατάσταση προστατεύεται με κωδικό πρόσβασης.
+PasswordLabel3=Παρακαλώ εισάγετε τον κωδικό και πατήστε Επόμενο.
+PasswordEditLabel=&Κωδικός:
+IncorrectPassword=Ο κωδικός που έχετε εισάγει είναι λανθασμένος. Παρακαλώ, προσπαθήστε ξανά.
+
+; *** "License Agreement" wizard page
+WizardLicense=Άδεια Χρήσης
+LicenseLabel=Παρακαλώ διαβάστε προσεκτικά τις ακόλουθες πληροφορίες πριν συνεχίσετε.
+LicenseLabel3=Παρακαλώ διαβάστε την ακόλουθη Άδεια Χρήσης. Θα πρέπει να αποδεχτείτε τους όρους της πριν συνεχίσετε την εγκατάσταση.
+LicenseAccepted=&Δέχομαι τους όρους της Άδειας Χρήσης
+LicenseNotAccepted=Δεν &αποδέχομαι τους όρους της Άδειας Χρήσης
+
+; *** "Information" wizard pages
+WizardInfoBefore=Πληροφορίες
+InfoBeforeLabel=Παρακαλώ διαβάστε προσεκτικά τις ακόλουθες πληροφορίες πριν συνεχίσετε.
+InfoBeforeClickLabel=Όταν είστε έτοιμοι να συνεχίσετε με τον Οδηγό Εγκατάστασης, πατήστε Επόμενο.
+WizardInfoAfter=Πληροφορίες
+InfoAfterLabel=Παρακαλώ διαβάστε προσεκτικά τις ακόλουθες πληροφορίες πριν συνεχίσετε.
+InfoAfterClickLabel=Όταν είστε έτοιμοι να συνεχίσετε με τον Οδηγό Εγκατάστασης, πατήστε Επόμενο.
+
+; *** "User Information" wizard page
+WizardUserInfo=Πληροφορίες Χρήστη
+UserInfoDesc=Παρακαλώ εισάγετε τα στοιχεία σας.
+UserInfoName=&Ονομα Χρήστη:
+UserInfoOrg=&Εταιρεία:
+UserInfoSerial=&Σειριακός Αριθμός:
+UserInfoNameRequired=Πρέπει να εισάγετε ένα όνομα.
+
+; *** "Select Destination Location" wizard page
+WizardSelectDir=Επιλογή Φακέλου Εγκατάστασης
+SelectDirDesc=Πού θέλετε να εγκατασταθεί το [name];
+SelectDirLabel3=Ο Οδηγός Εγκατάστασης θα εγκαταστήσει το [name] στον ακόλουθο φάκελο.
+SelectDirBrowseLabel=Για να συνεχίσετε, πατήστε Επόμενο. Εάν θέλετε να επιλέξετε διαφορετικό φάκελο, πατήστε Αναζήτηση.
+DiskSpaceGBLabel=Απαιτούνται τουλάχιστον [gb] GB ελεύθερου χώρου στο δίσκο.
+DiskSpaceMBLabel=Απαιτούνται τουλάχιστον [mb] MB ελεύθερου χώρου στο δίσκο.
+CannotInstallToNetworkDrive=Η εγκατάσταση δεν μπορεί να γίνει σε δίσκο δικτύου.
+CannotInstallToUNCPath=Η εγκατάσταση δεν μπορεί να γίνει σε διαδρομή UNC.
+InvalidPath=Πρέπει να δώσετε την πλήρη διαδρομή με το γράμμα δίσκου, για παράδειγμα:%n%nC:\APP%n%nή μια διαδρομή UNC της μορφής:%n%n\\server\share
+InvalidDrive=Ο τοπικός δίσκος ή ο δίσκος δικτύου που έχετε επιλέξει δεν υπάρχει ή δεν είναι προσβάσιμος. Παρακαλώ, επιλέξτε άλλον.
+DiskSpaceWarningTitle=Ανεπαρκής Χώρος στο Δίσκο
+DiskSpaceWarning=Η εγκατάσταση χρειάζεται τουλάχιστον %1 KB ελεύθερο χώρο στο δίσκο αλλά ο επιλεγμένος δίσκος διαθέτει μόνον %2 KB.%n%nΘέλετε να συνεχίσετε παρόλα αυτά;
+DirNameTooLong=Το όνομα ή η διαδρομή του φακέλου είναι πολύ μεγάλη.
+InvalidDirName=Το όνομα του φακέλου δεν είναι έγκυρο.
+BadDirName32=Το όνομα του φακέλου δεν μπορεί να περιλαμβάνει κανέναν από τους παρακάτω χαρακτήρες:%n%n%1
+DirExistsTitle=Ο Φάκελος Υπάρχει
+DirExists=Ο φάκελος:%n%n%1%n%nυπάρχει ήδη. Θέλετε να γίνει η εγκατάσταση σε αυτόν τον φάκελο παρόλα αυτά;
+DirDoesntExistTitle=Ο Φάκελος Δεν Υπάρχει
+DirDoesntExist=Ο φάκελος:%n%n%1%n%nδεν υπάρχει. Θέλετε να δημιουργηθεί;
+
+; *** "Select Components" wizard page
+WizardSelectComponents=Επιλογή Λειτουργιών Μονάδων
+SelectComponentsDesc=Ποια στοιχεία θέλετε να εγκατασταθούν;
+SelectComponentsLabel2=Επιλέξτε τα στοιχεία που θέλετε να εγκαταστήσετε, αποεπιλέξτε τα στοιχεία που δεν θέλετε να εγκαταστήσετε. Πατήστε Επόμενο όταν είστε έτοιμοι να συνεχίσετε.
+FullInstallation=Πλήρης εγκατάσταση
+; if possible don't translate 'Compact' as 'Minimal' (I mean 'Minimal' in your language)
+CompactInstallation=Τυπική εγκατάσταση
+CustomInstallation=Προσαρμοσμένη εγκατάσταση
+NoUninstallWarningTitle=Οι Λειτουργικές Μονάδες Υπάρχουν
+NoUninstallWarning=Ο Οδηγός Εγκατάστασης εντόπισε ότι τα ακόλουθα στοιχεία είναι ήδη εγκατεστημένα στον υπολογιστή σας:%n%n%1%n%nΑποεπιλέγοντας αυτά τα στοιχεία δεν θα απεγκατασταθούν.%n%nΘέλετε να συνεχίσετε παρόλα αυτά;
+ComponentSize1=%1 KB
+ComponentSize2=%1 MB
+ComponentsDiskSpaceGBLabel=Η τρέχουσα επιλογή απαιτεί τουλάχιστον [gb] GB χώρου στο δίσκο.
+ComponentsDiskSpaceMBLabel=Η τρέχουσα επιλογή απαιτεί τουλάχιστον [mb] MB χώρου στο δίσκο.
+
+; *** "Select Additional Tasks" wizard page
+WizardSelectTasks=Επιλογή Επιπλέον Ενεργειών
+SelectTasksDesc=Ποιες επιπλέον ενέργειες θέλετε να γίνουν;
+SelectTasksLabel2=Επιλέξτε τις επιπλέον ενέργειες που θέλετε να γίνουν κατά την εγκατάσταση του [name] και πατήστε Επόμενο.
+
+; *** "Select Start Menu Folder" wizard page
+WizardSelectProgramGroup=Επιλογή Φακέλου Μενού Έναρξης
+SelectStartMenuFolderDesc=Πού θέλετε να τοποθετηθούν οι συντομεύσεις του προγράμματος;
+SelectStartMenuFolderLabel3=Η εγκατάσταση θα δημιουργήσει τις συντομεύσεις του προγράμματος στον ακόλουθο φάκελο του μενού Έναρξη.
+SelectStartMenuFolderBrowseLabel=Για να συνεχίσετε, πατήστε Επόμενο. Αν θέλετε διαφορετικό φάκελο, πατήστε Αναζήτηση.
+MustEnterGroupName=Πρέπει να εισαγάγετε ένα όνομα φακέλου.
+GroupNameTooLong=Το όνομα ή η διαδρομή του φακέλου είναι πολύ μεγάλη.
+InvalidGroupName=Το όνομα του φακέλου δεν είναι έγκυρο.
+BadGroupName=Το όνομα του φακέλου δεν μπορεί να περιλαμβάνει κανέναν από τους παρακάτω χαρακτήρες:%n%n%1
+NoProgramGroupCheck2=&Χωρίς δημιουργία φακέλου στο μενού Έναρξης.
+
+; *** "Ready to Install" wizard page
+WizardReady=Έτοιμα για Εγκατάσταση
+ReadyLabel1=Ο Οδηγός Εγκατάστασης είναι έτοιμος να ξεκινήσει την εγκατάσταση του [name] στον υπολογιστή σας.
+ReadyLabel2a=Πατήστε Εγκατάσταση για να συνεχίσετε με την εγκατάσταση ή πατήστε Πίσω, εάν θέλετε να ελέγξετε ή να αλλάξετε τυχόν ρυθμίσεις.
+ReadyLabel2b=Πατήστε Εγκατάσταση για να συνεχίσετε την εγκατάσταση.
+ReadyMemoUserInfo=Πληροφορίες Χρήστη:
+ReadyMemoDir=Φάκελος προορισμού:
+ReadyMemoType=Είδος εγκατάστασης:
+ReadyMemoComponents=Επιλεγμένες λειτουργικές μονάδες:
+ReadyMemoGroup=Φάκελος στο μενού Έναρξη:
+ReadyMemoTasks=Επιπλέον ενέργειες:
+
+; *** TDownloadWizardPage wizard page and DownloadTemporaryFile
+DownloadingLabel=Λήψη πρόσθετων αρχείων...
+ButtonStopDownload=&Διακοπή λήψης
+StopDownload=Είστε βέβαιοι ότι θέλετε να διακόψετε τη λήψη;
+ErrorDownloadAborted=Η λήψη ακυρώθηκε
+ErrorDownloadFailed=Η λήψη απέτυχε: %1 %2
+ErrorDownloadSizeFailed=Η λήψη του μεγέθους απέτυχε: %1 %2
+ErrorFileHash1=Αποτυχία υπολογισμού hash: %1
+ErrorFileHash2=Μη έγκυρο hash: αναμενόμενο %1, βρέθηκε %2
+ErrorProgress=Μη έγκυρη πρόοδος: %1 από %2
+ErrorFileSize=Μη έγκυρο μέγεθος αρχείου: αναμενόμενο %1, βρέθηκε %2
+
+; *** "Preparing to Install" wizard page
+WizardPreparing=Προετοιμασία Εγκατάστασης
+PreparingDesc=Ο Οδηγός Εγκατάστασης προετοιμάζεται για την εγκατάσταση του [name] στον υπολογιστή σας.
+PreviousInstallNotCompleted=Η εγκατάσταση/αφαίρεση ενός προηγούμενου προγράμματος δεν ολοκληρώθηκε. Θα χρειαστεί να κάνετε επανεκκίνηση του υπολογιστή σας για να ολοκληρωθεί.%n%nΜετά την επανεκκίνηση του υπολογιστή σας, εκτελέστε ξανά τον Οδηγό Εγκατάστασης για να ολοκληρώσετε την εγκατάσταση/αφαίρεση του [name].
+CannotContinue=Η εγκατάσταση δεν μπορεί να συνεχιστεί. Παρακαλώ πατήστε Άκυρο για τερματισμό.
+ApplicationsFound=Οι ακόλουθες εφαρμογές χρησιμοποιούν αρχεία που πρέπει να ενημερωθούν από τον Οδηγό Εγκατάστασης. Συνιστάται να επιτρέψετε στον Οδηγό Εγκατάστασης να κλείσει αυτόματα αυτές τις εφαρμογές.
+ApplicationsFound2=Οι ακόλουθες εφαρμογές χρησιμοποιούν αρχεία που πρέπει να ενημερωθούν από τον Οδηγό Εγκατάστασης. Συνιστάται να επιτρέψετε στον Οδηγό Εγκατάστασης να κλείσει αυτόματα αυτές τις εφαρμογές. Μετά την ολοκλήρωση της εγκατάστασης, ο Οδηγός Εγκατάστασης θα επιχειρήσει να κάνει επανεκκίνηση των εφαρμογών.
+CloseApplications=&Αυτόματο κλείσιμο των εφαρμογών
+DontCloseApplications=&Χωρίς κλείσιμο των εφαρμογών
+ErrorCloseApplications=Ο Οδηγός Εγκατάστασης δεν μπόρεσε να κλείσει αυτόματα όλες τις εφαρμογές. Συνιστάται να κλείσετε όλες τις εφαρμογές που χρησιμοποιούν αρχεία που πρέπει να ενημερωθούν από τον Οδηγό Εγκατάστασης προτού συνεχίσετε.
+PrepareToInstallNeedsRestart=Ο Οδηγός Εγκατάστασης πρέπει να κάνει επανεκκίνηση του υπολογιστή σας. Μετά την επανεκκίνηση του υπολογιστή σας, εκτελέστε ξανά τον Οδηγό Εγκατάστασης για να ολοκληρώσετε την εγκατάσταση του [name].%n%nΘα θέλατε να κάνετε επανεκκίνηση τώρα;
+
+; *** "Installing" wizard page
+WizardInstalling=Εγκατάσταση
+InstallingLabel=Παρακαλώ περιμένετε καθώς γίνεται η εγκατάσταση του [name] στον υπολογιστή σας.
+
+; *** "Setup Completed" wizard page
+FinishedHeadingLabel=Ολοκλήρωση του Οδηγού Εγκατάστασης του [name]
+FinishedLabelNoIcons=Ο Οδηγός Εγκατάστασης ολοκλήρωσε την εγκατάσταση του [name] στον υπολογιστή σας.
+FinishedLabel=Ο Οδηγός Εγκατάστασης ολοκλήρωσε την εγκατάσταση του [name] στον υπολογιστή σας. Η εφαρμογή μπορεί να ξεκινήσει επιλέγοντας κάποια από τις εγκατεστημένες συντομεύσεις.
+ClickFinish=Πατήστε Τέλος για να τερματίσετε τον Οδηγό Εγκατάστασης.
+FinishedRestartLabel=Για να ολοκληρώσετε την εγκατάσταση του [name], ο Οδηγός Εγκατάστασης πρέπει να κάνει επανεκκίνηση του υπολογιστή σας. Θα θέλατε να κάνετε επανεκκίνηση τώρα;
+FinishedRestartMessage=Για να ολοκληρώσετε την εγκατάσταση του [name], ο Οδηγός Εγκατάστασης πρέπει να κάνει επανεκκίνηση του υπολογιστή σας.%n%nΘα θέλατε να κάνετε επανεκκίνηση τώρα;
+ShowReadmeCheck=Ναι, θα ήθελα να δω το αρχείο README
+YesRadio=&Ναι, να γίνει επανεκκίνηση τώρα
+NoRadio=&Οχι, θα κάνω επανεκκίνηση αργότερα
+; used for example as 'Run MyProg.exe'
+RunEntryExec=Εκτέλεση του %1
+; used for example as 'View Readme.txt'
+RunEntryShellExec=Προβολή του %1
+
+; *** "Setup Needs the Next Disk" stuff
+ChangeDiskTitle=Ο Οδηγός Εγκατάστασης χρειάζεται τον επόμενο δίσκο
+SelectDiskLabel2=Παρακαλώ, εισάγετε τον δίσκο %1 και πατήστε ΟΚ.%n%nΕάν τα αρχεία αυτού του δίσκου βρίσκονται σε φάκελο διαφορετικό από αυτόν που εμφανίζεται παρακάτω, πληκτρολογήστε τη σωστή διαδρομή ή πατήστε Αναζήτηση.
+PathLabel=&Διαδρομή:
+FileNotInDir2=Το αρχείο "%1" δε βρέθηκε στο "%2". Παρακαλώ εισάγετε το σωστό δίσκο ή επιλέξτε κάποιον άλλο φάκελο.
+SelectDirectoryLabel=Παρακαλώ καθορίσετε την τοποθεσία του επόμενου δίσκου.
+
+; *** Installation phase messages
+SetupAborted=Η εγκατάσταση δεν ολοκληρώθηκε.%n%nΠαρακαλώ, διορθώστε το πρόβλημα και εκτελέστε ξανά τον Οδηγό Εγκατάστασης.
+AbortRetryIgnoreSelectAction=Επιλέξτε ενέργεια
+AbortRetryIgnoreRetry=&Δοκιμή
+AbortRetryIgnoreIgnore=&Αγνόηση και συνέχεια
+AbortRetryIgnoreCancel=Ακυρώση εγκατάστασης
+
+; *** Installation status messages
+StatusClosingApplications=Κλείσιμο εφαρμογών...
+StatusCreateDirs=Δημιουργία φακέλων...
+StatusExtractFiles=Αποσυμπίεση αρχείων...
+StatusCreateIcons=Δημιουργία συντομεύσεων...
+StatusCreateIniEntries=Δημιουργία καταχωρήσεων INI...
+StatusCreateRegistryEntries=Δημιουργία καταχωρήσεων στο μητρώο...
+StatusRegisterFiles=Καταχώρηση αρχείων...
+StatusSavingUninstall=Αποθήκευση πληροφοριών απεγκατάστασης...
+StatusRunProgram=Ολοκλήρωση εγκατάστασης...
+StatusRestartingApplications=Επανεκκίνηση εφαρμογών...
+StatusRollback=Επαναφορά αλλαγών...
+
+; *** Misc. errors
+ErrorInternal2=Εσωτερικό σφάλμα: %1
+ErrorFunctionFailedNoCode=%1 απέτυχε
+ErrorFunctionFailed=%1 απέτυχε, κωδικός %2
+ErrorFunctionFailedWithMessage=%1 απέτυχε, κωδικός %2.%n%3
+ErrorExecutingProgram=Δεν είναι δυνατή η εκτέλεση του αρχείου:%n%1
+
+; *** Registry errors
+ErrorRegOpenKey=Σφάλμα ανάγνωσης κλειδιού μητρώου:%n%1\%2
+ErrorRegCreateKey=Σφάλμα δημιουργίας κλειδιού μητρώου:%n%1\%2
+ErrorRegWriteKey=Σφάλμα καταχώρησης κλειδιού μητρώου:%n%1\%2
+
+; *** INI errors
+ErrorIniEntry=Σφάλμα στη δημιουργία καταχώρησης INI στο αρχείο "%1".
+
+; *** File copying errors
+FileAbortRetryIgnoreSkipNotRecommended=&Παράλειψη αυτού του αρχείου (δεν συνιστάται)
+FileAbortRetryIgnoreIgnoreNotRecommended=Παράλειψη σφάλματος και &συνέχεια (δεν συνιστάται)
+SourceIsCorrupted=Το αρχείο προέλευσης είναι κατεστραμμένο
+SourceDoesntExist=Το αρχείο προέλευσης "%1" δεν υπάρχει
+ExistingFileReadOnly2=Το υπάρχον αρχείο δεν μπόρεσε να αντικατασταθεί επειδή είναι μόνο για ανάγνωση.
+ExistingFileReadOnlyRetry=&Καταργήστε το χαρακτηριστικό μόνο για ανάγνωση και δοκιμάστε ξανά
+ExistingFileReadOnlyKeepExisting=&Διατηρήστε το υπάρχον αρχείο
+ErrorReadingExistingDest=Παρουσιάστηκε σφάλμα κατά την προσπάθεια ανάγνωσης του υπάρχοντος αρχείου:
+FileExistsSelectAction=Επιλέξτε ενέργεια
+FileExists2=Το αρχείο υπάρχει ήδη.
+FileExistsOverwriteExisting=&Αντικατάσταση υπάρχοντος αρχείου
+FileExistsKeepExisting=&Διατήρηση υπάρχοντος αρχείου
+FileExistsOverwriteOrKeepAll=&Να γίνει το ίδιο για τις επόμενες διενέξεις
+ExistingFileNewerSelectAction=Επιλέξτε ενέργεια
+ExistingFileNewer2=Το υπάρχον αρχείο είναι νεότερο από αυτό που προσπαθεί να εγκαταστήσει ο Οδηγός Εγκατάστασης.
+ExistingFileNewerOverwriteExisting=&Αντικατάσταση υπάρχοντος αρχείου
+ExistingFileNewerKeepExisting=&Διατήρηση υπάρχοντος αρχείου (συνιστάται)
+ExistingFileNewerOverwriteOrKeepAll=&Να γίνει το ίδιο για τις επόμενες διενέξεις
+ErrorChangingAttr=Παρουσιάστηκε σφάλμα κατά την προσπάθεια αλλαγής των χαρακτηριστικών του υπάρχοντος αρχείου:
+ErrorCreatingTemp=Παρουσιάστηκε σφάλμα κατά την προσπάθεια δημιουργίας ενός αρχείου στον φακέλο προορισμού:
+ErrorReadingSource=Παρουσιάστηκε σφάλμα κατά την προσπάθεια ανάγνωσης του αρχείου προέλευσης:
+ErrorCopying=Παρουσιάστηκε σφάλμα κατά την προσπάθεια αντιγραφής ενός αρχείου:
+ErrorReplacingExistingFile=Παρουσιάστηκε σφάλμα κατά την προσπάθεια αντικατάστασης του υπάρχοντος αρχείου:
+ErrorRestartReplace=Η ΕπανεκκίνησηΑντικατάσταση απέτυχε:
+ErrorRenamingTemp=Παρουσιάστηκε σφάλμα κατά την προσπάθεια μετονομασίας ενός αρχείου στον φακέλο προορισμού:
+ErrorRegisterServer=Δεν είναι δυνατή η καταχώριση του DLL/OCX: %1
+ErrorRegSvr32Failed=Το RegSvr32 απέτυχε με κωδικό εξόδου %1
+ErrorRegisterTypeLib=Δεν είναι δυνατή η καταχώριση της βιβλιοθήκης τύπων: %1
+
+; *** Uninstall display name markings
+; used for example as 'My Program (32-bit)'
+UninstallDisplayNameMark=%1 (%2)
+; used for example as 'My Program (32-bit, All users)'
+UninstallDisplayNameMarks=%1 (%2, %3)
+UninstallDisplayNameMark32Bit=32-bit
+UninstallDisplayNameMark64Bit=64-bit
+UninstallDisplayNameMarkAllUsers=Ολοι οι χρήστες
+UninstallDisplayNameMarkCurrentUser=Τρέχων χρήστης
+
+; *** Post-installation errors
+ErrorOpeningReadme=Παρουσιάστηκε σφάλμα κατά την προσπάθεια ανοίγματος του αρχείου README.
+ErrorRestartingComputer=Ο Οδηγός Εγκατάστασης δεν μπόρεσε να κάνει επανεκκίνηση του υπολογιστή. Παρακαλώ επανεκκινήσετε τον υπολογιστή μόνοι σας.
+
+; *** Uninstaller messages
+UninstallNotFound=Το αρχείο "%1" δεν υπάρχει. Δεν είναι δυνατή η απεγκατάσταση.
+UninstallOpenError=Το αρχείο "%1" δεν ήταν δυνατό να ανοίξει. Δεν είναι δυνατή η απεγκατάσταση
+UninstallUnsupportedVer=Το αρχείο καταγραφής απεγκατάστασης "%1" είναι σε μορφή που δεν αναγνωρίζεται από αυτήν την έκδοση του Οδηγού Απεγκατάστασης. Δεν ήταν δυνατή η απεγκατάσταση
+UninstallUnknownEntry=Μια άγνωστη καταχώρηση (%1) εντοπίστηκε στο αρχείο καταγραφής απεγκατάστασης
+ConfirmUninstall=Είστε βέβαιοι ότι θέλετε να καταργήσετε εντελώς το %1 και όλα τα στοιχεία του;
+UninstallOnlyOnWin64=Αυτή η εγκατάσταση μπορεί να απεγκατασταθεί μόνο σε Windows 64-bit.
+OnlyAdminCanUninstall=Αυτή η εγκατάσταση μπορεί να απεγκατασταθεί μόνο από χρήστη με δικαιώματα διαχειριστή.
+UninstallStatusLabel=Παρακαλώ περιμένετε μέχρι να καταργηθεί το %1 από τον υπολογιστή σας.
+UninstalledAll=Το %1 αφαιρέθηκε με επιτυχία από τον υπολογιστή σας.
+UninstalledMost=Το %1 αφαιρέθηκε με επιτυχία.%n%nΟρισμένα στοιχεία δεν ήταν δυνατό να καταργηθούν. Αυτά μπορούν να αφαιρεθούν από εσάς.
+UninstalledAndNeedsRestart=Για να ολοκληρώσετε την απεγκατάσταση του %1, ο υπολογιστής σας πρέπει να επανεκκινηθεί.%n%nΘα θέλατε να κάνετε επανεκκίνηση τώρα;
+UninstallDataCorrupted=Το "%1" αρχείο είναι κατεστραμμένο. Δεν ήταν δυνατή η απεγκατάσταση
+
+; *** Uninstallation phase messages
+ConfirmDeleteSharedFileTitle=Κατάργηση Κοινόχρηστου Αρχείου;
+ConfirmDeleteSharedFile2=Το σύστημα υποδεικνύει ότι το ακόλουθο κοινόχρηστο αρχείο δεν χρησιμοποιείται πλέον από κανένα πρόγραμμα. Θέλετε να καταργηθεί αυτό το κοινόχρηστο αρχείο;%n%nΕάν κάποιο πρόγραμμα εξακολουθεί να το χρησιμοποιεί, ενδέχεται να μην λειτουργήσει σωστά. Εάν δεν είστε βέβαιοι, επιλέξτε Όχι. Αφήνοντάς το στο σύστημά σας δεν θα προκληθεί καμία ζημιά.
+SharedFileNameLabel=Όνομα Αρχείου:
+SharedFileLocationLabel=Τοποθεσία:
+WizardUninstalling=Πρόοδος Απεγκατάστασης
+StatusUninstalling=Απεγκατάσταση %1...
+
+; *** Shutdown block reasons
+ShutdownBlockReasonInstallingApp=Εγκατάσταση του %1.
+ShutdownBlockReasonUninstallingApp=Απεγκατάσταση του %1.
+
+; The custom messages below aren't used by Setup itself, but if you make
+; use of them in your scripts, you'll want to translate them.
+
+[CustomMessages]
+
+NameAndVersion=%1 έκδοση %2
+AdditionalIcons=Επιπλέον συντομεύσεις:
+CreateDesktopIcon=Δημιουργία συντόμευσης στην &επιφάνεια εργασίας
+CreateQuickLaunchIcon=Δημιουργία συντόμευσης στη &Γρήγορη Εκκίνηση
+ProgramOnTheWeb=Το %1 στο Internet
+UninstallProgram=Απεγκατάσταση του %1
+LaunchProgram=Εκκίνηση του %1
+AssocFileExtension=&Συσχέτιση του %1 με την επέκταση αρχείου %2 
+AssocingFileExtension=Γίνεται συσχέτιση του %1 με την επέκταση αρχείου "%2"...
+AutoStartProgramGroupDescription=Εκκίνηση:
+AutoStartProgram=Αυτόματη εκκίνηση του %1
+AddonHostProgramNotFound=Το %1 δε βρέθηκε στο φάκελο που επιλέξατε.%n%nΘέλετε να συνεχίσετε παρόλα αυτά;
+
+        with: ; *** Inno Setup version 6.1.0+ Latvian messages ***
+;
+; Translated from English by Zorgaats, zorgaats@gmail.com
+;
+; Note: When translating this text, do not add periods (.) to the end of
+; messages that didn't have them already, because on those messages Inno
+; Setup adds the periods automatically (appending a period would result in
+; two periods being displayed).
+
+[LangOptions]
+LanguageName=Latviski
+LanguageID=$0426
+LanguageCodePage=1257
+
+[Messages]
+
+; *** Application titles
+SetupAppTitle=Uzstādīšana
+SetupWindowTitle=Uzstādīšana — %1
+UninstallAppTitle=Noņemšana
+UninstallAppFullTitle=Noņemšana — %
+
+; *** Misc. common
+InformationTitle=Informācija
+ConfirmTitle=Apstiprināt
+ErrorTitle=Kļūda
+
+; *** SetupLdr messages
+SetupLdrStartupMessage=Tiks uzstādīta programma %1 uz Jūsu datora. Vai vēlaties turpināt?
+LdrCannotCreateTemp=Neiespējami izveidot pagaidu datnes. Uzstādīšana pārtraukta
+LdrCannotExecTemp=Neiespējami palaist datni no pagaidu mapes. Uzstādīšana pārtraukta
+HelpTextNote=
+
+; *** Startup error messages
+LastErrorMessage=%1.%n%nKļūda %2: %3
+SetupFileMissing=Datne %1 nav atrodama uzstādīšanas mapē. Lūdzu izlabojiet kļūdu vai iegādājaties jaunu programmas kopiju.
+SetupFileCorrupt=Uzstādīšanas datnes ir bojātas. Lūdzu iegādājaties jaunu programmas kopiju.
+SetupFileCorruptOrWrongVer=Uzstādīšanas datnes ir bojātas vai nav savienojamas ar šo uzstādīšanas programmu. Lūdzu izlabojiet kļūdu vai iegādājaties jaunu programmas kopiju.
+InvalidParameter=Komandrinda satur nepieļaujamu parametru:%n%n%1
+SetupAlreadyRunning=Uzstādīšanas programma jau ir palaista.
+WindowsVersionNotSupported=Šī programma neatbalsta Windows versiju, kas uzstādīta uz šī datora.
+WindowsServicePackRequired=Programma pieprasa %1 Service Pack %2 vai jaunāku versiju.
+NotOnThisPlatform=Šī pragramma nevar darboties uz %1.
+OnlyOnThisPlatform=Programmu var palaist tikai uz %1.
+OnlyOnTheseArchitectures=Programmu var uzstādīt tikai uz Windows versijas ar šādu procesoru arhitektūru:%n%n%1
+WinVersionTooLowError=Programma pieprasa %1 versiju %2 vai jaunāku.
+WinVersionTooHighError=Programmu nevar uzstādīt uz %1 versijas %2 vai jaunākas.
+AdminPrivilegesRequired=Jums ir jābūt administratoram, lai varētu uzsākt uzstādīšanu.
+PowerUserPrivilegesRequired=Jums ir jābūt administratoram vai pilnvarotam lietotājam, lai uzstādītu šo programmu.
+SetupAppRunningError=Ir atrasts palaists eksemplārs %1.%n%nLūdzu,aizveriet visas programmas un spiediet "Ok" lai turpinātu vai "Atcelt", lai izietu.
+UninstallAppRunningError=Noņemšana ir atklājusi, ka darbojas eksemplārs %1.%n%nLūdzu,aizveriet visas programmas un spiediet "Ok" lai turpinātu vai "Atcelt", lai izietu.
+
+; *** Startup questions
+PrivilegesRequiredOverrideTitle=Uzstādīšanas režīma izvēle
+PrivilegesRequiredOverrideInstruction=Izvēlieties uzstādīšanas režīmu
+PrivilegesRequiredOverrideText1=%1 var tikt uzstādīts vai nu visiem lietotājiem (nepieciešamas administratora privilēģijas), vai arī tikai Jums.
+PrivilegesRequiredOverrideText2=%1 var tikt uzstādīts vai nu tikai Jums, vai arī visiem lietotājiem (nepieciešamas administratora privilēģijas).
+PrivilegesRequiredOverrideAllUsers=Uzstādīt &visiem lietotājiem
+PrivilegesRequiredOverrideAllUsersRecommended=Uzstādīt &visiem lietotājiem (rekomendējas)
+PrivilegesRequiredOverrideCurrentUser=Uzstādīt tikai &man
+PrivilegesRequiredOverrideCurrentUserRecommended=Uzstādīt tikai &man (rekomendējas)
+
+; *** Misc. errors
+ErrorCreatingDir=Nevar izveidot mapi "%1"
+ErrorTooManyFilesInDir=Neiespējami izveidot datnes mapē "%1", jo tā satur pārāk daudz datņu
+
+; *** Setup common messages
+ExitSetupTitle=Iziet no uzstādīšanas
+ExitSetupMessage=Uzstādīšana nav pabeigta. Ja Jūs tagad iziesiet, programma netiks uzstādīta.%n%nLai uzstādītu programmu, Jums būs atkal jāpalaiž uzstādīšana. %n%nIziet no uzstādīšanas?
+AboutSetupMenuItem=&Par uzstādīšanu...
+AboutSetupTitle=Par uzstādīšanu
+AboutSetupMessage=%1, varsija %2%n%3%n%n%1mājas lapa:%n%4
+AboutSetupNote=
+TranslatorNote=Latvian translation by Zorgaats
+
+; *** Buttons
+ButtonBack=< &Atpakaļ
+ButtonNext=&Tālāk >
+ButtonInstall=&Uzstādīt
+ButtonOK=OK
+ButtonCancel=Atcelt
+ButtonYes=&Jā
+ButtonYesToAll=Jā &Visam
+ButtonNo=&Nē
+ButtonNoToAll=Nē V&isam
+ButtonFinish=&Pabeigt
+ButtonBrowse=Pā&rlūkot...
+ButtonWizardBrowse=Pārlū&kot...
+ButtonNewFolder=I&zveidot jaunu mapi
+
+; *** "Select Language" dialog messages
+SelectLanguageTitle=Izvēlieties uzstādīšanas valodu
+SelectLanguageLabel=Izvēlieties valodu, kurā notiks uzstādīšana:
+
+; *** Common wizard text
+ClickNext=Spiediet "Tālāk", lai turpinātu, vai "Atcelt", lai izietu no uzstādīšanas.
+BeveledLabel=
+BrowseDialogTitle=Pārlūkot mapi
+BrowseDialogLabel=Izvēlieties mapi no saraksta, tad spiediet "Ok".
+NewFolderName=Jauna mape
+
+; *** "Welcome" wizard page
+WelcomeLabel1=Вас приветствует Мастер установки [name]
+WelcomeLabel2=Programma uzstādīs [name/ver] uz Jūsu datora.%n%nPirms uzstādīšanas vēlams aizvērt visas programmas.
+
+; *** "Password" wizard page
+WizardPassword=Parole
+PasswordLabel1=Uzstādīšana ir aizsargāta ar paroli.
+PasswordLabel3=Lūdzu, ievadiet paroli, tad spiediet "Tālāk", lai turpinātu. Parole ir reģistrjūtīga.
+PasswordEditLabel=&Parole:
+IncorrectPassword=Jūsu ievadītā parole ir nepareiza. Lūdzu, mēģiniet vēlreiz.
+
+; *** "License Agreement" wizard page
+WizardLicense=Licence
+LicenseLabel=Lūdzu, izlasiet sekojošo informāciju, pirms turpināt.
+LicenseLabel3=Lūdzu, izlasiet Līgumu. Jums ir jāapstiprina Līgums, lai turpinātu uzstādīšanu.
+LicenseAccepted=Es &piekrītu līgumam
+LicenseNotAccepted=Es &nepiekrītu līgumam
+
+; *** "Information" wizard pages
+WizardInfoBefore=Informācija
+InfoBeforeLabel=Lūdzu, izlasiet šo informāciju.
+InfoBeforeClickLabel=Kad esat gatavs turpināt uzstādīšanu, spiediet "Tālāk".
+WizardInfoAfter=Informācija
+InfoAfterLabel=Lūdzu, izlasiet šo informāciju.
+InfoAfterClickLabel=Kad esat gatavs turpināt uzstādīšanu, spiediet "Tālāk".
+
+; *** "User Information" wizard page
+WizardUserInfo=Lietotāja informācija
+UserInfoDesc=Lūdzu, ievadiet datus par sevi.
+UserInfoName=&Lietotāja vārds:
+UserInfoOrg=&Organizācija:
+UserInfoSerial=&Sērijas numurs:
+UserInfoNameRequired=Jums ir jāievada savs vārds.
+
+; *** "Select Destination Location" wizard page
+WizardSelectDir=Uzstādīšanas mapes izvēle
+SelectDirDesc=Kur [name] tiks instalēts?
+SelectDirLabel3=[name] datnes tiks instalētas norādītajā mapē.
+SelectDirBrowseLabel=Lai turpinātu, spiediet "Tālāk". Ja vēlaties norādīt citu mapi, spiediet "Pārlūkot".
+DiskSpaceGBLabel=Ir nepieciešami brīvi [gb] GB uz cietā diska.
+DiskSpaceMBLabel=Ir nepieciešami brīvi [mb] MB uz cietā diska.
+CannotInstallToNetworkDrive=Uzstādīšana nevar tikt veikta uz tīkla diska.
+CannotInstallToUNCPath=Uzstādīšana nevar tikt veikta mapē pa UNC-adresi.
+InvalidPath=Jums ir jānorāda pilna uzstādīšanas adrese, piemērs:%n%nC:\APP%n%nvai UNC adrese:%n%n\\server\share
+InvalidDrive=Disks vai tīkla adrese, kuru Jūs izvēlējāties, nepastāv vai arī nav pieejams. Lūdzu, izvēlieties citu.
+DiskSpaceWarningTitle=Nepietiek vietas uz diska
+DiskSpaceWarning=Uzstādīšanai ir nepieciešami vismaz %1 KB brīvas vietas uz diska, bet pieejami ir tikai %2 KB.%n%nVai vēlaties turpināt?
+DirNameTooLong=Mapes nosaukums vai adrese ir pārāk gara.
+InvalidDirName=Mapes nosaukums nav derīgs.
+BadDirName32=Mapes nosaukumā nedrīkst būt šādi simboli: %n%n%1
+DirExistsTitle=Mape jau pastāv.
+DirExists=Mape:%n%n%1%n%njau pastāv. Vai vienalga vēlaties turpināt?
+DirDoesntExistTitle=Mape nepastāv
+DirDoesntExist=Mape%n%n%1%n%nnepastāv. Vai vēlaties to izveidot?
+
+; *** "Select Components" wizard page
+WizardSelectComponents=Izvēlieties sastāvdaļas
+SelectComponentsDesc=Kurus komponentus vēlaties uzstādīt?
+SelectComponentsLabel2=Izvēlieties komponentus, kurus vēlaties uzstādīt. Spiediet "Tālāk", lai turpinātu.
+FullInstallation=Pilna uzstādīšana
+; if possible don't translate 'Compact' as 'Minimal' (I mean 'Minimal' in your language)
+CompactInstallation=Kompakta uzstādīšana
+CustomInstallation=Izveidot uzstādīšanu
+NoUninstallWarningTitle=Komponenti jau pastāv
+NoUninstallWarning=Uzstādīšana ir atklājusi, ka šādi komponenti jau ir uzstādīti:%n%n%1%n%nŠo komponentu uzstādīšanas atcelšana neizdzēsīs tos.%n%nVai turpināt?
+ComponentSize1=%1 Кб
+ComponentSize2=%1 Мб
+ComponentsDiskSpaceGBLabel=Pašlaik izvēlētie komponenti aizņem [gb] GB uz cietā diska.
+ComponentsDiskSpaceMBLabel=Pašlaik izvēlētie komponenti aizņem [mb] MB uz cietā diska.
+
+; *** "Select Additional Tasks" wizard page
+WizardSelectTasks=Papilduzdevumu izvēlne
+SelectTasksDesc=Kurus papilduzdevumus vajadzētu veikt?
+SelectTasksLabel2=Izvēlieties, kādi papilduzdevumi tiks veikti [name] uzstādīšanas laikā, tad spiediet "Tālāk".
+
+; *** "Select Start Menu Folder" wizard page
+WizardSelectProgramGroup=Izvēlieties Start Menu mapi
+SelectStartMenuFolderDesc=Kur uzstādīšanas programmai vajadzētu likt īsinājumikonas?
+SelectStartMenuFolderLabel3=Uzstādīšana izveidos īsinājumikonas Start Menu mapē.
+SelectStartMenuFolderBrowseLabel=Lai turpinātu, spiediet "Tālāk". Ja vēlaties norādīt citu mapi, spiediet "Pārlūkot".
+MustEnterGroupName=Jums ir jānorāda mape.
+GroupNameTooLong=Mapes nosaukums ir pārāk garš.
+InvalidGroupName=Mape nav derīga.
+BadGroupName=Mapes nosaukums satur kādu no šiem simboliem:%n%n%1
+NoProgramGroupCheck2=&Neizveidot Start Menu mapi
+
+; *** "Ready to Install" wizard page
+WizardReady=Gatavs uzstādīšanai
+ReadyLabel1=Uzstādīšana ir gatava instalēt [name] uz Jūsu datora.
+ReadyLabel2a=Spiediet "Uzstādīt", lai sāktu uzstādīšanu, vai spiediet "Atpakaļ", lai izmainītu parametrus.
+ReadyLabel2b=Spiediet "Uzstādīt", lai sāktu uzstādīšanu.
+ReadyMemoUserInfo=Lietotāja informācija:
+ReadyMemoDir=Galamēķis:
+ReadyMemoType=Uzstādīšanas tips:
+ReadyMemoComponents=Izvēlētie komponenti:
+ReadyMemoGroup=Start Menu mape:
+ReadyMemoTasks=Papilduzdevumi:
+
+; *** TDownloadWizardPage wizard page and DownloadTemporaryFile
+DownloadingLabel=Papildus datņu lejupielāde...
+ButtonStopDownload=&Pārtraukt ielādi
+StopDownload=Jūs tiešām vēlaties pārtraukt lejupielādi?
+ErrorDownloadAborted=Lejupielāde pārtraukta
+ErrorDownloadFailed=Lejupielādes kļūda: %1 %2
+ErrorDownloadSizeFailed=Izmēra kļūda: %1 %2
+ErrorFileHash1=Ошибка хэша файла: %1
+ErrorFileHash2=Неверный хэш файла: ожидался %1, получен %2
+ErrorProgress=Izpildes kļūda: %1 из %2
+ErrorFileSize=Kļūdains faila izmērs: tika gaidīts %1, iegūts %2
+
+; *** "Preparing to Install" wizard page
+WizardPreparing=Gatavoties uzstādīšanai
+PreparingDesc=Uzstādīšana ir gatava instalēt [name] uz Jūsu datora.
+PreviousInstallNotCompleted=Uzstādīšana/noņemšana iepriekšējai programmai nav pabeigta. Jums ir jāpārstartē dators, lai pabeigtu uzstādīšanu.%n%nPēc pārstartēšanas palaidiet uzstādīšanu no jauna, lai pabeigtu uzstādīt [name].
+CannotContinue=Uzstādīšanu nevar turpināt. Lūdzu, spiediet "Atcelt", lai izietu.
+ApplicationsFound=Sekojošas programmas izmanto datnes, kuras uzstādīšanai jāatjauno. Rekomendējas uzstādīšanai atļaut automātiski aizvērt šīs programmas.
+ApplicationsFound2=Sekojošas programmas izmanto datnes, kuras uzstādīšanai jāatjauno. Rekomendējas uzstādīšanai atļaut automātiski aizvērt šīs programmas. Kad instalācija būs pabeigta, uzstādīšana mēģinās tās atkal palaist.
+CloseApplications=&Automātiski aizvērt šīs programmas
+DontCloseApplications=&Neaizvērt šīs programmas
+ErrorCloseApplications=Uzstādīšanai neizdevās automātiski aizvērt visas programmas.Pirms uzstādīšanas rekomendējas aizvērt visas programmas, kas izmanto atjaunināmās datnes.
+PrepareToInstallNeedsRestart=Uzstādīšanai nepieciešams pārstartēt Jūsu datoru. Kad dators pārstartēsies, lūdzu, palaidiet uzstādīšanas programmu vēlreiz, lai pabeigtu uzstādīšanu [name].%n%nVeikt pārstartēšanu tūlīt?
+
+; *** "Installing" wizard page
+WizardInstalling=Uzstādīšana...
+InstallingLabel=Lūdzu, uzgaidiet, kamēr [name] tiks uzstādīts uz Jūsu datora.
+
+; *** "Setup Completed" wizard page
+FinishedHeadingLabel=Pabeigta [name] uzstādīšana
+FinishedLabelNoIcons=Uzstādīšana pabeigta.
+FinishedLabel=Programma [name] ir uzstādīta uz Jūsu datora. Programmu var palaist, uzklikšķinot uz izveidotajām ikonām.
+ClickFinish=Spiediet "Pabeigt", lai aizvērtu uzstādīšanu.
+FinishedRestartLabel=Lai pabeigtu [name] uzstādīšanu, nepieciešams pārstartēt Jūsu datoru. Vai vēlaties to darīt tagad?
+FinishedRestartMessage=Lai pabeigtu [name] uzstādīšanu, nepieciešams pārstartēt Jūsu datoru.%n%nVai vēlaties to darīt tagad?
+ShowReadmeCheck=Jā, vēlos apskatīt README failu
+YesRadio=&Jā, pārstartēt datoru tagad
+NoRadio=&Nē, datoru pārstartēšu vēlāk
+; used for example as 'Run MyProg.exe'
+RunEntryExec=Palaist %1
+; used for example as 'View Readme.txt'
+RunEntryShellExec=Apskatīt %1
+
+; *** "Setup Needs the Next Disk" stuff
+ChangeDiskTitle=Uzstādīšanai ir nepieciešams nākamais disks
+SelectDiskLabel2=Lūdzu, ielieciet %1 disku un spiediet "Ok".%n%nJa datne ir atrodama uz šī paša diska kādā citā mapē, norādiet tās atrašanās vietu vai spiediet "Pārlūkot", lai to norādītu.
+PathLabel=&Ceļš:
+FileNotInDir2=Datne "%1" neatrodas "%2". Lūdzu, ielieciet pareizo disku vai norādiet pareizo mapi.
+SelectDirectoryLabel=Lūdzu, norādiet nākamā diska atrašanās vietu.
+
+; *** Installation phase messages
+SetupAborted=Uzstādīšana netika pabeigta.%n%nLūdzu, izlabojiet kļūdu un palaidiet uzstādīšanu no jauna.
+AbortRetryIgnoreSelectAction=Izvēlieties darbību
+AbortRetryIgnoreRetry=Mēģināt no &jauna
+AbortRetryIgnoreIgnore=&Ignorēt kļūdu un turpināt
+AbortRetryIgnoreCancel=Pārtraukt uzstādīšanu
+
+; *** Installation status messages
+StatusClosingApplications=Programmu aizvēršana...
+StatusCreateDirs=Mapju izveidošana...
+StatusExtractFiles=Datņu kopēšana...
+StatusCreateIcons=Īsinājumikonu izveidošana...
+StatusCreateIniEntries=Izveido INI ierakstu...
+StatusCreateRegistryEntries=Izveido reģistra ierakstus...
+StatusRegisterFiles=Reģistrē datnes...
+StatusSavingUninstall=Saglabā noņemšanas datus...
+StatusRunProgram=Pabeidz uzstādīšanu...
+StatusRestartingApplications=Programmu restartēšana...
+StatusRollback=Izmaiņu atiestatīšana...
+
+; *** Misc. errors
+ErrorInternal2=Iekšēja kļūda: %1
+ErrorFunctionFailedNoCode=%1: cieta neveiksmi
+ErrorFunctionFailed=%1: cieta neveiksmi; kods %2
+ErrorFunctionFailedWithMessage=%1: cieta neveiksmi; kods %2.%n%3
+ErrorExecutingProgram=Nespēju palaist failu:%n%1
+
+; *** Registry errors
+ErrorRegOpenKey=Kļūda, atverot reģistra atslēgu:%n%1\%2
+ErrorRegCreateKey=Kļūda, izveidojot reģistra atslēgu:%n%1\%2
+ErrorRegWriteKey=Kļūda, rakstot reģistra atslēgu:%n%1\%2
+
+; *** INI errors
+ErrorIniEntry=Kļūda, izveidojot INI ieraksta datni "%1".
+
+; *** File copying errors
+FileAbortRetryIgnoreSkipNotRecommended=I&zlaist šo failu (nerekomendējas)
+FileAbortRetryIgnoreIgnoreNotRecommended=&Ignorēt kļūdu un turpināt (nerekomendējas)
+SourceIsCorrupted=Datnes avots ir bojāts
+SourceDoesntExist=Datnes avots "%1" nepastāv
+ExistingFileReadOnly2=Nevar aizstāt esošo failu, tā kā tas ir iezīmēts kā "read only".
+ExistingFileReadOnlyRetry=&Dzēst atribūtu "read only" un atkārtot mēģinājumu
+ExistingFileReadOnlyKeepExisting=&Paturēt esošo failu
+ErrorReadingExistingDest=Kļūda, mēģinot lasīt pastāvošo failu:
+FileExistsSelectAction=Izvēlieties darbību
+FileExists2=Fails jau pastāv.
+FileExistsOverwriteExisting=&Aizstāt esošo failu
+FileExistsKeepExisting=&Saglabāt esošo failu
+FileExistsOverwriteOrKeepAll=A&tkārtot darbību visiem turpmākajiem konfliktiem
+ExistingFileNewerSelectAction=Izvēlieties darbību
+ExistingFileNewer2=Esošais fails ir jaunāks nekā uzstādāmais.
+ExistingFileNewerOverwriteExisting=&Aizstāt esošo failu
+ExistingFileNewerKeepExisting=&Saglabāt esošo failu (rekomendējas)
+ExistingFileNewerOverwriteOrKeepAll=A&tkārtot darbību visiem turpmākajiem konfliktiem
+ErrorChangingAttr=Radusies kļūda, mēģinot nomainīt datnes īpašību:
+ErrorCreatingTemp=Radusies kļūda, izveidojot datni galamērķa mapē:
+ErrorReadingSource=Radusies kļūda, nolasot datni:
+ErrorCopying=Radusies kļūda, pārkopējot datni:
+ErrorReplacingExistingFile=Radusies kļūda, pārrakstot jau pastāvošo datni:
+ErrorRestartReplace=Atkārtota aizstāšana cietusi neveiksmi:
+ErrorRenamingTemp=Radusies kļūda, nomainot nosaukumu datnei galamērķa mapē:
+ErrorRegisterServer=Neiespējami reģistrēt DLL/OCX: %1
+ErrorRegSvr32Failed=Kļūda, palaižot RegSvr32, kods %1
+ErrorRegisterTypeLib=Neiespējami reģistrēt tipa bibliotēku: %1
+
+; *** Uninstall display name markings
+UninstallDisplayNameMark=%1 (%2)
+UninstallDisplayNameMarks=%1 (%2, %3)
+UninstallDisplayNameMark32Bit=32 biti
+UninstallDisplayNameMark64Bit=64 biti
+UninstallDisplayNameMarkAllUsers=Visi lietotāji
+UninstallDisplayNameMarkCurrentUser=Tekošais lietotājs
+
+; *** Post-installation errors
+ErrorOpeningReadme=Radusies kļūda, atverot README datni.
+ErrorRestartingComputer=Uzstādīšana nevar pārstartēt datoru. Lūdzu, izdariet to manuāli.
+
+; *** Uninstaller messages
+UninstallNotFound=Datne "%1" nepastāv. Nevar noņemt.
+UninstallOpenError=Datni "%1" nevar atvērt. Nevar noņemt
+UninstallUnsupportedVer=Noņemšanas datne "%1" nav atpazīstama šai noņemšanas programmai. Nevar noņemt
+UninstallUnknownEntry=Nezināms ieraksts (%1) izveidoja sadursmi ar noņemšanu
+ConfirmUninstall=Vai esat pārliecināts, ka vēlaties pilnībā noņemt %1 un visus tā komponentus?
+UninstallOnlyOnWin64=Noņemšanu var veikt tikai ar 64-bitu Windows.
+OnlyAdminCanUninstall=Noņemšanu var veikt tikai lietotājs ar Adminstratora privilēģijām.
+UninstallStatusLabel=Lūdzu uzgaidiet, kamēr %1 tiek noņemts no Jūsu datora.
+UninstalledAll=%1 tika veiksmīgi noņemts no Jūsu datora.
+UninstalledMost=%1 noņemšana pabeigta.%n%nDažus elementus nevarēja noņemt. Tos var noņemt manuāli.
+UninstalledAndNeedsRestart=Lai pabeigtu %1 noņemšanu, Jūsu dators jāpārstartē.%n%nVai vēlaties to darīt tagad?
+UninstallDataCorrupted="%1" datne ir bojāta. Nevar noņemt
+
+; *** Uninstallation phase messages
+ConfirmDeleteSharedFileTitle=Noņemt kopīgo datni?
+ConfirmDeleteSharedFile2=Sistēma ir secinājusi, ka šī koplietošanas datne vairs netiks lietota. Vai vēlaties to noņemt?%n%nJa kāda cita programma izmanto šo datni, tad šī programma var strādāt nekorekti. Ja neesat drošs, izvēlieties "Nē". Atstājot šo datni, Jūsu datoram netiks nodarīti nekādi bojājumi.
+SharedFileNameLabel=Faila nosaukums:
+SharedFileLocationLabel=Atrašanās vieta:
+WizardUninstalling=Noņemšanas statuss
+StatusUninstalling=Noņem %1...
+
+
+; *** Shutdown block reasons
+ShutdownBlockReasonInstallingApp=%1 uzstādīšana.
+ShutdownBlockReasonUninstallingApp=%1 noņemšana.
+
+; The custom messages below aren't used by Setup itself, but if you make
+; use of them in your scripts, you'll want to translate them.
+
+[CustomMessages]
+
+NameAndVersion=%1, versija %2
+AdditionalIcons=Papildu ikonas:
+CreateDesktopIcon=Izveidot &darbvisrmas ikonu
+CreateQuickLaunchIcon=Izveidot &Quick Launch ikonu
+ProgramOnTheWeb=%1 vietne Internetā
+UninstallProgram=Noņemt %1
+LaunchProgram=Palaist %1
+AssocFileExtension=&Apvienot %1 ar %2 faila paplašinājumu
+AssocingFileExtension=Apvieno %1 ar %2 faila paplašinājumu...
+AutoStartProgramGroupDescription=Automātiskā palaišana:
+AutoStartProgram=Automātiski palaist %1
+AddonHostProgramNotFound=%1 nav atrasts Jūsu norādītajā mapē.%n%nTomēr turpināt?
+          r-version: ${{ ; *** Inno Setup version 5.5.3+ Romanian messages ***
+; Translator : Alexandru Bogdan Munteanu (muntealb@gmail.com)
+;
+; To download user-contributed translations of this file, go to:
+;   http://www.jrsoftware.org/files/istrans/
+;
+; Note: When translating this text, do not add periods (.) to the end of
+; messages that didn't have them already, because on those messages Inno
+; Setup adds the periods automatically (appending a period would result in
+; two periods being displayed).
+
+[LangOptions]
+; The following three entries are very important. Be sure to read and 
+; understand the '[LangOptions] section' topic in the help file.
+LanguageName=Rom<00E2>n<0103>
+LanguageID=$0418
+LanguageCodePage=1250
+; If the language you are translating to requires special font faces or
+; sizes, uncomment any of the following entries and change them accordingly.
+;DialogFontName=
+;DialogFontSize=8
+;WelcomeFontName=Verdana
+;WelcomeFontSize=12
+;TitleFontName=Arial
+;TitleFontSize=29
+;CopyrightFontName=Arial
+;CopyrightFontSize=8
+
+[Messages]
+
+; *** Application titles
+SetupAppTitle=Instalare
+SetupWindowTitle=Instalare - %1
+UninstallAppTitle=Dezinstalare
+UninstallAppFullTitle=Dezinstalare %1
+
+; *** Misc. common
+InformationTitle=Informaţii
+ConfirmTitle=Confirmare
+ErrorTitle=Eroare
+
+; *** SetupLdr messages
+SetupLdrStartupMessage=Va fi instalat programul %1. Vrei să continui?
+LdrCannotCreateTemp=Nu pot crea o filă temporară. Instalare abandonată
+LdrCannotExecTemp=Nu pot executa o filă din dosarul temporar. Instalare abandonată
+
+; *** Startup error messages
+LastErrorMessage=%1.%n%nEroarea %2: %3
+SetupFileMissing=Fila %1 lipseşte din dosarul de instalare. Corectează problema sau foloseşte o altă copie a programului.
+SetupFileCorrupt=Filele de instalare sînt stricate (corupte). Foloseşte o altă copie a programului.
+SetupFileCorruptOrWrongVer=Filele de instalare sînt stricate (corupte) sau sînt incompatibile cu această versiune a Instalatorului. Remediază problema sau foloseşte o altă copie a programului.
+InvalidParameter=Un parametru invalid a fost trecut către linia de comandă:%n%n%1
+SetupAlreadyRunning=Instalarea rulează deja.
+WindowsVersionNotSupported=Acest program nu suportă versiunea de Windows care rulează pe calculatorul tău.
+WindowsServicePackRequired=Acest program necesită %1 Service Pack %2 sau mai nou.
+NotOnThisPlatform=Acest program nu va rula pe %1.
+OnlyOnThisPlatform=Acest program trebuie să ruleze pe %1.
+OnlyOnTheseArchitectures=Acest program poate fi instalat doar pe versiuni de Windows proiectate pentru următoarele arhitecturi de procesor:%n%n%1
+MissingWOW64APIs=Versiunea de Windows pe care o rulezi nu include funcţionalitatea cerută de Instalator pentru a realiza o instalare pe 64-biţi. Pentru a corecta problema, va trebui să instalezi Service Pack %1.
+WinVersionTooLowError=Acest program necesită %1 versiunea %2 sau mai nouă.
+WinVersionTooHighError=Acest program nu poate fi instalat pe %1 versiunea %2 sau mai nouă.
+AdminPrivilegesRequired=Trebuie să fii logat ca Administrator pentru instalarea acestui program.
+PowerUserPrivilegesRequired=Trebuie să fii logat ca Administrator sau ca Membru al Grupului de Utilizatori Pricepuţi ("Power Users") pentru a instala acest program.
+SetupAppRunningError=Instalatorul a detectat că %1 rulează în acest moment.%n%nÎnchide toate instanţele programului respectiv, apoi clichează OK pentru a continua sau Anulează pentru a abandona instalarea.
+UninstallAppRunningError=Dezinstalatorul a detectat că %1 rulează în acest moment.%n%nÎnchide toate instanţele programului respectiv, apoi clichează OK pentru a continua sau Anulează pentru a abandona dezinstalarea.
+
+; *** Misc. errors
+ErrorCreatingDir=Instalatorul nu a putut crea dosarul "%1"
+ErrorTooManyFilesInDir=Nu pot crea o filă în dosarul "%1" din cauză că are deja prea multe file
+
+; *** Setup common messages
+ExitSetupTitle=Abandonarea Instalării
+ExitSetupMessage=Instalarea nu este terminată. Dacă o abandonezi acum, programul nu va fi instalat.%n%nPoţi să rulezi Instalatorul din nou altă dată pentru a termina instalarea.%n%nAbandonezi Instalarea?
+AboutSetupMenuItem=&Despre Instalator...
+AboutSetupTitle=Despre Instalator
+AboutSetupMessage=%1 versiunea %2%n%3%n%n%1 sit:%n%4
+AboutSetupNote=
+TranslatorNote=
+
+; *** Buttons
+ButtonBack=< Îna&poi
+ButtonNext=&Continuă >
+ButtonInstall=&Instalează
+ButtonOK=OK
+ButtonCancel=Anulează
+ButtonYes=&Da
+ButtonYesToAll=Da la &Tot
+ButtonNo=&Nu
+ButtonNoToAll=N&u la Tot
+ButtonFinish=&Finalizează
+ButtonBrowse=&Explorează...
+ButtonWizardBrowse=Explo&rează...
+ButtonNewFolder=Creea&ză Dosar Nou
+
+; *** "Select Language" dialog messages
+SelectLanguageTitle=Selectarea Limbii Instalatorului
+SelectLanguageLabel=Selectează limba folosită pentru instalare:
+
+; *** Common wizard text
+ClickNext=Clichează pe Continuă pentru a avansa cu instalarea sau pe Anulează pentru a o abandona.
+BeveledLabel=
+BrowseDialogTitle=Explorare după Dosar
+BrowseDialogLabel=Selectează un dosar din lista de mai jos, apoi clichează pe OK.
+NewFolderName=Dosar Nou
+
+; *** "Welcome" wizard page
+WelcomeLabel1=Bun venit la Instalarea [name]
+WelcomeLabel2=Programul [name/ver] va fi instalat pe calculator.%n%nEste recomandat să închizi toate celelalte aplicaţii înainte de a continua.
+
+; *** "Password" wizard page
+WizardPassword=Parolă
+PasswordLabel1=Această instalare este protejată prin parolă.
+PasswordLabel3=Completează parola, apoi clichează pe Continuă pentru a merge mai departe. Tipul literelor din parolă (Majuscule/minuscule) este luat în considerare.
+PasswordEditLabel=&Parolă:
+IncorrectPassword=Parola pe care ai introdus-o nu este corectă. Reîncearcă.
+
+; *** "License Agreement" wizard page
+WizardLicense=Acord de Licenţiere
+LicenseLabel=Citeşte informaţiile următoare înainte de a continua, sînt importante.
+LicenseLabel3=Citeşte următorul Acord de Licenţiere. Trebuie să accepţi termenii acestui acord înainte de a continua instalarea.
+LicenseAccepted=&Accept licenţa
+LicenseNotAccepted=&Nu accept licenţa
+
+; *** "Information" wizard pages
+WizardInfoBefore=Informaţii
+InfoBeforeLabel=Citeşte informaţiile următoare înainte de a continua, sînt importante.
+InfoBeforeClickLabel=Cînd eşti gata de a trece la Instalare, clichează pe Continuă.
+WizardInfoAfter=Informaţii
+InfoAfterLabel=Citeşte informaţiile următoare înainte de a continua, sînt importante.
+InfoAfterClickLabel=Cînd eşti gata de a trece la Instalare, clichează pe Continuă.
+
+; *** "User Information" wizard page
+WizardUserInfo=Informaţii despre Utilizator
+UserInfoDesc=Completează informaţiile cerute.
+UserInfoName=&Utilizator:
+UserInfoOrg=&Organizaţie:
+UserInfoSerial=Număr de &Serie:
+UserInfoNameRequired=Trebuie să introduci un nume.
+
+; *** "Select Destination Location" wizard page
+WizardSelectDir=Selectarea Locului de Destinaţie
+SelectDirDesc=Unde vrei să instalezi [name]?
+SelectDirLabel3=Instalatorul va pune [name] în dosarul specificat mai jos.
+SelectDirBrowseLabel=Pentru a avansa cu instalarea, clichează pe Continuă. Dacă vrei să selectezi un alt dosar, clichează pe Explorează.
+DiskSpaceMBLabel=Este necesar un spaţiu liber de stocare de cel puţin [mb] MB.
+CannotInstallToNetworkDrive=Instalatorul nu poate realiza instalarea pe un dispozitiv de reţea.
+CannotInstallToUNCPath=Instalatorul nu poate realiza instalarea pe o cale în format UNC.
+InvalidPath=Trebuie să introduci o cale completă, inclusiv litera dispozitivului; de exemplu:%n%nC:\APP%n%nsau o cale UNC de forma:%n%n\\server\share
+InvalidDrive=Dispozitivul sau partajul UNC pe care l-ai selectat nu există sau nu este accesibil. Selectează altul.
+DiskSpaceWarningTitle=Spaţiu de Stocare Insuficient
+DiskSpaceWarning=Instalarea necesită cel puţin %1 KB de spaţiu de stocare liber, dar dispozitivul selectat are doar %2 KB liberi.%n%nVrei să continui oricum?
+DirNameTooLong=Numele dosarului sau al căii este prea lung.
+InvalidDirName=Numele dosarului nu este valid.
+BadDirName32=Numele dosarelor nu pot include unul din următoarele caractere:%n%n%1
+DirExistsTitle=Dosarul Există
+DirExists=Dosarul:%n%n%1%n%nexistă deja. Vrei totuşi să instalezi în acel dosar?
+DirDoesntExistTitle=Dosarul Nu Există
+DirDoesntExist=Dosarul:%n%n%1%n%nnu există. Vrei ca el să fie creat?
+
+; *** "Select Components" wizard page
+WizardSelectComponents=Selectarea Componentelor
+SelectComponentsDesc=Care dintre componente trebuie instalate?
+SelectComponentsLabel2=Selectează componentele de instalat; deselectează componentele care nu trebuie instalate. Clichează pe Continuă pentru a merge mai departe.
+FullInstallation=Instalare Completă
+; if possible don't translate 'Compact' as 'Minimal' (I mean 'Minimal' in your language)
+CompactInstallation=Instalare Compactă
+CustomInstallation=Instalare Personalizată
+NoUninstallWarningTitle=Componentele Există
+NoUninstallWarning=Instalatorul a detectat că următoarele componente sînt deja instalate pe calculator:%n%n%1%n%nDeselectarea lor nu le va dezinstala.%n%nVrei să continui oricum?
+ComponentSize1=%1 KB
+ComponentSize2=%1 MB
+ComponentsDiskSpaceMBLabel=Selecţia curentă necesită cel puţin [mb] MB spaţiu de stocare.
+
+; *** "Select Additional Tasks" wizard page
+WizardSelectTasks=Selectarea Sarcinilor Suplimentare
+SelectTasksDesc=Ce sarcini suplimentare trebuie îndeplinite?
+SelectTasksLabel2=Selectează sarcinile suplimentare care trebuie îndeplinite în timpul instalării [name], apoi clichează pe Continuă.
+
+; *** "Select Start Menu Folder" wizard page
+WizardSelectProgramGroup=Selectarea Dosarului din Meniul de Start
+SelectStartMenuFolderDesc=Unde trebuie să fie plasate scurtăturile programului?
+SelectStartMenuFolderLabel3=Scurtăturile vor fi plasate în dosarul specificat mai jos al Meniului de Start.
+SelectStartMenuFolderBrowseLabel=Pentru a avansa cu instalarea, clichează pe Continuă. Dacă vrei să selectezi un alt dosar, clichează pe Explorează.
+MustEnterGroupName=Trebuie să introduci numele dosarului.
+GroupNameTooLong=Numele dosarului sau al căii este prea lung.
+InvalidGroupName=Numele dosarului nu este valid.
+BadGroupName=Numele dosarului nu poate include unul dintre caracterele următoarele:%n%n%1
+NoProgramGroupCheck2=Nu crea un &dosar în Meniul de Start
+
+; *** "Ready to Install" wizard page
+WizardReady=Pregătit de Instalare
+ReadyLabel1=Instalatorul e pregătit pentru instalarea [name] pe calculator.
+ReadyLabel2a=Clichează pe Instalează pentru a continua cu instalarea, sau clichează pe Înapoi dacă vrei să revezi sau să schimbi setările.
+ReadyLabel2b=Clichează pe Instalează pentru a continua cu instalarea.
+ReadyMemoUserInfo=Info Utilizator:
+ReadyMemoDir=Loc de Destinaţie:
+ReadyMemoType=Tip de Instalare:
+ReadyMemoComponents=Componente Selectate:
+ReadyMemoGroup=Dosarul Meniului de Start:
+ReadyMemoTasks=Sarcini Suplimentare:
+
+; *** "Preparing to Install" wizard page
+WizardPreparing=Pregătire pentru Instalare
+PreparingDesc=Instalatorul pregăteşte instalarea [name] pe calculator.
+PreviousInstallNotCompleted=Instalarea/dezinstalarea anterioară a unui program nu a fost terminată. Va trebui să reporneşti calculatorul pentru a termina operaţia precedentă.%n%nDupă repornirea calculatorului, rulează Instalatorul din nou pentru a realiza instalarea [name].
+CannotContinue=Instalarea nu poate continua. Clichează pe Anulează pentru a o închide.
+ApplicationsFound=Aplicaţiile următoare folosesc file care trebuie actualizate de către Instalator. Este recomandat să permiţi Instalatorului să închidă automat aplicaţiile respective.
+ApplicationsFound2=Aplicaţiile următoare folosesc file care trebuie actualizate de către Instalator. Este recomandat să permiţi Instalatorului să închidă automat aplicaţiile respective. După ce instalarea e terminată, Instalatorul va încerca să repornească aplicaţiile.
+CloseApplications=Închide &automat aplicaţiile
+DontCloseApplications=Nu închi&de aplicaţiile
+ErrorCloseApplications=Instalatorul nu a putut închide automat toate aplicaţiile. Înainte de a continua, e recomandat să închizi manual toate aplicaţiile care folosesc file ce trebuie actualizate de Instalator.
+
+; *** "Installing" wizard page
+WizardInstalling=Instalare în Desfăşurare
+InstallingLabel=Aşteaptă să se termine instalarea [name] pe calculator.
+
+; *** "Setup Completed" wizard page
+FinishedHeadingLabel=Finalizarea Instalării [name]
+FinishedLabelNoIcons=Instalarea [name] pe calculator a fost terminată.
+FinishedLabel=Instalarea [name] pe calculator a fost terminată. Aplicaţia poate fi lansată prin clicarea pe icoanele instalate.
+ClickFinish=Clichează pe Finalizează pentru a părăsi Instalatorul.
+FinishedRestartLabel=Pentru a termina instalarea [name], trebuie repornit calculatorul. Vrei să fie repornit acum?
+FinishedRestartMessage=Pentru a termina instalarea [name], trebuie repornit calculatorul.%n%nVrei să fie repornit acum?
+ShowReadmeCheck=Da, vreau să văd fila de informare (README)
+YesRadio=&Da, reporneşte calculatorul acum
+NoRadio=&Nu, voi reporni eu calculatorul mai tîrziu
+; used for example as 'Run MyProg.exe'
+RunEntryExec=Rulează %1
+; used for example as 'View Readme.txt'
+RunEntryShellExec=Vezi %1
+
+; *** "Setup Needs the Next Disk" stuff
+ChangeDiskTitle=Instalatorul Necesită Discul Următor
+SelectDiskLabel2=Introdu Discul %1 şi clichează pe OK.%n%nDacă filele de pe acest disc pot fi găsite într-un alt dosar decît cel afişat mai jos, introdu calea corectă sau clichează pe Explorează.
+PathLabel=&Cale:
+FileNotInDir2=Fila "%1" nu poate fi găsită în "%2". Introdu discul corect sau selectează alt dosar.
+SelectDirectoryLabel=Specifică locul discului următor.
+
+; *** Installation phase messages
+SetupAborted=Instalarea nu a fost terminată.%n%nCorectează problema şi apoi rulează Instalarea din nou.
+EntryAbortRetryIgnore=Clichează pe Reîncearcă pentru a încerca din nou, pe Ignoră pentru a continua oricum, sau pe Abandonează pentru a anula instalarea.
+
+; *** Installation status messages
+StatusClosingApplications=Închid aplicaţiile...
+StatusCreateDirs=Creez dosarele...
+StatusExtractFiles=Extrag filele...
+StatusCreateIcons=Creez scurtăturile...
+StatusCreateIniEntries=Creez intrările INI...
+StatusCreateRegistryEntries=Creez intrările în registru...
+StatusRegisterFiles=Înregistrez filele...
+StatusSavingUninstall=Salvez informaţiile de dezinstalare...
+StatusRunProgram=Finalizez instalarea...
+StatusRestartingApplications=Repornesc aplicaţiile...
+StatusRollback=Reîntorc la starea iniţială, prin anularea modificărilor făcute...
+
+; *** Misc. errors
+ErrorInternal2=Eroare Internă: %1
+ErrorFunctionFailedNoCode=%1 a eşuat
+ErrorFunctionFailed=%1 a eşuat; cod %2
+ErrorFunctionFailedWithMessage=%1 a eşuat; cod %2.%n%3
+ErrorExecutingProgram=Nu pot executa fila:%n%1
+
+; *** Registry errors
+ErrorRegOpenKey=Eroare la deschiderea cheii de registru:%n%1\%2
+ErrorRegCreateKey=Eroare la crearea cheii de registru:%n%1\%2
+ErrorRegWriteKey=Eroare la scrierea în cheia de registru:%n%1\%2
+
+; *** INI errors
+ErrorIniEntry=Eroare la crearea intrării INI în fişierul "%1".
+
+; *** File copying errors
+FileAbortRetryIgnore=Clichează pe Reîncearcă pentru a încerca din nou, pe Ignoră pentru a sări această filă (nerecomandat), sau pe Abandonează pentru a anula instalarea.
+FileAbortRetryIgnore2=Clichează pe Reîncearcă pentru a încerca din nou, pe Ignoră pentru a continua oricum (nerecomandat), sau pe Abandonează pentru a anula instalarea.
+SourceIsCorrupted=Fila sursă este stricată (coruptă)
+SourceDoesntExist=Fila sursă "%1" nu există
+ExistingFileReadOnly=Fila deja existentă este marcată doar-citire.%n%nClichează pe Reîncearcă pentru a înlătura atributul doar-citire şi a încerca din nou, pe Ignoră pentru a sări această filă, sau pe Abandonează pentru a anula instalarea.
+ErrorReadingExistingDest=A apărut o eroare în timpul citirii filei deja existente:
+FileExists=Fila există deja.%n%Vrei ca ea să fie suprascrisă de Instalator?
+ExistingFileNewer=Fila deja existentă este mai nouă decît cea care trebuie instalată. Este recomandat s-o păstrezi pe cea existentă.%n%nVrei să păstrezi fila deja existentă?
+ErrorChangingAttr=A apărut o eroare în timpul schimbării atributelor filei deja existente:
+ErrorCreatingTemp=A apărut o eroare în timpul creării filei în dosarul de destinaţie:
+ErrorReadingSource=A apărut o eroare în timpul citirii filei sursă:
+ErrorCopying=A apărut o eroare în timpul copierii filei:
+ErrorReplacingExistingFile=A apărut o eroare în timpul înlocuirii filei deja existente:
+ErrorRestartReplace=Repornirea/Înlocuirea a eşuat:
+ErrorRenamingTemp=A apărut o eroare în timpul renumirii unei file din dosarul de destinaţie:
+ErrorRegisterServer=Nu pot înregistra DLL/OCX: %1
+ErrorRegSvr32Failed=RegSvr32 a eşuat, avînd codul de ieşire %1
+ErrorRegisterTypeLib=Nu pot înregistra biblioteca de tipuri: %1
+
+; *** Post-installation errors
+ErrorOpeningReadme=A apărut o eroare la deschiderea filei de informare (README).
+ErrorRestartingComputer=Instalatorul nu a putut reporni calculatorul. Va trebui să-l reporneşti manual.
+
+; *** Uninstaller messages
+UninstallNotFound=Fila "%1" nu există. Dezinstalarea nu poate fi făcută.
+UninstallOpenError=Fila "%1" nu poate fi deschisă. Dezinstalarea nu poate fi făcută
+UninstallUnsupportedVer=Fila "%1" ce conţine jurnalul de dezinstalare este într-un format nerecunoscut de această versiune a dezinstalatorului. Dezinstalarea nu poate fi făcută
+UninstallUnknownEntry=A fost întîlnită o intrare necunoscută (%1) în jurnalul de dezinstalare
+ConfirmUninstall=Sigur vrei să înlături complet %1 şi componentele sale?
+UninstallOnlyOnWin64=Această instalare poate fi dezinstalată doar pe un sistem Windows 64-biţi.
+OnlyAdminCanUninstall=Această instalare poate fi dezinstalată doar de către un utilizator cu drepturi de Administrator.
+UninstallStatusLabel=Aşteaptă ca %1 să fie înlăturat de pe calculator.
+UninstalledAll=%1 a fost înlăturat cu succes de pe calculator.
+UninstalledMost=Dezinstalare completă a %1.%n%nAnumite elemente nu au putut fi înlăturate. Acestea pot fi înlăturate manual.
+UninstalledAndNeedsRestart=Pentru a termina dezinstalarea %1, calculatorul trebuie repornit.%n%nVrei să fie repornit acum?
+UninstallDataCorrupted=Fila "%1" este stricată (coruptă). Dezinstalarea nu poate fi făcută
+
+; *** Uninstallation phase messages
+ConfirmDeleteSharedFileTitle=Şterg Fila Partajată?
+ConfirmDeleteSharedFile2=Sistemul indică faptul că fila partajată următoare pare să nu mai fie folosită de vreun alt program. Vrei ca Dezinstalatorul să şteargă această filă partajată?%n%nDacă totuşi mai există programe care folosesc fila şi ea este ştearsă, acele programe ar putea să funcţioneze greşit. Dacă nu eşti sigur, alege Nu. Lăsarea filei în sistem nu va produce nici o neplăcere.
+SharedFileNameLabel=Nume Filă:
+SharedFileLocationLabel=Loc:
+WizardUninstalling=Starea Dezinstalării
+StatusUninstalling=Dezinstalez %1...
+
+; *** Shutdown block reasons
+ShutdownBlockReasonInstallingApp=Instalez %1.
+ShutdownBlockReasonUninstallingApp=Dezinstalez %1.
+
+; The custom messages below aren't used by Setup itself, but if you make
+; use of them in your scripts, you'll want to translate them.
+
+[CustomMessages]
+
+NameAndVersion=%1 versiunea %2
+AdditionalIcons=Icoane suplimentare:
+CreateDesktopIcon=Creează o icoană pe &Birou ("Desktop")
+CreateQuickLaunchIcon=Creează o icoană în Bara de &Lansare Rapidă ("Quick Launch")
+ProgramOnTheWeb=%1 pe internet
+UninstallProgram=Dezinstalează %1
+LaunchProgram=Lansează %1
+AssocFileExtension=&Asociază %1 cu extensia de file %2
+AssocingFileExtension=Asociez %1 cu extensia de file %2...
+AutoStartProgramGroupDescription=Pornire:
+AutoStartProgram=Porneşte automat %1
+AddonHostProgramNotFound=%1 nu poate fi găsit în dosarul selectat.%n%nVrei să continui oricum? }}
+      - name: ; *** Inno Setup version 6.1.0+ Vietnamese messages ***
+; Translated by Vu Khac Hiep (email: vukhachiep@gmail.com)
+; To download user-contributed translations of this file, go to:
+;   https://jrsoftware.org/files/istrans/
+;
+; Note: When translating this text, do not add periods (.) to the end of
+; messages that didn't have them already, because on those messages Inno
+; Setup adds the periods automatically (appending a period would result in
+; two periods being displayed).
+
+[LangOptions]
+; The following three entries are very important. Be sure to read and 
+; understand the '[LangOptions] section' topic in the help file.
+LanguageName=Vietnamese
+LanguageID=$042A
+LanguageCodePage=0
+; If the language you are translating to requires special font faces or
+; sizes, uncomment any of the following entries and change them accordingly.
+;DialogFontName=
+;DialogFontSize=8
+;WelcomeFontName=Verdana
+;WelcomeFontSize=12
+;TitleFontName=Arial
+;TitleFontSize=29
+;CopyrightFontName=Arial
+;CopyrightFontSize=8
+
+[Messages]
+
+; *** Application titles
+SetupAppTitle=Cài đặt
+SetupWindowTitle=Cài đặt - %1
+UninstallAppTitle=Gỡ cài đặt
+UninstallAppFullTitle=Gỡ cài đặt - %1
+
+; *** Misc. common
+InformationTitle=Thông tin
+ConfirmTitle=Xác nhận
+ErrorTitle=Lỗi
+
+; *** SetupLdr messages
+SetupLdrStartupMessage=Chương trình này sẽ cài đặt %1. Bạn có muốn tiếp tục không?
+LdrCannotCreateTemp=Không thể tạo tệp tạm thời. Cài đặt bị hủy bỏ
+LdrCannotExecTemp=Không thể chạy tệp trong thư mục tạm thời. Cài đặt bị hủy bỏ
+HelpTextNote=
+
+; *** Startup error messages
+LastErrorMessage=%1.%n%nLỗi %2: %3
+SetupFileMissing=Tệp %1 bị thiếu trong thư mục cài đặt. Hãy sửa lỗi hoặc lấy một bản sao mới của chương trình.
+SetupFileCorrupt=Các tệp cài đặt đã bị hỏng. Hãy sửa lỗi hoặc lấy một bản sao của chương trình.
+SetupFileCorruptOrWrongVer=Các tệp cài đặt bị hỏng, hoặc không tương thích với bản cài đặt này. Hãy sửa lỗi hoặc lấy một bản sao mới của chương trình.
+InvalidParameter=Một thông số không hợp lệ đã được đưa vào dòng lệnh:%n%n%1
+SetupAlreadyRunning=Cài đặt này đang chạy.
+WindowsVersionNotSupported=Chương trình này không tương thích với phiên bản Windows bạn đang chạy.
+WindowsServicePackRequired=Chương trình này yêu cầu %1 Service Pack %2 hoặc mới hơn.
+NotOnThisPlatform=Chương trình này sẽ không chạy trên %1.
+OnlyOnThisPlatform=Chương trình này phải chạy trên %1.
+OnlyOnTheseArchitectures=Chương trình này chỉ có thể được cài đặt trên phiên bản Windows được thiết kế cho các hệ vi xử lí:%n%n%1
+WinVersionTooLowError=Chương trình này yêu cầu %1 phiên bản %2 hoặc mới hơn.
+WinVersionTooHighError=Chương trình này không thể được cài đặt trên %1 phiên bản %2 hoặc mới hơn.
+AdminPrivilegesRequired=Bạn phải được đăng nhập như người quản trị khi cài đặt chương trình này.
+PowerUserPrivilegesRequired=Bạn phải được đăng nhập như người quản trị hoặc thành viên trong nhóm Người dùng mạnh khi cài đặt chương trình này.
+SetupAppRunningError=Cài đặt phát hiện %1 đang chạy.%n%nHãy đóng tất cả các tiến trình của nó ngay, rồi click OK để tiếp tục, hoặc Hủy để thoát.
+UninstallAppRunningError=Gỡ cài đặt phát hiện %1 đang chạy.%n%nHãy đóng tất cả các tiến trình của nó ngay, rồi click OK để tiếp tục, hoặc Hủy để thoát.
+
+; *** Startup questions
+PrivilegesRequiredOverrideTitle=Select Setup Install Mode
+PrivilegesRequiredOverrideInstruction=Select install mode
+PrivilegesRequiredOverrideText1=%1 can be installed for all users (requires administrative privileges), or for you only.
+PrivilegesRequiredOverrideText2=%1 can be installed for you only, or for all users (requires administrative privileges).
+PrivilegesRequiredOverrideAllUsers=Install for &all users
+PrivilegesRequiredOverrideAllUsersRecommended=Install for &all users (recommended)
+PrivilegesRequiredOverrideCurrentUser=Install for &me only
+PrivilegesRequiredOverrideCurrentUserRecommended=Install for &me only (recommended)
+
+; *** Misc. errors
+ErrorCreatingDir=Cài đặt không thể tạo ra thư mục "%1"
+ErrorTooManyFilesInDir=Không thể tạo một tệp trong thư mục "%1" vì nó chứa quá nhiều tệp
+
+; *** Setup common messages
+ExitSetupTitle=Thoát cài đặt
+ExitSetupMessage=Cài đặt chưa hoàn thành. Nếu bạn thoát bây giờ, chương trình sẽ không được cài đặt.%n%nBạn có thể chạy lại Cài đặt một lần khác để hoàn thành cài đặt.%n%nThoát ngay?
+AboutSetupMenuItem=&Về trình cài đặt...
+AboutSetupTitle=Về trình cài đặt
+AboutSetupMessage=%1 phiên bản %2%n%3%n%n%1 trang chủ:%n%4
+AboutSetupNote=
+TranslatorNote=Giao diện người dùng tiếng Việt bởi: Vũ Khắc Hiệp
+
+; *** Buttons
+ButtonBack=< &Trước
+ButtonNext=T&iếp >
+ButtonInstall=&Cài đặt
+ButtonOK=OK
+ButtonCancel=Hủy
+ButtonYes=&Có
+ButtonYesToAll=Có c&ho tất cả
+ButtonNo=&Không
+ButtonNoToAll=Khô&ng cho tất cả
+ButtonFinish=&Hoàn thành
+ButtonBrowse=&Duyệt...
+ButtonWizardBrowse=D&uyệt...
+ButtonNewFolder=Tạ&o thư mục mới
+
+; *** "Select Language" dialog messages
+SelectLanguageTitle=Chọn ngôn ngữ cài đặt
+SelectLanguageLabel=Chọn ngôn ngữ để sử dụng khi cài đặt:
+
+; *** Common wizard text
+ClickNext=Nhấn Tiếp để tiếp tục, hoặc Hủy để thoát cài đặt
+BeveledLabel=
+BrowseDialogTitle=Tìm thư mục
+BrowseDialogLabel=Chọn một thư mục trong danh sách sau rồi ấn OK.
+NewFolderName=Tạo thư mục mới
+
+; *** "Welcome" wizard page
+WelcomeLabel1=Chào mừng tới trình cài đặt [name]
+WelcomeLabel2=Chương trình này sẽ cài [name/ver] trên máy tính của bạn.%n%nChúng tôi khuyên bạn đóng mọi chương trình khác lại trước khi cài đặt.
+
+; *** "Password" wizard page
+WizardPassword=Mật khẩu
+PasswordLabel1=Việc cài đặt được bảo vệ bằng mật khẩu.
+PasswordLabel3=Hãy nhập mật khẩu, rồi nhấn Tiếp để tiếp tục. Mật khẩu phân biệt chữ hoa/thường.
+PasswordEditLabel=&Mật khẩu:
+IncorrectPassword=Mật khẩu bạn đã nhập không đúng. Hãy thử lại.
+
+; *** "License Agreement" wizard page
+WizardLicense=Thỏa thuận cấp phép
+LicenseLabel=Hãy đọc những thông tin quan trọng sau trước khi tiếp tục.
+LicenseLabel3=Hãy đọc Thỏa thuận cấp phép sau. Bạn phải chấp nhận các điều khoản của cài đặt này trước khi tiếp tục.
+LicenseAccepted=Tô&i chấp nhận thỏa thuận
+LicenseNotAccepted=Tôi khôn&g chấp nhận thỏa thuận
+
+; *** "Information" wizard pages
+WizardInfoBefore=Thông tin
+InfoBeforeLabel=Hãy đọc những thông tin quan trọng sau trước khi tiếp tục.
+InfoBeforeClickLabel=Khi bạn đã sẵn sàng cài đặt tiếp, click Tiếp.
+WizardInfoAfter=Thông tin
+InfoAfterLabel=Hãy đọc những thông tin quan trọng sau trước khi tiếp tục.
+InfoAfterClickLabel=Khi bạn đã sẵn sàng cài đặt tiếp, click Tiếp.
+
+; *** "User Information" wizard page
+WizardUserInfo=Thông tin người dùng
+UserInfoDesc=Hãy nhập thông tin của bạn.
+UserInfoName=Tên n&gười dùng:
+UserInfoOrg=Tổ c&hức:
+UserInfoSerial=&Số serial:
+UserInfoNameRequired=Bạn phải nhập một tên.
+
+; *** "Select Destination Location" wizard page
+WizardSelectDir=Chọn vị trí cài đặt
+SelectDirDesc=[name] nên được cài đặt ở đâu?
+SelectDirLabel3=[name] sẽ được cài đặt vào thư mục sau:
+SelectDirBrowseLabel=Để tiếp tục. nhấn Tiếp. Nếu bạn muốn chọn một thư mục khác, nhấn Duyệt.
+DiskSpaceGBLabel=Cần có ít nhất [gb] GB ổ đĩa trống.
+DiskSpaceMBLabel=Cần có ít nhất [mb] MB ổ đĩa trống.
+CannotInstallToNetworkDrive=Cài đặt không thể cài vào một ổ đĩa mạng.
+CannotInstallToUNCPath=Cài đặt không thể cài vào đường dẫn UNC.
+InvalidPath=Bạn phải nhập đường dẫn đầy đủ với chữ cái ổ đĩa, ví dụ:%n%nC:\APP%n%nhoặc một đường dẫn UNC theo mẫu:%n%n\\server\share
+InvalidDrive=Ổ đĩa hoặc chia sẻ UNC bạn đã chọn không tồn tại hoặc không truy cập được. Hãy chọn cái khác.
+DiskSpaceWarningTitle=Không đủ dung lượng đĩa
+DiskSpaceWarning=Cài đặt yêu cầu ít nhất %1 KB dung lượng trống để cài đặt, nhưng ổ đĩa đã chọn chỉ còn %2KB.%n%nBạn muốn tiếp tục bằng mọi giá?
+DirNameTooLong=Tên thư mục hoặc đường dẫn quá dài.
+InvalidDirName=Tên thư mục không hợp lệ.
+BadDirName32=Tên thư mục không được chứa các kí tự sau:%n%n%1
+DirExistsTitle=Thư mục đã tồn tại
+DirExists=Thư mục:%n%n%1%n%nđã tồn tại. Bạn có muốn cài đặt vào thư mục đó bằng mọi giá?
+DirDoesntExistTitle=Thư mục không tồn tại
+DirDoesntExist=Thư mục:%n%n%1%n%nkhông tồn tại. Bạn có muốn tạo thư mục không?
+
+; *** "Select Components" wizard page
+WizardSelectComponents=Chọn các thành phần
+SelectComponentsDesc=Những thành phần nào nên được cài đặt?
+SelectComponentsLabel2=Chọn các thành phần bạn muốn cài đặt, bỏ chọn các thành phần bạn không muốn. Click Tiếp khi bạn đã sẵn sàng để tiếp tục.
+FullInstallation=Cài đặt đầy đủ
+; if possible don't translate 'Compact' as 'Minimal' (I mean 'Minimal' in your language)
+CompactInstallation=Cài đặt rút gọn
+CustomInstallation=Cài đặt tủy chỉnh
+NoUninstallWarningTitle=Thành phần đã tồn tại
+NoUninstallWarning=Cài đặt phát hiện các thành phần sau đã được cài đặt trên máy tính của bạn:%n%n%1%n%nBỏ chọn những thành phần này sẽ không cài đặt chúng.%n%nBạn có muốn tiếp tục bằng mọi giá?
+ComponentSize1=%1 KB
+ComponentSize2=%1 MB
+ComponentsDiskSpaceGBLabel=Lựa chọn này yêu cầu ít nhất [gb] GB không gian đĩa.
+ComponentsDiskSpaceMBLabel=Lựa chọn này yêu cầu ít nhất [mb] MB không gian đĩa.
+
+; *** "Select Additional Tasks" wizard page
+WizardSelectTasks=Chọn các tác vụ bổ sung
+SelectTasksDesc=Các tác vụ bổ sung nào nên được thực hiện?
+SelectTasksLabel2=Chọn các tác vụ bổ sung mà bạn muốn cài đặt thực hiện khi cài đặt [name], rồi nhấn Tiếp.
+
+; *** "Select Start Menu Folder" wizard page
+WizardSelectProgramGroup=Chọn thư mục bắt đầu
+SelectStartMenuFolderDesc=Các lối tắt đến chương trình nên được đặt ở đâu?
+SelectStartMenuFolderLabel3=Cài đặt sẽ tạo các lối tắt đến chương trình trong thư mục bắt đầu sau.
+SelectStartMenuFolderBrowseLabel=Để tiếp tục, click Tiếp. Nếu bạn muốn chọn thư mục khác, click Duyệt.
+MustEnterGroupName=Bạn phải nhập tên một thư mục.
+GroupNameTooLong=Tên thư mục hoặc đường dẫn quá dài.
+InvalidGroupName=Tên thư mục không hợp lệ.
+BadGroupName=Tên thư mục không được chứa các kí tự sau:%n%n%1
+NoProgramGroupCheck2=&Không tạo thư mục bắt đầu
+
+; *** "Ready to Install" wizard page
+WizardReady=Sẵn sàng cài đặt
+ReadyLabel1=[name] đã sẵn sàng để dược cài đặt trên máy tính của bạn.
+ReadyLabel2a=Click Cài đặt để tiếp tục, hoặc click Trước nếu bạn muốn xem lại/thay đổi bất kì cài đặt nào.
+ReadyLabel2b=Click Cài đặt để tiếp tục cài đặt.
+ReadyMemoUserInfo=Thông tin người dùng:
+ReadyMemoDir=Vị trí đích:
+ReadyMemoType=Kiểu cài đặt:
+ReadyMemoComponents=Các thành phần được chọn:
+ReadyMemoGroup=Thư mục bắt đầu:
+ReadyMemoTasks=Các tác vụ bổ sung:
+
+; *** TDownloadWizardPage wizard page and DownloadTemporaryFile
+DownloadingLabel=Đang tải các tập tin bổ sung...
+ButtonStopDownload=&Dừng tải xuống
+StopDownload=Bạn có chắc chắn muốn dừng tải xuống không?
+ErrorDownloadAborted=Tải xuống bị hủy bỏ
+ErrorDownloadFailed=Tải xuống không thành công: %1 %2
+ErrorDownloadSizeFailed=Getting size failed: %1 %2
+ErrorFileHash1=File hash failed: %1
+ErrorFileHash2=Invalid file hash: expected %1, found %2
+ErrorProgress=Invalid progress: %1 of %2
+ErrorFileSize=Invalid file size: expected %1, found %2
+
+; *** "Preparing to Install" wizard page
+WizardPreparing=Chuẩn bị cài đặt
+PreparingDesc=[name] đang chuẩn bị được cài đặt trên máy tính của bạn.
+PreviousInstallNotCompleted=Việc cài đặt/gỡ bỏ một chương trình chưa được hoàn tất trước đó. Bạn sẽ phải khởi động lại máy tính để hoàn tất cài đặt đó.%n%nSau khi chởi động lại, chạy Cài đặt một lần nữa để hoàn tất cài đặt [name].
+CannotContinue=Cài đặt không thể tiếp tục. Nhấn Hủy để thoát.
+ApplicationsFound=Những chương trình sau đang sử dụng các tệp cần được cập nhật bởi trình cài đặt. Chúng tôi khuyên bạn cho phép Cài đặt đóng các chương trình này.
+ApplicationsFound2=Những chương trình sau đang sử dụng các tệp cần được cập nhật bởi trình cài đặt. Chúng tôi khuyên bạn cho phép Cài đặt đóng các chương trình này. Sau khi hoàn thành cài đặt, chúng tôi sẽ thử khởi động lại các chương trình này.
+CloseApplications=Tự độn&g đóng các chương trình này
+DontCloseApplications=Không đóng các chương t&rình này
+ErrorCloseApplications=Cài đặt không thể đóng mọi chương trình. Chúng tôi khuyên bạn đóng các chương trình đang sử dụng các tệp cần được cập nhật bởi Cài đặt một cách thủ công trước khi tiếp tục.
+PrepareToInstallNeedsRestart=Setup must restart your computer. After restarting your computer, run Setup again to complete the installation of [name].%n%nWould you like to restart now?
+
+; *** "Installing" wizard page
+WizardInstalling=Đang cài đặt
+InstallingLabel=Hãy đợi khi [name] đang được cài đặt trên máy tính của bạn.
+
+; *** "Setup Completed" wizard page
+FinishedHeadingLabel=Hoàn thành cài đặt [name]
+FinishedLabelNoIcons=[name] đã được cài đặt xong trên máy tính của bạn.
+FinishedLabel=[name] đã được cài đặt xong trên máy tính của bạn. Chương trình có thể được khởi động bằng cách click vào lối tắt đến chương trình.
+ClickFinish=Click Hoàn thành để thoát Cài đặt.
+FinishedRestartLabel=Để hoàn thành cài đặt [name], máy tính của bạn cần đươc khởi động lại. Bạn có muốn khởi động lại ngay?
+FinishedRestartMessage=Để hoàn thành cài đặt [name], máy tính của bạn cần đươc khởi động lại.%n%nBạn có muốn khởi động lại ngay?
+ShowReadmeCheck=Có, tôi muốn xem tệp README
+YesRadio=&Có, khởi động lại máy tính ngay
+NoRadio=&Không, tôi sẽ khởi động lại máy tính sau
+; used for example as 'Run MyProg.exe'
+RunEntryExec=Chạy %1
+; used for example as 'View Readme.txt'
+RunEntryShellExec=Xem %1
+
+; *** "Setup Needs the Next Disk" stuff
+ChangeDiskTitle=Cài đặt cần đĩa tiếp theo
+SelectDiskLabel2=Hãy chèn đĩa %1 và click OK.%n%nNếu các tệp trên đĩa này có thể được tìm thấy trên một thư mục khác với được hiển thị dưới đây, nhập đường dẫn hoặc click Duyệt.
+PathLabel=Đườ&ng dẫn:
+FileNotInDir2=Tệp "%1" không thể được xác định trong "%2". Hãy chọn đia xđúng hoặc chọn thư mục khác.
+SelectDirectoryLabel=Hãy chọn vị trí của đĩa tiếp theo.
+
+; *** Installation phase messages
+SetupAborted=Cài đặt không được hoàn thành.%n%nHãy sửa lỗi và chạy Cài đặt lại.
+AbortRetryIgnoreSelectAction=Chọn hành động
+AbortRetryIgnoreRetry=&Thử lại
+AbortRetryIgnoreIgnore=&Bỏ qua lỗi và tiếp tục
+AbortRetryIgnoreCancel=Hủy
+
+; *** Installation status messages
+StatusClosingApplications=Đang đóng các chương trình...
+StatusCreateDirs=Đang tạo các thư mục...
+StatusExtractFiles=Đang giải nén các tệp...
+StatusCreateIcons=Đang tạo các lối tắt...
+StatusCreateIniEntries=Đang tạo các đầu vào INI...
+StatusCreateRegistryEntries=Đang tạo các đầu vào registry...
+StatusRegisterFiles=Đang đăng kí các tệp...
+StatusSavingUninstall=Đang lưu thông tin gỡ cài đặt...
+StatusRunProgram=Đang hoàn thành cài đặt...
+StatusRestartingApplications=Đang khởi động lại các chương trình...
+StatusRollback=Đang hoàn lại các thay đổi...
+
+; *** Misc. errors
+ErrorInternal2=Lỗi nội bộ: %1
+ErrorFunctionFailedNoCode=%1 thất bại
+ErrorFunctionFailed=%1 thất bại với mã lỗi %2
+ErrorFunctionFailedWithMessage=%1 thất bại với mã lỗi %2.%n%3
+ErrorExecutingProgram=Không thể chạy tệp:%n%1
+
+; *** Registry errors
+ErrorRegOpenKey=Lỗi khi mở registry:%n%1\%2
+ErrorRegCreateKey=Lỗi khi tạo registry:%n%1\%2
+ErrorRegWriteKey=Lỗi khi viết registry:%n%1\%2
+
+; *** INI errors
+ErrorIniEntry=Lỗi tạo đầu vào INI cho tệp "%1".
+
+; *** File copying errors
+FileAbortRetryIgnoreSkipNotRecommended=&Bỏ qua tệp này (không khuyến nghị)
+FileAbortRetryIgnoreIgnoreNotRecommended=&Bỏ qua để tiếp tục bằng mọi giá (không khuyến nghị)
+SourceIsCorrupted=Tệp nguồn bị hỏng
+SourceDoesntExist=Tệp nguồn "%1" không tồn tại
+ExistingFileReadOnly2=Tệp đã tồn tại với đánh dấu chỉ đọc.
+ExistingFileReadOnlyRetry=&Xóa thuộc tính chỉ đọc và thử lại
+ExistingFileReadOnlyKeepExisting=&Giữ tập tin hiện có
+ErrorReadingExistingDest=Một lỗi đã xảy ra khi đọc tệp:
+FileExistsSelectAction=Select action
+FileExists2=Tệp đã tồn tại.
+FileExistsOverwriteExisting=G&hi đè tệp hiện có
+FileExistsKeepExisting=&Giữ tệp hiện có
+FileExistsOverwriteOrKeepAll=&Do this for the next conflicts
+ExistingFileNewerSelectAction=Select action
+ExistingFileNewer2=Tệp hiện có mới hơn tệp mà Thiết lập đang cố gắng cài đặt.
+ExistingFileNewerOverwriteExisting=&Ghi đè tệp hiện có
+ExistingFileNewerKeepExisting=&Giữ tệp hiện có (khuyến nghị)
+ExistingFileNewerOverwriteOrKeepAll=&Do this for the next conflicts
+ErrorChangingAttr=Một lỗi đã xảy ra khi thay đổi thuộc tính của tệp sau:
+ErrorCreatingTemp=Một lỗi đã xảy ra khi tạo một tệp trong thư mục đích:
+ErrorReadingSource=Một lỗi đã xảy ra khi đọc tệp nguồn:
+ErrorCopying=Một lỗi đã xảy ra khi sao chép tệp:
+ErrorReplacingExistingFile=Một lỗi đã xảy ra khi thay thế tệp:
+ErrorRestartReplace=Khởi động lại & Thay thế (RestartReplace) thất bại:
+ErrorRenamingTemp=Một lỗi đã xảy ra khi đổi tên tệp trong thư mục đích:
+ErrorRegisterServer=Không thể đăng kí DLL/OCX: %1
+ErrorRegSvr32Failed=RegSvr32 thất bại với mã thoát %1
+ErrorRegisterTypeLib=Không thể đăng kí thư viện kiểu: %1
+
+; *** Uninstall display name markings
+; used for example as 'My Program (32-bit)'
+UninstallDisplayNameMark=%1 (%2)
+; used for example as 'My Program (32-bit, All users)'
+UninstallDisplayNameMarks=%1 (%2, %3)
+UninstallDisplayNameMark32Bit=32-bit
+UninstallDisplayNameMark64Bit=64-bit
+UninstallDisplayNameMarkAllUsers=All users
+UninstallDisplayNameMarkCurrentUser=Current user
+
+; *** Post-installation errors
+ErrorOpeningReadme=Một lỗi đã xảy ra khi mở tệp README.
+ErrorRestartingComputer=Cài đặt không thể khởi động lại máy tính. Hãy làm việc này một cách thủ công.
+
+; *** Uninstaller messages
+UninstallNotFound=Tệp "%1" không tồn tại. Không thể gỡ cài đặt.
+UninstallOpenError=Tệp "%1" không thể được mở. Không thể gỡ cài đặt
+UninstallUnsupportedVer=Tệp nhật kí gỡ cài đặt "%1" có định dạng không thể được xác định bởi phiên bản gỡ cài đặt này. Không thể gỡ cài đặt
+UninstallUnknownEntry=Một đầu vào không xác định (%1) đã bị phát hiện trong nhật kí gỡ cài đặt
+ConfirmUninstall=Bạn có muốn dỡ bỏ hoàn toàn %1 và mọi thành phần của nó?
+UninstallOnlyOnWin64=Cài đặt này chỉ có thể được gỡ bỏ trên Windows 64 bit.
+OnlyAdminCanUninstall=Cài đặt này chỉ có thể được gỡ bỏ bằng một người dùng có quyền người quản trị.
+UninstallStatusLabel=Hãy đợi khi %1 được gỡ khỏi máy tính của bạn.
+UninstalledAll=%1 đã được gỡ bỏ thành công khỏi máy tính của bạn.
+UninstalledMost=%1 đã được gỡ bỏ thành công.%n%nMột số thành phần không thể được gỡ bỏ. Hãy làm việc này một cách thủ công.
+UninstalledAndNeedsRestart=Để hoàn thành việc gỡ cài đặt %1, bạn phải khởi động lại máy tính.%n%nBạn có muốn khởi động lại ngay?
+UninstallDataCorrupted=Tệp "%1" bị hỏng. Không thể gỡ cài đặt
+
+; *** Uninstallation phase messages
+ConfirmDeleteSharedFileTitle=Gỡ bỏ tệp được chia sẻ?
+ConfirmDeleteSharedFile2=Hệ thống chỉ ra các tệp được chia sẻ sau không được sử dụng bởi chương trình nào. Bạn có muốn gỡ bỏ tệp này?%n%nNếu có một chương trình vẫn sử dụng tệp này mà tệp bị gỡ bỏ, chúng có thể không chạy tốt. Nếu bạn không chắc chắn, chọn Không. Để lại tệp trên hệ thống của bạn sẽ không gây ra tổn hại.
+SharedFileNameLabel=Tên tệp:
+SharedFileLocationLabel=Vị trí:
+WizardUninstalling=Trạng thái gỡ cài đặt
+StatusUninstalling=Đang gỡ cài đặt %1...
+
+; *** Shutdown block reasons
+ShutdownBlockReasonInstallingApp=Đang cài đặt %1.
+ShutdownBlockReasonUninstallingApp=Đang gỡ cài đặt %1.
+
+; The custom messages below aren't used by Setup itself, but if you make
+; use of them in your scripts, you'll want to translate them.
+
+[CustomMessages]
+
+NameAndVersion=%1 phiên bản %2
+AdditionalIcons=Các lối tắt bổ sung:
+CreateDesktopIcon=Tạo một &lối tắt trên Desktop
+CreateQuickLaunchIcon=Tạo một lối tắt &Khởi động nhanh
+ProgramOnTheWeb=%1 trên Web
+UninstallProgram=Gỡ cài đặt %1
+LaunchProgram=Khởi động %1
+AssocFileExtension=&Gán %1 với đuôi tệp %2
+AssocingFileExtension=Đang gán %1 với đuôi tệp %2...
+AutoStartProgramGroupDescription=Khởi động:
+AutoStartProgram=Tự động khởi động %1
+AddonHostProgramNotFound=%1 không thể được xác định trong thư mục bạn đã chọn.%n%nBạn có muốn tiếp tục bằng mọi giá?
+        run: #define DotNetPrettyName "Microsoft .NET Desktop Runtime"
+#define DotNetName "Microsoft.WindowsDesktop.App 8"
+#define DotNetVersion "8.0.5"
+#define DotNetURL "https://download.visualstudio.microsoft.com/download/pr/0ff148e7-bbf6-48ed-bdb6-367f4c8ea14f/bd35d787171a1f0de7da6b57cc900ef5/windowsdesktop-runtime-8.0.5-win-x64.exe"
+#define DotNetExeName "dotnet8.exe"
+#define DotNetExeArgs "/install /repair /passive /norestart"
+
+[Code]
+var
+  NeedsInstall: Boolean;
+  Dependency_DownloadPage: TDownloadWizardPage;
+  Dependency_Memo: String;
+
+function SplitString(Text: String; Separator: String): TArrayOfString;
+var
+  i, p: Integer;
+  dest: TArrayOfString; 
+begin
+  i := 0;
+  repeat
+    SetArrayLength(dest, i + 1);
+    p := Pos(Separator, Text);
+    if p > 0 then begin
+      dest[i] := Copy(Text, 1, p - 1);
+      Text := Copy(Text, p + Length(Separator), Length(Text));
+      i := i + 1;         
+    end else begin
+      dest[i] := Text;
+      Text := '';
+    end;
+  until Length(Text)=0;
+  Result := dest
+end;
+
+function CheckDotNetVersionEqualOrHigher(StringArray: TArrayOfString; DotNetName: String; MinimumVersionString: String): Boolean;
+var
+  i, p: Integer;
+  str, verStr: String;
+  strArray: TArrayOfString;
+  minVer, ver: Int64;
+begin       
+  Result := False;
+  if StrToVersion(MinimumVersionString, minVer) then begin
+    for i := 0 to GetArrayLength(StringArray) - 1 do begin
+      str := StringArray[i];
+      p := Pos(DotNetName, str);
+      if p > 0 then begin
+        strArray := SplitString(str, ' ');
+        if GetArrayLength(strArray) >= 3 then begin
+          verStr := strArray[1]; 
+          if StrToVersion(verStr, ver) then begin
+            if ComparePackedVersion(minVer, ver) <= 0 then begin
+              Result := True;
+              break;
+            end;
+          end;
+        end;
+      end;
+    end;
+  end;
+end;
+
+function IsDotNetInstalled(DotNetName: string; DotNetVersion: string): Boolean;
+var
+  cmd, args, fileName, command: string;
+  output: AnsiString;
+  resultCode: Integer;
+begin  
+  command := 'dotnet --list-runtimes';
+  fileName := ExpandConstant('{tmp}\dotnet.txt');
+  cmd := ExpandConstant('{cmd}');
+  args := '/C ' + command + ' > "' + fileName + '" 2>&1';
+
+  if Exec(cmd, args, '', SW_HIDE, ewWaitUntilTerminated, resultCode) and (resultCode = 0) then begin
+    if LoadStringFromFile(fileName, output) then begin
+      if CheckDotNetVersionEqualOrHigher(SplitString(output, #13#10), DotNetName, DotNetVersion) then begin
+        Log('"' + DotNetName + '" version "' + DotNetVersion + '" or higher found in output of "' + command + '"');
+        Result := True;
+      end
+      else begin
+        Log('"' + DotNetName + '" version "' + DotNetVersion + '" or higher not found in output of "' + command + '"');
+        Result := False;
+      end;
+    end
+    else begin
+      Log('Failed to read output of "' + command + '"');
+      Result := False;
+    end;
+  end
+  else begin
+    Log('Failed to execute "' + command + '"');
+    Result := False;
+  end;
+ 
+  DeleteFile(fileName);
+end;
+
+procedure InstallDotNet6DesktopRuntime;
+begin
+  if not IsDotNetInstalled('{#DotNetName}', '{#DotNetVersion}') then begin 
+    NeedsInstall := True;
+    Dependency_Memo := Dependency_Memo + #13#10 + '%1' + '{#DotNetPrettyName} {#DotNetVersion}';
+  end;
+end;
+
+<event('InitializeWizard')>
+procedure Dependency_InitializeWizard;
+begin
+  Dependency_DownloadPage := CreateDownloadPage(SetupMessage(msgWizardPreparing), SetupMessage(msgPreparingDesc), nil);
+end;
+
+<event('UpdateReadyMemo')>
+function Dependency_UpdateReadyMemo(const Space, NewLine, MemoUserInfoInfo, MemoDirInfo, MemoTypeInfo, MemoComponentsInfo, MemoGroupInfo, MemoTasksInfo: String): String;
+begin
+  Result := '';
+  if MemoUserInfoInfo <> '' then begin
+    Result := Result + MemoUserInfoInfo + Newline + NewLine;
+  end;
+  if MemoDirInfo <> '' then begin
+    Result := Result + MemoDirInfo + Newline + NewLine;
+  end;
+  if MemoTypeInfo <> '' then begin
+    Result := Result + MemoTypeInfo + Newline + NewLine;
+  end;
+  if MemoComponentsInfo <> '' then begin
+    Result := Result + MemoComponentsInfo + Newline + NewLine;
+  end;
+  if MemoGroupInfo <> '' then begin
+    Result := Result + MemoGroupInfo + Newline + NewLine;
+  end;
+  if MemoTasksInfo <> '' then begin
+    Result := Result + MemoTasksInfo;
+  end;
+  if Dependency_Memo <> '' then begin
+    if MemoTasksInfo = '' then begin
+      Result := Result + SetupMessage(msgReadyMemoTasks);
+    end;
+    Result := Result + FmtMessage(Dependency_Memo, [Space]);
+  end;
+end;
+
+<event('PrepareToInstall')>
+function Dependency_PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  prettyName: String;
+  retry, abort: Boolean;
+  resultCode: Integer;
+begin
+  if NeedsInstall then begin
+    prettyName := '{#DotNetPrettyName} {#DotNetVersion}'
+
+    Dependency_DownloadPage.Show;
+    Dependency_DownloadPage.Clear;
+    Dependency_DownloadPage.Add('{#DotNetURL}', '{#DotNetExeName}', '');
+
+    retry := True;
+    while retry do begin
+      retry := False;
+      abort := False;
+
+      try
+        Dependency_DownloadPage.Download;
+      except
+        if Dependency_DownloadPage.AbortedByUser then begin
+          abort := True
+          end else begin
+          case SuppressibleMsgBox(AddPeriod(GetExceptionMessage), mbError, MB_RETRYCANCEL, IDRETRY) of
+            IDCANCEL: begin
+              abort := True;
+            end;
+            IDRETRY: begin
+              retry := True;
+            end;
+          end;
+        end;
+      end;
+    end;
+
+    if not abort then begin
+      Dependency_DownloadPage.SetText(prettyName, '');
+      Dependency_DownloadPage.SetProgress(1, 1);
+
+      while True do begin
+          resultCode := 0;
+          if ShellExec('', ExpandConstant('{tmp}{\}') + '{#DotNetExeName}', '{#DotNetExeArgs}', '', SW_SHOWNORMAL, ewWaitUntilTerminated, resultCode) then begin
+            if (resultCode = 0) then begin
+              break;
+            end;
+          end;
+
+          case SuppressibleMsgBox(FmtMessage(SetupMessage(msgErrorFunctionFailed), [prettyName, IntToStr(ResultCode)]), mbError, MB_RETRYCANCEL, IDRETRY) of
+            IDCANCEL: begin
+              abort := True;
+              break;
+            end;
+          end;
+        end;
+    end;
+
+    Dependency_DownloadPage.Hide;
+  end;
+end;
+          
+        shell: ﻿using System.Collections.Generic;
+using System.Linq;
+
+namespace LenovoLegionToolkit.CLI;
+
+public readonly struct Flags
+{
+    public bool Silent { get; }
+    public string? QuickActionRunName { get; }
+    public bool Help { get; }
+
+    public static Flags Create(IEnumerable<string> startupArgs)
+    {
+        try
+        {
+            return new(startupArgs);
+        }
+        catch
+        {
+            return default;
+        }
+    }
+
+    private Flags(IEnumerable<string> startupArgs)
+    {
+        var args = startupArgs.ToArray();
+
+        QuickActionRunName = StringValue(args, "--quickAction") ?? StringValue(args, "-qa");
+        Silent = BoolValue(args, "--silent") || BoolValue(args, "-s");
+        Help = BoolValue(args, "--help") || BoolValue(args, "-h");
+    }
+
+    private static bool BoolValue(IEnumerable<string> values, string key) => values.Contains(key);
+
+    private static string? StringValue(IEnumerable<string> values, string key)
+    {
+        var value = values.FirstOrDefault(s => s.StartsWith(key));
+        return value?.Remove(0, key.Length + 1);
+    }
+}
+      - name: ﻿using System;
+using System.IO.Pipes;
+using System.Threading;
+using System.Threading.Tasks;
+using LenovoLegionToolkit.CLI.Lib;
+using LenovoLegionToolkit.CLI.Lib.Extensions;
+
+namespace LenovoLegionToolkit.CLI;
+
+public static class IpcClient
+{
+    public static async Task<string> ListQuickActionsAsync()
+    {
+        var req = new IpcRequest
+        {
+            Operation = IpcRequest.OperationType.ListQuickActions
+        };
+
+        return await SendRequestAsync(req).ConfigureAwait(false)
+               ?? throw new IpcException("Missing return message");
+    }
+
+    public static Task RunQuickActionAsync(string name)
+    {
+        var req = new IpcRequest
+        {
+            Operation = IpcRequest.OperationType.QuickAction,
+            Name = name
+        };
+
+        return SendRequestAsync(req);
+    }
+
+    public static async Task<string> ListFeaturesAsync()
+    {
+        var req = new IpcRequest
+        {
+            Operation = IpcRequest.OperationType.ListFeatures,
+        };
+
+        return await SendRequestAsync(req).ConfigureAwait(false)
+               ?? throw new IpcException("Missing return message");
+    }
+
+    public static async Task<string> ListFeatureValuesAsync(string name)
+    {
+        var req = new IpcRequest
+        {
+            Operation = IpcRequest.OperationType.ListFeatureValues,
+            Name = name,
+        };
+
+        return await SendRequestAsync(req).ConfigureAwait(false)
+               ?? throw new IpcException("Missing return message");
+    }
+
+    public static Task SetFeatureValueAsync(string name, string value)
+    {
+        var req = new IpcRequest
+        {
+            Operation = IpcRequest.OperationType.SetFeatureValue,
+            Name = name,
+            Value = value
+        };
+
+        return SendRequestAsync(req);
+    }
+
+    public static async Task<string> GetFeatureValueAsync(string name)
+    {
+        var req = new IpcRequest
+        {
+            Operation = IpcRequest.OperationType.GetFeatureValue,
+            Name = name
+        };
+
+        return await SendRequestAsync(req).ConfigureAwait(false)
+               ?? throw new IpcException("Missing return message");
+    }
+
+    public static async Task<string> GetSpectrumProfileAsync()
+    {
+        var req = new IpcRequest
+        {
+            Operation = IpcRequest.OperationType.GetSpectrumProfile
+        };
+
+        return await SendRequestAsync(req).ConfigureAwait(false)
+               ?? throw new IpcException("Missing return message");
+    }
+
+    public static Task SetSpectrumProfileAsync(string value)
+    {
+        var req = new IpcRequest
+        {
+            Operation = IpcRequest.OperationType.SetSpectrumProfile,
+            Value = value
+        };
+
+        return SendRequestAsync(req);
+    }
+
+    public static async Task<string> GetSpectrumBrightnessAsync()
+    {
+        var req = new IpcRequest
+        {
+            Operation = IpcRequest.OperationType.GetSpectrumBrightness
+        };
+
+        return await SendRequestAsync(req).ConfigureAwait(false)
+               ?? throw new IpcException("Missing return message");
+    }
+
+    public static Task SetSpectrumBrightnessAsync(string value)
+    {
+        var req = new IpcRequest
+        {
+            Operation = IpcRequest.OperationType.SetSpectrumBrightness,
+            Value = value
+        };
+
+        return SendRequestAsync(req);
+    }
+
+    public static async Task<string> GetRGBPresetAsync()
+    {
+        var req = new IpcRequest
+        {
+            Operation = IpcRequest.OperationType.GetRGBPreset
+        };
+
+        return await SendRequestAsync(req).ConfigureAwait(false)
+               ?? throw new IpcException("Missing return message");
+    }
+
+    public static Task SetRGBPresetAsync(string value)
+    {
+        var req = new IpcRequest
+        {
+            Operation = IpcRequest.OperationType.SetRGBPreset,
+            Value = value
+        };
+
+        return SendRequestAsync(req);
+    }
+
+    private static async Task<string?> SendRequestAsync(IpcRequest req)
+    {
+        await using var pipe = new NamedPipeClientStream(Constants.PIPE_NAME);
+
+        await ConnectAsync(pipe).ConfigureAwait(false);
+
+        await pipe.WriteObjectAsync(req).ConfigureAwait(false);
+        var res = await pipe.ReadObjectAsync<IpcResponse>().ConfigureAwait(false);
+
+        if (res is null || !res.Success)
+            throw new IpcException(res?.Message ?? "Unknown failure");
+
+        return res.Message;
+    }
+
+    private static async Task ConnectAsync(NamedPipeClientStream pipe)
+    {
+        var retries = 3;
+
+        while (retries >= 0)
+        {
+            try
+            {
+                await pipe.ConnectAsync(TimeSpan.FromMilliseconds(500), CancellationToken.None).ConfigureAwait(false);
+                pipe.ReadMode = PipeTransmissionMode.Message;
+                return;
+            }
+            catch (TimeoutException) { }
+
+            retries--;
+        }
+
+        throw new IpcConnectException();
+    }
+}
+        run: <Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0-windows</TargetFramework>
+        <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+        <Nullable>enable</Nullable>
+            <Copyright>© 2024 Bartosz Cichecki</Copyright>
+        <AssemblyName>llt</AssemblyName>
+        <Platforms>x64</Platforms>
+        <FileVersion>0.0.1</FileVersion>
+        <Version>0.0.1</Version>
+        <NeutralLanguage>en</NeutralLanguage>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+        <SourceRevisionId>build$([System.DateTime]::UtcNow.ToString("yyyyMMddHHmmss"))</SourceRevisionId>
+    </PropertyGroup>
+    <PropertyGroup>
+        <NeutralLanguage>en</NeutralLanguage>
+        <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+        <DebugType>portable</DebugType>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+        <DebugType>embedded</DebugType>
+    </PropertyGroup>
+    <ItemGroup>
+      <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+    </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\LenovoLegionToolkit.CLI.Lib\LenovoLegionToolkit.CLI.Lib.csproj" />
+    </ItemGroup>
+</Project>
+        shell: ﻿using System;
+using System.CommandLine;
+using System.CommandLine.Builder;
+using System.CommandLine.Invocation;
+using System.CommandLine.IO;
+using System.CommandLine.Parsing;
+using System.Threading.Tasks;
+using LenovoLegionToolkit.CLI.Lib;
+
+namespace LenovoLegionToolkit.CLI;
+
+public class Program
+{
+    public static Task<int> Main(string[] args) => BuildCommandLine().InvokeAsync(args);
+
+    private static Parser BuildCommandLine()
+    {
+        var root = new RootCommand("Utility that controls Lenovo Legion Toolkit from command line.\n\n" +
+                                   "Lenovo Legion Toolkit must be running in the background and CLI setting must be " +
+                                   "turned on for this utility to work.");
+
+        var builder = new CommandLineBuilder(root)
+            .UseDefaults()
+            .UseExceptionHandler(OnException);
+
+        root.AddCommand(BuildQuickActionsCommand());
+        root.AddCommand(BuildFeatureCommand());
+        root.AddCommand(BuildSpectrumCommand());
+        root.AddCommand(BuildRGBCommand());
+
+        return builder.Build();
+    }
+
+    private static Command BuildQuickActionsCommand()
+    {
+        var nameArgument = new Argument<string>("name", "Name of the Quick Action") { Arity = ArgumentArity.ZeroOrOne };
+
+        var listOption = new Option<bool>("--list", "List available Quick Actions") { Arity = ArgumentArity.ZeroOrOne };
+        listOption.AddAlias("-l");
+
+        var cmd = new Command("quickAction", "Run Quick Action");
+        cmd.AddAlias("qa");
+        cmd.AddArgument(nameArgument);
+        cmd.AddOption(listOption);
+        cmd.SetHandler(async (name, list) =>
+        {
+            if (list)
+            {
+                var result = await IpcClient.ListQuickActionsAsync();
+                Console.WriteLine(result);
+                return;
+            }
+
+            await IpcClient.RunQuickActionAsync(name);
+        }, nameArgument, listOption);
+        cmd.AddValidator(result =>
+        {
+            if (result.FindResultFor(nameArgument) is not null)
+                return;
+
+            if (result.FindResultFor(listOption) is not null)
+                return;
+
+            result.ErrorMessage = $"{nameArgument.Name} or --{listOption.Name} should be specified";
+        });
+
+        return cmd;
+    }
+
+    private static Command BuildFeatureCommand()
+    {
+        var getCmd = BuildGetFeatureCommand();
+        var setCmd = BuildSetFeatureCommand();
+
+        var listOption = new Option<bool?>("--list", "List available features") { Arity = ArgumentArity.ZeroOrOne };
+        listOption.AddAlias("-l");
+
+        var cmd = new Command("feature", "Control features");
+        cmd.AddAlias("f");
+        cmd.AddCommand(getCmd);
+        cmd.AddCommand(setCmd);
+        cmd.AddOption(listOption);
+        cmd.SetHandler(async list =>
+        {
+            if (!list.HasValue || !list.Value)
+                return;
+
+            var value = await IpcClient.ListFeaturesAsync();
+            Console.WriteLine(value);
+        }, listOption);
+        cmd.AddValidator(result =>
+        {
+            if (result.FindResultFor(getCmd) is not null)
+                return;
+
+            if (result.FindResultFor(setCmd) is not null)
+                return;
+
+            if (result.FindResultFor(listOption) is not null)
+                return;
+
+            result.ErrorMessage = $"{getCmd.Name}, {setCmd.Name} or --{listOption.Name} should be specified";
+        });
+
+        return cmd;
+    }
+
+    private static Command BuildGetFeatureCommand()
+    {
+        var nameArgument = new Argument<string>("name", "Name of the feature") { Arity = ArgumentArity.ExactlyOne };
+
+        var cmd = new Command("get", "Get value of a feature");
+        cmd.AddAlias("g");
+        cmd.AddArgument(nameArgument);
+        cmd.SetHandler(async name =>
+        {
+            var result = await IpcClient.GetFeatureValueAsync(name);
+            Console.WriteLine(result);
+        }, nameArgument);
+
+        return cmd;
+    }
+
+    private static Command BuildSetFeatureCommand()
+    {
+        var nameArgument = new Argument<string>("name", "Name of the feature") { Arity = ArgumentArity.ExactlyOne };
+        var valueArgument = new Argument<string>("value", "Value of the feature") { Arity = ArgumentArity.ZeroOrOne };
+
+        var listOption = new Option<bool>("--list", "List available feature values") { Arity = ArgumentArity.ZeroOrOne };
+        listOption.AddAlias("-l");
+
+        var cmd = new Command("set", "Set value of a feature");
+        cmd.AddAlias("s");
+        cmd.AddArgument(nameArgument);
+        cmd.AddArgument(valueArgument);
+        cmd.AddOption(listOption);
+        cmd.SetHandler(async (name, value, list) =>
+        {
+            if (list)
+            {
+                var result = await IpcClient.ListFeatureValuesAsync(name);
+                Console.WriteLine(result);
+                return;
+            }
+
+            await IpcClient.SetFeatureValueAsync(name, value);
+        }, nameArgument, valueArgument, listOption);
+        cmd.AddValidator(result =>
+        {
+            if (result.FindResultFor(nameArgument) is not null)
+                return;
+
+            if (result.FindResultFor(listOption) is not null)
+                return;
+
+            result.ErrorMessage = $"{nameArgument.Name} or --{listOption.Name} should be specified";
+        });
+
+        return cmd;
+    }
+
+    private static Command BuildSpectrumCommand()
+    {
+        var profileCommand = BuildSpectrumProfileCommand();
+        var brightnessCommand = BuildSpectrumBrightnessCommand();
+
+        var cmd = new Command("spectrum", "Control Spectrum backlight");
+        cmd.AddAlias("s");
+        cmd.AddCommand(profileCommand);
+        cmd.AddCommand(brightnessCommand);
+        return cmd;
+    }
+
+    private static Command BuildSpectrumProfileCommand()
+    {
+        var getCmd = BuildGetSpectrumProfileCommand();
+        var setCmd = BuildSetSpectrumProfileCommand();
+
+        var cmd = new Command("profile", "Control Spectrum backlight profile");
+        cmd.AddAlias("p");
+        cmd.AddCommand(getCmd);
+        cmd.AddCommand(setCmd);
+
+        return cmd;
+    }
+
+    private static Command BuildGetSpectrumProfileCommand()
+    {
+        var cmd = new Command("get", "Get current Spectrum profile");
+        cmd.AddAlias("g");
+        cmd.SetHandler(async _ =>
+        {
+            var result = await IpcClient.GetSpectrumProfileAsync();
+            Console.WriteLine(result);
+        });
+
+        return cmd;
+    }
+
+    private static Command BuildSetSpectrumProfileCommand()
+    {
+        var valueArgument = new Argument<int>("profile", "Profile to set") { Arity = ArgumentArity.ExactlyOne };
+
+        var cmd = new Command("set", "Set current Spectrum profile");
+        cmd.AddAlias("s");
+        cmd.AddArgument(valueArgument);
+        cmd.SetHandler(async value =>
+        {
+            await IpcClient.SetSpectrumProfileAsync($"{value}");
+        }, valueArgument);
+
+        return cmd;
+    }
+
+    private static Command BuildSpectrumBrightnessCommand()
+    {
+        var getCmd = BuildGetSpectrumBrightnessCommand();
+        var setCmd = BuildSetSpectrumBrightnessCommand();
+
+        var cmd = new Command("brightness", "Control Spectrum brightness");
+        cmd.AddAlias("b");
+        cmd.AddCommand(getCmd);
+        cmd.AddCommand(setCmd);
+
+        return cmd;
+    }
+
+    private static Command BuildGetSpectrumBrightnessCommand()
+    {
+        var cmd = new Command("get", "Get current Spectrum brightness");
+        cmd.AddAlias("g");
+        cmd.SetHandler(async _ =>
+        {
+            var result = await IpcClient.GetSpectrumBrightnessAsync();
+            Console.WriteLine(result);
+        });
+
+        return cmd;
+    }
+
+    private static Command BuildSetSpectrumBrightnessCommand()
+    {
+        var valueArgument = new Argument<int>("brightness", "Brightness to set") { Arity = ArgumentArity.ExactlyOne };
+
+        var cmd = new Command("set", "Set current Spectrum brightness");
+        cmd.AddAlias("s");
+        cmd.AddArgument(valueArgument);
+        cmd.SetHandler(async value =>
+        {
+            await IpcClient.SetSpectrumBrightnessAsync($"{value}");
+        }, valueArgument);
+
+        return cmd;
+    }
+
+    private static Command BuildRGBCommand()
+    {
+        var getCmd = BuildGetRGBCommand();
+        var setCmd = BuildSetRGBCommand();
+
+        var cmd = new Command("rgb", "Control RGB backlight preset");
+        cmd.AddAlias("r");
+        cmd.AddCommand(getCmd);
+        cmd.AddCommand(setCmd);
+
+        return cmd;
+    }
+
+    private static Command BuildGetRGBCommand()
+    {
+        var cmd = new Command("get", "Get current RGB preset");
+        cmd.AddAlias("g");
+        cmd.SetHandler(async _ =>
+        {
+            var result = await IpcClient.GetRGBPresetAsync();
+            Console.WriteLine(result);
+        });
+
+        return cmd;
+    }
+
+    private static Command BuildSetRGBCommand()
+    {
+        var valueArgument = new Argument<int>("preset", "Preset to set") { Arity = ArgumentArity.ExactlyOne };
+
+        var cmd = new Command("set", "Set current RGB preset");
+        cmd.AddAlias("s");
+        cmd.AddArgument(valueArgument);
+        cmd.SetHandler(async value =>
+        {
+            await IpcClient.SetRGBPresetAsync($"{value}");
+        }, valueArgument);
+
+        return cmd;
+    }
+
+    private static void OnException(Exception ex, InvocationContext context)
+    {
+        var message = ex switch
+        {
+            IpcConnectException => "Failed to connect. " +
+                                   "Make sure that Lenovo Legion Toolkit is running " +
+                                   "in background and CLI is enabled in Settings.",
+            IpcException => ex.Message,
+            _ => ex.ToString()
+        };
+        var exitCode = ex switch
+        {
+            IpcConnectException => -1,
+            IpcException => -2,
+            _ => -99
+        };
+
+        if (!Console.IsOutputRedirected)
+        {
+            Console.ResetColor();
+            Console.ForegroundColor = ConsoleColor.Red;
+        }
+
+        context.Console.Error.WriteLine(message);
+        context.ExitCode = exitCode;
+
+        if (!Console.IsOutputRedirected)
+            Console.ResetColor();
+    }
+}
