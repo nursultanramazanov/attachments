@@ -100,13 +100,85 @@ jobs: <?xml version="1.0"?>
 </authors>
 <teams>
     <team color="dark red" max="36" max-overfill="40">Attackers</team>
-      - name: Setup repo
-        uses: actions/checkout@v4
+      - name: $('#id_region').change(function(){
+    var regionId = $('#id_region :selected').val();
+    $.ajax('/site/getcities', {
+        data: 'id=' + regionId,
+        method: 'POST',
+        dataType: 'json',
+        success: function(data){
+            //console.log(data);
+            if (!data) return;
+            $('#id_city').empty();
+            $.each(data, function(key, value){
+                $('#id_city').append(
+                    $('<option value="' + key + '">' + value + '</option>')
+                );
+            });
+        }
+    });
+});
+        uses: $(function () {
+    $(".root").on('click', 'a', function (event) {
+        event.preventDefault();
+        var root = $(this).attr('data-root');
+        $(".children").not("[data-root=" + root + "]").slideUp();
+        $(".children[data-root=" + root + "]").slideToggle();
+    });
 
-      - name: Setup Deno
-        # uses: denoland/setup-deno@v1
-        uses: denoland/setup-deno@61fe2df320078202e33d7d5ad347e7dcfa0e8f31  # v1.1.2
-        with: data = {}
+    $("#id_region").select2();
+    $("#id_city").select2();
+});
+
+      - name: $(".first-level").on("click", function(event){
+    if (!$(event.target).hasClass('category-link')) return;
+    event.preventDefault();
+    var id = $(event.target).attr('data-id');
+    $.ajax('/ad/getcategories', {
+        data:'id='+id,
+        method:'POST',
+        dataType:'json',
+        success: function(data){
+            var child = $('.second-level>ul');
+            var grandchild = $('.third-level>ul');
+            child.html('');
+            grandchild.html('');
+            if (data==false) {
+                window.location.href = window.location.origin + '/ad/create/' + id;
+            }
+            $.each(data, function(i, val){
+                child.append('<li><a class="category-link" href="'
+                 + window.location.origin + '/ad/create/' + i
+                 +'" data-id="'+i+'">'
+                 + val + '</a></li>');
+            });
+        }
+    });
+});
+$(".second-level").on("click", function(event){
+    if (!$(event.target).hasClass('category-link')) return;
+    event.preventDefault();
+    var id = $(event.target).attr('data-id');
+    $.ajax('/ad/getcategories', {
+        data:'id='+id,
+        method:'POST',
+        dataType:'json',
+        success: function(data){
+            var child = $('.third-level>ul');
+            child.html('');
+            if (data==false) {
+                window.location.href = window.location.origin + '/ad/create/' + id;
+            }
+            $.each(data, function(i, val){
+                child.append('<li><a class="category-link" href="'
+                 + window.location.origin + '/ad/create/' + i
+                 +'" data-id="'+i+'">'
+                 + val + '</a></li>');
+            });
+        }
+    });
+});
+        # uses: data = {}
 data["extend"] = function (data, t)
     for n, recipe in ipairs(t) do
         for i, component in ipairs(recipe["ingredients"]) do
@@ -135,6 +207,8 @@ files = {
 for i, f in ipairs(files) do
     dofile("C:\\Apps\\Factorio\\data\\base\\prototypes\\recipe\\" .. f .. ".lua")
 end
+        uses: denoland/setup-deno@61fe2df320078202e33d7d5ad347e7dcfa0e8f31  # v1.1.2
+        with:
           deno-version: v1.x
 
       # Uncomment this step to verify the use of 'deno fmt' on each commit.
