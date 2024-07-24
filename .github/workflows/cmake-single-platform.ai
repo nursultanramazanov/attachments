@@ -1,0 +1,375 @@
+# This starter workflow is for a CMake project running on a single platform. There is a different starter workflow if you need cross-platform coverage.
+# See: https://github.com/actions/starter-workflows/blob/main/ci/cmake-multi-platform.yml
+name: CMake on a single platform
+
+on: The MIT License (MIT)
+
+Copyright (c) Microsoft Corporation
+All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+  push: What:                /proc/sys/vm/nr_pdflush_threads
+Date:                June 2012
+Contact:        >
+Description: Since pdflush is replaced by per-BDI flusher, the interface of old pdflush
+             exported in /proc/sys/vm/ should be removed.
+    branches: [ "main" ]
+  pull_request: What:                /sys/bus/usb/devices/.../power/level
+Date:                March 2007
+KernelVersion:        2.6.21
+Contact:        >
+Description:
+                Each USB device directory will contain a file named
+                power/level.  This file holds a power-level setting for
+                the device, either "on" or "auto".
+
+                "on" means that the device is not allowed to autosuspend,
+                although normal suspends for system sleep will still
+                be honored.  "auto" means the device will autosuspend
+                and autoresume in the usual manner, according to the
+                capabilities of its driver.
+
+                During normal use, devices should be left in the "auto"
+                level.  The "on" level is meant for administrative uses.
+                If you want to suspend a device immediately but leave it
+                free to wake up in response to I/O requests, you should
+                write "0" to power/autosuspend.
+
+                Device not capable of proper suspend and resume should be
+                left in the "on" level.  Although the USB spec requires
+                devices to support suspend/resume, many of them do not.
+                In fact so many don't that by default, the USB core
+                initializes all non-hub devices in the "on" level.  Some
+                drivers may change this setting when they are bound.
+
+                This file is deprecated and will be removed after 2010.
+                Use the power/control file instead; it does exactly the
+                same thing.
+    branches: [ "main" ]
+
+env: rfkill - radio frequency (RF) connector kill switch support
+
+For details to this subsystem look at Documentation/rfkill.txt.
+
+What:                /sys/class/rfkill/rfkill[0-9]+/state
+Date:                09-Jul-2007
+KernelVersion        v2.6.22
+Contact:        linux-wireless@vger.kernel.org
+Description:         Current state of the transmitter.
+                This file is deprecated and scheduled to be removed in 2014,
+                because its not possible to express the 'soft and hard block'
+                state of the rfkill driver.
+Values:         A numeric value.
+                0: RFKILL_STATE_SOFT_BLOCKED
+                        transmitter is turned off by software
+                1: RFKILL_STATE_UNBLOCKED
+                        transmitter is (potentially) active
+                2: RFKILL_STATE_HARD_BLOCKED
+                        transmitter is forced off by something outside of
+                        the driver's control.
+
+What:                /sys/class/rfkill/rfkill[0-9]+/claim
+Date:                09-Jul-2007
+KernelVersion        v2.6.22
+Contact:        linux-wireless@vger.kernel.org
+Description:        This file is deprecated because there no longer is a way to
+                claim just control over a single rfkill instance.
+                This file is scheduled to be removed in 2012.
+Values:         0: Kernel handles events
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Release
+
+jobs: What:                /sys/bus/usb/devices/<busnum>-<devnum>:<config num>.<interface num>/<hid-bus>:<vendor-id>:<product-id>.<num>/koneplus/roccatkoneplus<minor>/startup_profile
+Date:                October 2010
+Contact:        >
+Description:        The integer value of this attribute ranges from 0-4.
+                When read, this attribute returns the number of the actual
+                profile. This value is persistent, so its equivalent to the
+                profile that's active when the mouse is powered on next time.
+                When written, this file sets the number of the startup profile
+                and the mouse activates this profile immediately.
+                Please use actual_profile, it does the same thing.
+Users:                http://roccat.sourceforge.net
+
+What:                /sys/bus/usb/devices/<busnum>-<devnum>:<config num>.<interface num>/<hid-bus>:<vendor-id>:<product-id>.<num>/koneplus/roccatkoneplus<minor>/firmware_version
+Date:                October 2010
+Contact:        >
+Description:        When read, this file returns the raw integer version number of the
+                firmware reported by the mouse. Using the integer value eases
+                further usage in other programs. To receive the real version
+                number the decimal point has to be shifted 2 positions to the
+                left. E.g. a returned value of 121 means 1.21
+                This file is readonly.
+                Please read binary attribute info which contains firmware version.
+Users:                http://roccat.sourceforge.net
+
+What:                /sys/bus/usb/devices/<busnum>-<devnum>:<config num>.<interface num>/<hid-bus>:<vendor-id>:<product-id>.<num>/koneplus/roccatkoneplus<minor>/profile[1-5]_buttons
+Date:                August 2010
+Contact:        >
+Description:        The mouse can store 5 profiles which can be switched by the
+                press of a button. A profile is split in settings and buttons.
+                profile_buttons holds information about button layout.
+                When read, these files return the respective profile buttons.
+                The returned data is 77 bytes in size.
+                This file is readonly.
+                Write control to select profile and read profile_buttons instead.
+Users:                http://roccat.sourceforge.net
+
+What:                /sys/bus/usb/devices/<busnum>-<devnum>:<config num>.<interface num>/<hid-bus>:<vendor-id>:<product-id>.<num>/koneplus/roccatkoneplus<minor>/profile[1-5]_settings
+Date:                August 2010
+Contact:        >
+Description:        The mouse can store 5 profiles which can be switched by the
+                press of a button. A profile is split in settings and buttons.
+                profile_settings holds information like resolution, sensitivity
+                and light effects.
+                When read, these files return the respective profile settings.
+                The returned data is 43 bytes in size.
+                This file is readonly.
+                Write control to select profile and read profile_settings instead.
+Users:                http://roccat.sourceforge.net
+  build: What:                /sys/bus/usb/devices/<busnum>-<devnum>:<config num>.<interface num>/<hid-bus>:<vendor-id>:<product-id>.<num>/kovaplus/roccatkovaplus<minor>/actual_cpi
+Date:                January 2011
+Contact:        >
+Description:        The integer value of this attribute ranges from 1-4.
+                When read, this attribute returns the number of the active
+                cpi level.
+                This file is readonly.
+                Has never been used. If bookkeeping is done, it's done in userland tools.
+Users:                http://roccat.sourceforge.net
+
+What:                /sys/bus/usb/devices/<busnum>-<devnum>:<config num>.<interface num>/<hid-bus>:<vendor-id>:<product-id>.<num>/kovaplus/roccatkovaplus<minor>/actual_sensitivity_x
+Date:                January 2011
+Contact:        >
+Description:        The integer value of this attribute ranges from 1-10.
+                When read, this attribute returns the number of the actual
+                sensitivity in x direction.
+                This file is readonly.
+                Has never been used. If bookkeeping is done, it's done in userland tools.
+Users:                http://roccat.sourceforge.net
+
+What:                /sys/bus/usb/devices/<busnum>-<devnum>:<config num>.<interface num>/<hid-bus>:<vendor-id>:<product-id>.<num>/kovaplus/roccatkovaplus<minor>/actual_sensitivity_y
+Date:                January 2011
+Contact:        >
+Description:        The integer value of this attribute ranges from 1-10.
+                When read, this attribute returns the number of the actual
+                sensitivity in y direction.
+                This file is readonly.
+                Has never been used. If bookkeeping is done, it's done in userland tools.
+Users:                http://roccat.sourceforge.net
+
+What:                /sys/bus/usb/devices/<busnum>-<devnum>:<config num>.<interface num>/<hid-bus>:<vendor-id>:<product-id>.<num>/kovaplus/roccatkovaplus<minor>/firmware_version
+Date:                January 2011
+Contact:        >
+Description:        When read, this file returns the raw integer version number of the
+                firmware reported by the mouse. Using the integer value eases
+                further usage in other programs. To receive the real version
+                number the decimal point has to be shifted 2 positions to the
+                left. E.g. a returned value of 121 means 1.21
+                This file is readonly.
+                Obsoleted by binary sysfs attribute "info".
+Users:                http://roccat.sourceforge.net
+
+What:                /sys/bus/usb/devices/<busnum>-<devnum>:<config num>.<interface num>/<hid-bus>:<vendor-id>:<product-id>.<num>/kovaplus/roccatkovaplus<minor>/profile[1-5]_buttons
+Date:                January 2011
+Contact:        >
+Description:        The mouse can store 5 profiles which can be switched by the
+                press of a button. A profile is split in settings and buttons.
+                profile_buttons holds information about button layout.
+                When read, these files return the respective profile buttons.
+                The returned data is 23 bytes in size.
+                This file is readonly.
+                Write control to select profile and read profile_buttons instead.
+Users:                http://roccat.sourceforge.net
+
+What:                /sys/bus/usb/devices/<busnum>-<devnum>:<config num>.<interface num>/<hid-bus>:<vendor-id>:<product-id>.<num>/kovaplus/roccatkovaplus<minor>/profile[1-5]_settings
+Date:                January 2011
+Contact:        >
+Description:        The mouse can store 5 profiles which can be switched by the
+                press of a button. A profile is split in settings and buttons.
+                profile_settings holds information like resolution, sensitivity
+                and light effects.
+                When read, these files return the respective profile settings.
+                The returned data is 16 bytes in size.
+                This file is readonly.
+                Write control to select profile and read profile_settings instead.
+Users:                http://roccat.sourceforge.net
+    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
+    # You can convert this to a matrix build if you need cross-platform coverage.
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    runs-on: ubuntu-latest
+
+    steps: What:                /sys/bus/usb/devices/<busnum>-<devnum>:<config num>.<interface num>/<hid-bus>:<vendor-id>:<product-id>.<num>/pyra/roccatpyra<minor>/actual_cpi
+Date:                August 2010
+Contact:        >
+Description:        It is possible to switch the cpi setting of the mouse with the
+                press of a button.
+                When read, this file returns the raw number of the actual cpi
+                setting reported by the mouse. This number has to be further
+                processed to receive the real dpi value.
+
+                VALUE DPI
+                1     400
+                2     800
+                4     1600
+
+                This file is readonly.
+                Has never been used. If bookkeeping is done, it's done in userland tools.
+Users:                http://roccat.sourceforge.net
+
+What:                /sys/bus/usb/devices/<busnum>-<devnum>:<config num>.<interface num>/<hid-bus>:<vendor-id>:<product-id>.<num>/pyra/roccatpyra<minor>/actual_profile
+Date:                August 2010
+Contact:        >
+Description:        When read, this file returns the number of the actual profile in
+                range 0-4.
+                This file is readonly.
+                Please use binary attribute "settings" which provides this information.
+Users:                http://roccat.sourceforge.net
+
+What:                /sys/bus/usb/devices/<busnum>-<devnum>:<config num>.<interface num>/<hid-bus>:<vendor-id>:<product-id>.<num>/pyra/roccatpyra<minor>/firmware_version
+Date:                August 2010
+Contact:        >
+Description:        When read, this file returns the raw integer version number of the
+                firmware reported by the mouse. Using the integer value eases
+                further usage in other programs. To receive the real version
+                number the decimal point has to be shifted 2 positions to the
+                left. E.g. a returned value of 138 means 1.38
+                This file is readonly.
+                Please use binary attribute "info" which provides this information.
+Users:                http://roccat.sourceforge.net
+
+What:                /sys/bus/usb/devices/<busnum>-<devnum>:<config num>.<interface num>/<hid-bus>:<vendor-id>:<product-id>.<num>/pyra/roccatpyra<minor>/profile[1-5]_buttons
+Date:                August 2010
+Contact:        >
+Description:        The mouse can store 5 profiles which can be switched by the
+                press of a button. A profile is split in settings and buttons.
+                profile_buttons holds information about button layout.
+                When read, these files return the respective profile buttons.
+                The returned data is 19 bytes in size.
+                This file is readonly.
+                Write control to select profile and read profile_buttons instead.
+Users:                http://roccat.sourceforge.net
+
+What:                /sys/bus/usb/devices/<busnum>-<devnum>:<config num>.<interface num>/<hid-bus>:<vendor-id>:<product-id>.<num>/pyra/roccatpyra<minor>/profile[1-5]_settings
+Date:                August 2010
+Contact:        >
+Description:        The mouse can store 5 profiles which can be switched by the
+                press of a button. A profile is split in settings and buttons.
+                profile_settings holds information like resolution, sensitivity
+                and light effects.
+                When read, these files return the respective profile settings.
+                The returned data is 13 bytes in size.
+                This file is readonly.
+                Write control to select profile and read profile_settings instead.
+Users:                http://roccat.sourceforge.net
+
+What:                /sys/bus/usb/devices/<busnum>-<devnum>:<config num>.<interface num>/<hid-bus>:<vendor-id>:<product-id>.<num>/pyra/roccatpyra<minor>/startup_profile
+Date:                August 2010
+Contact:        >
+Description:        The integer value of this attribute ranges from 0-4.
+                When read, this attribute returns the number of the profile
+                that's active when the mouse is powered on.
+                This file is readonly.
+                Please use binary attribute "settings" which provides this information.
+Users:                http://roccat.sourceforge.net
+    - uses: actions/checkout@v4
+
+    - name: Configure CMake
+      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+      run: cmake -B ${{ What:                devfs
+Date:                July 2005 (scheduled), finally removed in kernel v2.6.18
+Contact:        >
+Description:
+        devfs has been unmaintained for a number of years, has unfixable
+        races, contains a naming policy within the kernel that is
+        against the LSB, and can be replaced by using udev.
+        The files fs/devfs/*, include/linux/devfs_fs*.h were removed,
+        along with the assorted devfs function calls throughout the
+        kernel tree.
+
+Users: }}/build -DCMAKE_BUILD_TYPE=${{ What:                dv1394 (a.k.a. "OHCI-DV I/O support" for FireWire)
+Date:                May 2010 (scheduled), finally removed in kernel v2.6.37
+Contact:        linux1394-devel@lists.sourceforge.net
+Description:
+        /dev/dv1394/* were character device files, one for each FireWire
+        controller and for NTSC and PAL respectively, from which DV data
+        could be received by read() or transmitted by write().  A few
+        ioctl()s allowed limited control.
+        This special-purpose interface has been superseded by libraw1394 +
+        libiec61883 which are functionally equivalent, support HDV, and
+        transparently work on top of the newer firewire kernel drivers.
+
+Users:
+        ffmpeg/libavformat (if configured for DV1394) }}
+
+    - name: Build
+      # Build your program with the given configuration
+      run: cmake --build ${{ What:                ip_queue
+Date:                finally removed in kernel v3.5.0
+Contact:        >
+Description:
+        ip_queue has been replaced by nfnetlink_queue which provides
+        more advanced queueing mechanism to user-space. The ip_queue
+        module was already announced to become obsolete years ago.
+
+Users: }}/build --config ${{ What:                /sys/o2cb symlink
+Date:                May 2011
+KernelVersion:        3.0
+Contact:        ocfs2-devel@oss.oracle.com
+Description:        This is a symlink: /sys/o2cb to /sys/fs/o2cb. The symlink is
+                removed when new versions of ocfs2-tools which know to look
+                in /sys/fs/o2cb are sufficiently prevalent. Don't code new
+                software to look here, it should try /sys/fs/o2cb instead.
+Users:                ocfs2-tools. It's sufficient to mail proposed changes to
+                ocfs2-devel@oss.oracle.com. }}
+
+    - name: Test
+      working-directory: ${{ What:                raw1394 (a.k.a. "Raw IEEE1394 I/O support" for FireWire)
+Date:                May 2010 (scheduled), finally removed in kernel v2.6.37
+Contact:        linux1394-devel@lists.sourceforge.net
+Description:
+        /dev/raw1394 was a character device file that allowed low-level
+        access to FireWire buses.  Its major drawbacks were its inability
+        to implement sensible device security policies, and its low level
+        of abstraction that required userspace clients to duplicate much
+        of the kernel's ieee1394 core functionality.
+        Replaced by /dev/fw*, i.e. the <linux/firewire-cdev.h> ABI of
+        firewire-core.
+
+Users:
+        libraw1394 (works with firewire-cdev too, transparent to library ABI
+        users) }}/build
+      # Execute tests defined by the CMake configuration.
+      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
+      run: ctest -C ${{ What:                video1394 (a.k.a. "OHCI-1394 Video support" for FireWire)
+Date:                May 2010 (scheduled), finally removed in kernel v2.6.37
+Contact:        linux1394-devel@lists.sourceforge.net
+Description:
+        /dev/video1394/* were character device files, one for each FireWire
+        controller, which were used for isochronous I/O.  It was added as an
+        alternative to raw1394's isochronous I/O functionality which had
+        performance issues in its first generation.  Any video1394 user had
+        to use raw1394 + libraw1394 too because video1394 did not provide
+        asynchronous I/O for device discovery and configuration.
+        Replaced by /dev/fw*, i.e. the <linux/firewire-cdev.h> ABI of
+        firewire-core.
+
+Users:
+        libdc1394 (works with firewire-cdev too, transparent to library ABI
+        users) }}
