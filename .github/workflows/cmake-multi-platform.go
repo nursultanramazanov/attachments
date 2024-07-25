@@ -1236,16 +1236,7 @@ func main() {
                 }
         }
 }
-          - os: windows-latest
-            c_compiler: cl
-            cpp_compiler: cl
-          - os: ubuntu-latest
-            c_compiler: gcc
-            cpp_compiler: g++
-          - os: ubuntu-latest
-            c_compiler: clang
-            cpp_compiler: clang++
-        exclude: // --------------
+          - os: // --------------
 // Race Detection
 // --------------
 
@@ -1329,14 +1320,7 @@ func main() {
         wg.Wait()
         fmt.Println("Final Counter:", counter)
 }
-          - os: windows-latest
-            c_compiler: gcc
-          - os: windows-latest
-            c_compiler: clang
-          - os: ubuntu-latest
-            c_compiler: cl
-
-    steps: // ----------------
+            c_compiler: // ----------------
 // Atomic Functions
 // ----------------
 
@@ -1389,7 +1373,7 @@ func main() {
         // Display the final value.
         fmt.Println("Final Counter:", counter)
 }
-    - uses: // -------
+            cpp_compiler: // -------
 // Mutexes
 // -------
 
@@ -1463,10 +1447,7 @@ func main() {
         wg.Wait()
         fmt.Printf("Final Counter: %d\n", counter)
 }
-
-    - name: Set reusable strings
-      # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
-      id: // ----------------
+          - os: // ----------------
 // Read/Write Mutex
 // ----------------
 
@@ -1579,7 +1560,7 @@ func reader(id int) {
 // not anything extra. Sometimes just reading the shared state into a local variable is all we need
 // to do. The less operation we can perform on the mutex, the better. We then reduce the latency to
 // the bare minimum.
-      shell: // ----------------------
+            c_compiler: // ----------------------
 // Go Scheduler Internals
 // ----------------------
 
@@ -1821,8 +1802,7 @@ import "fmt"
 func main() {
         fmt.Println("ok")
 }
-      run: |
-        echo "build-output-dir=${{ // ------------------
+            cpp_compiler: // ------------------
 // Language Mechanics
 // ------------------
 
@@ -1937,13 +1917,8 @@ func uppercase() {
 // -------------------------------
 // Deadlock!
 // This is a very special thing in Go. When the runtime determines that all the Goroutines are
-// there can no longer move forward, it's gonna panic. }}/build" >> "$GITHUB_OUTPUT"
-
-    - name: Configure CMake
-      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: >
-        cmake -B ${{ // ----------------------
+// there can no longer move forward, it's gonna panic.
+          - os: // ----------------------
 // Goroutine time slicing
 // ----------------------
 
@@ -2012,8 +1987,8 @@ next:
         }
 
         fmt.Println("Completed", prefix)
-} }}
-        -DCMAKE_CXX_COMPILER=${{ // --------------------------
+}
+            c_compiler: // --------------------------
 // Goroutines and parallelism
 // --------------------------
 
@@ -2078,8 +2053,8 @@ func main() {
         wg.Wait()
 
         fmt.Println("\nTerminating Program")
-} }}
-        -DCMAKE_C_COMPILER=${{ // ---------------------
+}
+            cpp_compiler: // ---------------------
 // Interface Conversions
 // ---------------------
 
@@ -2181,8 +2156,8 @@ func main() {
         // It's important to note that the type assertion syntax provides a way to state what type
         // of value is stored inside the interface. This is more powerful from a language and readability
         // standpoint, than using a casting syntax, like in other languages.
-} }}
-        -DCMAKE_BUILD_TYPE=${{ // -----------------------
+}
+        exclude: // -----------------------
 // Runtime Type Assertions
 // -----------------------
 
@@ -2265,8 +2240,8 @@ func main() {
                 // internal changes minimize cascading changes.
                 fmt.Println("Got Unlucky")
         }
-} }}
-        -S ${{ // ------------------
+}
+          - os: // ------------------
 // Struct Composition
 // ------------------
 
@@ -2448,11 +2423,8 @@ func main() {
         if err := Copy(&sys, 3); err != io.EOF {
                 fmt.Println(err)
         }
-} }}
-
-    - name: Build
-      # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
-      run: cmake --build ${{ // -------------------------
+}
+            c_compiler: // -------------------------
 // Decoupling With Interface
 // -------------------------
 
@@ -2608,7 +2580,8 @@ func main() {
         if err := Copy(&sys, 3); err != io.EOF {
                 fmt.Println(err)
         }
-} }} --config ${{ // ---------------------
+}
+          - os: // ---------------------
 // Interface Composition
 // ---------------------
 
@@ -2803,10 +2776,8 @@ func main() {
         if err := Copy(&sys, 3); err != io.EOF {
                 fmt.Println(err)
         }
-} }}
-
-    - name: Test
-      working-directory: ${{ // -------------------------------------
+}
+            c_compiler: // -------------------------------------
 // Decoupling With Interface Composition
 // -------------------------------------
 
@@ -2987,10 +2958,8 @@ func main() {
         if err := Copy(&sys, 3); err != io.EOF {
                 fmt.Println(err)
         }
-} }}
-      # Execute tests defined by the CMake configuration. Note that --build-config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
-      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: ctest --build-config ${{ // --------------------
+}
+          - os: // --------------------
 // Default error values
 // --------------------
 
@@ -3068,4 +3037,933 @@ func main() {
 // webCall performs a web operation.
 func webCall() error {
         return New("Bad Request")
+}
+            c_compiler: // ---------------
+// Error variables
+// ---------------
+
+// Sample program to show how to use error variables to help the caller determine
+// the exact error being returned.
+
+package main
+
+import (
+        "errors"
+        "fmt"
+)
+
+// We want these to be on the top of the source code file.
+// Naming convention: starting with Err
+// They have to be exported because our user need to access to them.
+// These are all error interfaces that we have discussed in the last file, with variables tied to
+// them. The contexts for these errors are the variables themselves. This allows us to continue
+// using the default error type, that unexported type with unexported field to maintain a level of
+// decoupling through error handling.
+var (
+        // ErrBadRequest is returned when there are problems with the request.
+        ErrBadRequest = errors.New("Bad Request")
+
+        // ErrPageMoved is returned when a 301/302 is returned.
+        ErrPageMoved = errors.New("Page Moved")
+)
+
+func main() {
+        if err := webCall(true); err != nil {
+                switch err {
+                case ErrBadRequest:
+                        fmt.Println("Bad Request Occurred")
+                        return
+
+                case ErrPageMoved:
+                        fmt.Println("The Page moved")
+                        return
+
+                default:
+                        fmt.Println(err)
+                        return
+                }
+        }
+
+        fmt.Println("Life is good")
+}
+
+// webCall performs a web operation.
+func webCall(b bool) error {
+        if b {
+                return ErrBadRequest
+        }
+
+        return ErrPageMoved
+}
+
+    steps: // ---------------
+// Type as context
+// ---------------
+
+// It is not always possible to be able to say the interface value itself will be enough context.
+// Sometimes, it requires more context. For example, a networking problem can be really
+// complicated. Error variables wouldn't work there.
+// Only when the error variables wouldn't work, we should go ahead and start working with
+// custom concrete type for the error.
+
+// Below are two custom error types from the json package in the standard library and see how we
+// can use those. This is type as context.
+// http://golang.org/src/pkg/encoding/json/decode.go
+
+package main
+
+import (
+        "fmt"
+        "reflect"
+)
+
+// An UnmarshalTypeError describes a JSON value that was not appropriate for
+// a value of a specific Go type.
+// Naming convention: The word "Error" ends at the name of the type.
+type UnmarshalTypeError struct {
+        Value string       // description of JSON value
+        Type  reflect.Type // type of Go value it could not be assigned to
+}
+
+// UnmarshalTypeError implements the error interface.
+// We are using pointer semantic.
+// In the implementation, we are validating all the fields are being used in the error message. If
+// not, we have a problem. Because why would you add a field to the custom error type and not
+// displaying on your log when this method would call. We only do this when we really need it.
+func (e *UnmarshalTypeError) Error() string {
+        return "json: cannot unmarshal " + e.Value + " into Go value of type " + e.Type.String()
+}
+
+// An InvalidUnmarshalError describes an invalid argument passed to Unmarshal.
+// (The argument to Unmarshal must be a non-nil pointer.)
+// This concrete type is used when we don't pass the address of a value into Unmarshal function.
+type InvalidUnmarshalError struct {
+        Type reflect.Type
+}
+
+// InvalidUnmarshalError implements the error interface.
+func (e *InvalidUnmarshalError) Error() string {
+        if e.Type == nil {
+                return "json: Unmarshal(nil)"
+        }
+
+        if e.Type.Kind() != reflect.Ptr {
+                return "json: Unmarshal(non-pointer " + e.Type.String() + ")"
+        }
+        return "json: Unmarshal(nil " + e.Type.String() + ")"
+}
+
+// user is a type for use in the Unmarshal call.
+type user struct {
+        Name int
+}
+
+func main() {
+        var u user
+        err := Unmarshal([]byte(`{"name":"bill"}`), u) // Run with a value and pointer.
+        if err != nil {
+                // This is a special type assertion that only works on the switch.
+                switch e := err.(type) {
+                case *UnmarshalTypeError:
+                        fmt.Printf("UnmarshalTypeError: Value[%s] Type[%v]\n", e.Value, e.Type)
+                case *InvalidUnmarshalError:
+                        fmt.Printf("InvalidUnmarshalError: Type[%v]\n", e.Type)
+                default:
+                        fmt.Println(err)
+                }
+                return
+        }
+
+        fmt.Println("Name:", u.Name)
+}
+
+// Unmarshal simulates an unmarshal call that always fails.
+// Notice the parameters here: The first one is a slice of byte and the second one is an empty
+// interface. The empty interface basically says nothing, which means any value can be passed into
+// this function.
+// We are going to reflect on the concrete type that is stored inside this interface and we are
+// going to validate that if it is a pointer or not nil. We then return different error types
+// depending on these.
+func Unmarshal(data []byte, v interface{}) error {
+        rv := reflect.ValueOf(v)
+        if rv.Kind() != reflect.Ptr || rv.IsNil() {
+                return &InvalidUnmarshalError{reflect.TypeOf(v)}
+        }
+
+        return &UnmarshalTypeError{"string", reflect.TypeOf(v)}
+}
+
+// There is one flaw when using type as context here. In this case, we are now going back to the
+// concrete. We walk away from the decoupling because our code is now bounded to these concrete
+// types. If the developer who wrote the json package makes any changes to these concrete types,
+// that's gonna create a cascading effect all the way through our code. We are no longer protected
+// by the decoupling of the error interface.
+
+// This sometime has to happen. Can we do something different not to lose the decoupling. This is
+// where the idea of behavior as context comes in.
+    - uses: // -------------------
+// Behavior as context
+// -------------------
+
+// Behavior as context allows us to use a custom error type as our context but avoid that type
+// assertion back to the concrete. We get to maintain a level of decoupling in our code.
+
+package main
+
+import (
+        "bufio"
+        "fmt"
+        "io"
+        "log"
+        "net"
+)
+
+// client represents a single connection in the room.
+type client struct {
+        name   string
+        reader *bufio.Reader
+}
+
+// TypeAsContext shows how to check multiple types of possible custom error
+// types that can be returned from the net package.
+func (c *client) TypeAsContext() {
+        for {
+                // We are using reader interface value to decouple ourselves from the network read.
+                line, err := c.reader.ReadString('\n')
+                if err != nil {
+                        // This is using type as context like the previous example.
+                        // What special here is the method named Temporary. If it is, we can keep going but if not,
+                        // we have to break thing down and build thing back up.
+                        // Every one of these cases care only about 1 thing: the behavior of Temporary. This is
+                        // what important. We can switch here, from type as context to type as behavior if we
+                        // do this type assertion and only ask about the potential behavior of that concrete
+                        // type itself.
+                        // We can go ahead and declare our own interface called temporary like below.
+                        switch e := err.(type) {
+                        case *net.OpError:
+                                if !e.Temporary() {
+                                        log.Println("Temporary: Client leaving chat")
+                                        return
+                                }
+
+                        case *net.AddrError:
+                                if !e.Temporary() {
+                                        log.Println("Temporary: Client leaving chat")
+                                        return
+                                }
+
+                        case *net.DNSConfigError:
+                                if !e.Temporary() {
+                                        log.Println("Temporary: Client leaving chat")
+                                        return
+                                }
+
+                        default:
+                                if err == io.EOF {
+                                        log.Println("EOF: Client leaving chat")
+                                        return
+                                }
+
+                                log.Println("read-routine", err)
+                        }
+                }
+
+                fmt.Println(line)
+        }
+}
+
+// temporary is declared to test for the existence of the method coming from the net package.
+// Because Temporary is the only behavior we care about. If the concrete type has the method
+// named temporary then this is what we want. We get to stay decoupled and continue to work at the
+// interface level.
+type temporary interface {
+        Temporary() bool
+}
+
+// BehaviorAsContext shows how to check for the behavior of an interface
+// that can be returned from the net package.
+func (c *client) BehaviorAsContext() {
+        for {
+                line, err := c.reader.ReadString('\n')
+                if err != nil {
+                        switch e := err.(type) {
+                        // We can reduce 3 cases into 1 by asking in the case here during type assertion: Does
+                        // the concrete type stored inside the error interface also implement this interface.
+                        // We can declare and leverage that interface ourselves.
+                        case temporary:
+                                if !e.Temporary() {
+                                        log.Println("Temporary: Client leaving chat")
+                                        return
+                                }
+
+                        default:
+                                if err == io.EOF {
+                                        log.Println("EOF: Client leaving chat")
+                                        return
+                                }
+
+                                log.Println("read-routine", err)
+                        }
+                }
+
+                fmt.Println(line)
+        }
+}
+
+// Lesson:
+// Thank to Go Implicit Conversion.
+// We can maintain a level of decopling by creating an interface with methods or behaviors that we only want,
+// and use it instead of concrete type for type assertion switch. 
+
+    - name: Set reusable strings
+      # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
+      id: strings
+      shell: bash
+      run: |
+        echo "build-output-dir=${{ // ------------
+// Find the bug
+// ------------
+
+package main
+
+import "log"
+
+// customError is just an empty struct.
+type customError struct{}
+
+// Error implements the error interface.
+func (c *customError) Error() string {
+        return "Find the bug."
+}
+
+// fail returns nil values for both return types.
+func fail() ([]byte, *customError) {
+        return nil, nil
+}
+
+func main() {
+        // This set the err to its zero value.
+        //  -----
+        // | nil |
+        //  -----
+        // | nil |
+        //  -----
+        var err error
+
+        // When we call fail, it returns the value of nil. However, we have the nil value of type
+        // *customError. We always want to use the error interface as the return value. The customError
+        // type is just an artifact, a value that we store inside. We cannot use the custom type
+        // directly. We must use the error interface, like so func fail() ([]byte, error)
+        if _, err = fail(); err != nil {
+                log.Fatal("Why did this fail?")
+        }
+
+        log.Println("No Error")
+} }}/build" >> "$GITHUB_OUTPUT"
+
+    - name: Configure CMake
+      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+      run: >
+        cmake -B ${{ // ---------------
+// Wrapping Errors
+// ---------------
+
+// Error handling has to be part of our code and usually it is bounded to logging.
+// The main goal of logging is to debug.
+
+// We only log things that are actionable. Only log the contexts that are allowed us to identify
+// what is going on. Anything else ideally is noise and would be better suited up on the dashboard
+// through metrics. For example, socket connection and disconnection, we can log these but these
+// are not actionable because we don't necessarily lookup the log for that.
+
+// There is a package that is written by Dave Cheney called errors that let us simplify error
+// handling and logging at the same time. Below is a demonstration on how to leverage the package
+// to simplify our code. By reducing logging, we also reduce a large amount of pressure on the heap
+// (garbage collection).
+
+package main
+
+import (
+        "fmt"
+
+        // This is Dave Cheney's errors package that have all the wrapping functions.
+        "github.com/pkg/errors"
+)
+
+// AppError represents a custom error type.
+type AppError struct {
+        State int
+}
+
+// AppError implements the error interface.
+func (c *AppError) Error() string {
+        return fmt.Sprintf("App Error, State: %d", c.State)
+}
+
+func main() {
+        // Make the function call and validate the error.
+
+        // firstCall calls secondCall calls thirdCall then results in AppError.
+        // Start down the call stack, in thirdCall, where the error occurs. The is the root of the
+        // error. We return it up the call stack in our traditional error interface value.
+        // Back to secondCall, we get the interface value and there is a concrete type stored inside
+        // the value. secondCall has to make a decision whether to handle the error and push up the
+        // call stack if it cannot handle. If secondCall decides to handle the error, it has the
+        // responsibility of logging it. If not, its responsibility is to move it up. However, if we
+        // are going to push it up the call stack, we cannot lose context. This is where the error
+        // package comes in. We create a new interface value that wraps this error, add a context
+        // around it and push it up. This maintains the call stack of where we are in the code.
+        // Similarly, firstCall doesn't handle the error but wraps and pushes it up.
+
+        // In main, we are handling the call, which means the error stops here and we have to log it.
+        // In order to properly handle this error, we need to know that the root cause of this error
+        // was. It is the original error that is not wrapped. Cause method will bubble up this error out of
+        // these wrapping and allow us to be able to use all the language mechanics we have.
+
+        // We are not only be able to access the State even though we've done this assertion back to
+        // concrete, we can log out the entire stack trace by using %+v for this call.
+
+        if err := firstCall(10); err != nil {
+                // Use type as context to determine cause.
+                switch v := errors.Cause(err).(type) {
+                case *AppError:
+                        // We got our custom error type.
+                        fmt.Println("Custom App Error:", v.State)
+
+                default:
+                        // We did not get any specific error type.
+                        fmt.Println("Default Error")
+                }
+
+                // Display the stack trace for the error.
+                fmt.Println("\nStack Trace\n********************************")
+                fmt.Printf("%+v\n", err)
+                fmt.Println("\nNo Trace\n********************************")
+                fmt.Printf("%v\n", err)
+        }
+}
+
+// firstCall makes a call to a secondCall function and wraps any error.
+func firstCall(i int) error {
+        if err := secondCall(i); err != nil {
+                return errors.Wrapf(err, "firstCall->secondCall(%d)", i)
+        }
+        return nil
+}
+
+// secondCall makes a call to a thirdCall function and wraps any error.
+func secondCall(i int) error {
+        if err := thirdCall(); err != nil {
+                return errors.Wrap(err, "secondCall->thirdCall()")
+        }
+        return nil
+}
+
+// thirdCall function creates an error value we will validate.
+func thirdCall() error {
+        return &AppError{99}
+} }}
+        -DCMAKE_CXX_COMPILER=${{ // -----------------
+// Grouping By State
+// -----------------
+
+// This is an example of using type hierarchies with an OOP pattern.
+// This is not something we want to do in Go. Go does not have the concept of sub-typing.
+// All types are their own and the concepts of base and derived types do not exist in Go.
+// This pattern does not provide a good design principle in a Go program.
+
+package main
+
+import "fmt"
+
+// Animal contains all the base attributes for animals.
+type Animal struct {
+        Name     string
+        IsMammal bool
+}
+
+// Speak provides generic behavior for all animals and how they speak.
+// This is kind of useless because animals themselves cannot speak. This cannot apply to all
+// animals.
+func (a *Animal) Speak() {
+        fmt.Println("UGH!",
+                "My name is", a.Name,
+                ", it is", a.IsMammal,
+                "I am a mammal")
+}
+
+// Dog contains everything from Animal, plus specific attributes that only a Dog has.
+type Dog struct {
+        Animal
+        PackFactor int
+}
+
+// Speak knows how to speak like a dog.
+func (d *Dog) Speak() {
+        fmt.Println("Woof!",
+                "My name is", d.Name,
+                ", it is", d.IsMammal,
+                "I am a mammal with a pack factor of", d.PackFactor)
+}
+
+// Cat contains everything from Animal, plus specific attributes that only a Cat has.
+type Cat struct {
+        Animal
+        ClimbFactor int
+}
+
+// Speak knows how to speak like a cat.
+func (c *Cat) Speak() {
+        fmt.Println("Meow!",
+                "My name is", c.Name,
+                ", it is", c.IsMammal,
+                "I am a mammal with a climb factor of", c.ClimbFactor)
+}
+
+func main() {
+        // It's all fine until this one. This code will not compile.
+        // Here, we try to group the Cat and Dog based on the fact that they are Animals. We are trying
+        // to leverage sub-typing in Go. However, Go doesn't have it.
+        // Go doesn't encourage us to group types by common DNA.
+        // We need to stop designing APIs around this idea that types have a common DNA because if we
+        // only focus on who we are, it is very limiting on who can we group with.
+        // Sub-typing doesn't promote diversity. We lock types in a very small subset that can be
+        // grouped with. But when we focus on behavior, we open up entire world to us.
+        animals := []Animal{
+                // Create a Dog by initializing its Animal parts and then its specific Dog attributes.
+                Dog{
+                        Animal: Animal{
+                                Name:     "Fido",
+                                IsMammal: true,
+                        },
+                        PackFactor: 5,
+                },
+
+                // Create a Cat by initializing its Animal parts and then its specific Cat attributes.
+                Cat{
+                        Animal: Animal{
+                                Name:     "Milo",
+                                IsMammal: true,
+                        },
+                        ClimbFactor: 4,
+                },
+        }
+
+        // Have the Animals speak.
+        for _, animal := range animals {
+                animal.Speak()
+        }
+}
+
+// ----------
+// Conclusion
+// ----------
+
+// This code smells bad because:
+// - The Animal type provides an abstraction layer of reusable state.
+// - The program never needs to create or solely use a value of Animal type.
+// - The implementation of the Speak method for the Animal type is generalization.
+// - The Speak method for the Animal type is never going to be called. }}
+        -DCMAKE_C_COMPILER=${{ // --------------------
+// Grouping By Behavior
+// --------------------
+
+// This is an example of using composition and interfaces.
+// This is something we want to do in Go.
+// This pattern does provide a good design principle in a Go program.
+
+// We will group common types by their behavior and not by their state.
+// What brilliant about Go is that it doesn't have to be configured ahead of time. The compiler automatically
+// identifies interface and behaviors at compile time. It means that we can write code today that
+// compliant with any interface that exists today or tomorrow. It doesn't matter where that is
+// declared because the compiler can do this on the fly.
+
+// Stop thinking about a concrete base type. Let's think about what we do instead.
+
+package main
+
+import "fmt"
+
+// Speaker provide a common behavior for all concrete types to follow if they want to be a
+// part of this group. This is a contract for these concrete types to follow.
+// We get rid of the Animal type.
+type Speaker interface {
+        Speak()
+}
+
+// Dog contains everything a Dog needs.
+type Dog struct {
+        Name       string
+        IsMammal   bool
+        PackFactor int
+}
+
+// Speak knows how to speak like a dog.
+// This makes a Dog now part of a group of concrete types that know how to speak.
+func (d Dog) Speak() {
+        fmt.Println("Woof!",
+                "My name is", d.Name,
+                ", it is", d.IsMammal,
+                "I am a mammal with a pack factor of", d.PackFactor)
+}
+
+// Cat contains everything a Cat needs.
+// A little copy and paste can go a long way. Decoupling, in many cases, is a much better option
+// than reusing the code.
+type Cat struct {
+        Name        string
+        IsMammal    bool
+        ClimbFactor int
+}
+
+// Speak knows how to speak like a cat.
+// This makes a Cat now part of a group of concrete types that know how to speak.
+func (c Cat) Speak() {
+        fmt.Println("Meow!",
+                "My name is", c.Name,
+                ", it is", c.IsMammal,
+                "I am a mammal with a climb factor of", c.ClimbFactor)
+}
+
+func main() {
+        // Create a list of Animals that know how to speak.
+        speakers := []Speaker{
+                // Create a Dog by initializing Dog attributes.
+                Dog{
+                        Name:       "Fido",
+                        IsMammal:   true,
+                        PackFactor: 5,
+                },
+
+                // Create a Cat by initializing Cat attributes.
+                Cat{
+                        Name:        "Milo",
+                        IsMammal:    true,
+                        ClimbFactor: 4,
+                },
+        }
+
+        // Have the Speakers speak.
+        for _, spkr := range speakers {
+                spkr.Speak()
+        }
+}
+
+// ---------------------------------
+// Guidelines around declaring types
+// ---------------------------------
+
+// - Declare types that represent something new or unique. We don't want to create aliases just for readability.
+// - Validate that a value of any type is created or used on its own.
+// - Embed types not because we need the state but because we need the behavior. If we are not thinking
+// about behavior, we are locking ourselves into the design that we cannot grow in the future.
+// - Question types that are aliases or abstraction for an existing type.
+// - Question types whose sole purpose is to share common state. }}
+        -DCMAKE_BUILD_TYPE=${{ // ---------------
+// Package To Mock
+// ---------------
+
+// It is important to mock things.
+// Most things over the network can be mocked in our test. However, mocking our database is a
+// different story because it is too complex. This is where Docker can come in and simplify our
+// code by allowing us to launch our database while running our tests and have that clean database
+// for everything we do.
+
+// Every API only need to focus on its test. We no longer have to worry about the application user
+// or user over API test. We used to worry about: if we don't have that interface, the user
+// who use our API can't write test. That is gone. The example below will demonstrate the reason.
+
+// Imagine we are working at a company that decides to incorporate Go as a part of its stack. They
+// have their internal pubsub system that all applications are supposed to used. Maybe they are
+// doing event sourcing and there is a single pubsub platform they are using that is not going to
+// be replaced. They need the pubsub API for Go that they can start building services that connect
+// into this event source.
+// So what can change? Can the event source change?
+// If the answer is no, then it immediately tells us that we don't need to use interfaces. We can
+// built the entire API in the concrete, which we would do it first anyway. We then write tests to
+// make sure everything work.
+
+// A couple days later, they come to us with a problem. They have to write tests and they cannot
+// hit the pubsub system directly when my test run so they need to mock that out. They want us to
+// give them an interface. However, we don't need an interface because our API doesn't need an
+// interface. They need an interface, not us. They need to decouple from the pubsub system, not us.
+// They can do any decoupling they want because this is Go. The next file will be an example of
+// their application.
+
+// Package pubsub simulates a package that provides publication/subscription type services.
+
+package main
+
+import (
+        "fmt"
+)
+
+// PubSub provides access to a queue system.
+type PubSub struct {
+        host string
+        // PRETEND THERE ARE MORE FIELDS.
+}
+
+// New creates a pubsub value for use.
+func New(host string) *PubSub {
+        ps := PubSub{
+                host: host,
+        }
+
+        // PRETEND THERE IS A SPECIFIC IMPLEMENTATION.
+
+        return &ps
+}
+
+// Publish sends the data to the specified key.
+func (ps *PubSub) Publish(key string, v interface{}) error {
+        // PRETEND THERE IS A SPECIFIC IMPLEMENTATION.
+        fmt.Println("Actual PubSub: Publish")
+        return nil
+}
+
+// Subscribe sets up an request to receive messages from the specified key.
+func (ps *PubSub) Subscribe(key string) error {
+        // PRETEND THERE IS A SPECIFIC IMPLEMENTATION.
+        fmt.Println("Actual PubSub: Subscribe")
+        return nil
+} }}
+        -S ${{ // ------
+// Client
+// ------
+
+// Run: `go run ./go/design/mocking_1.go ./go/design/mocking_2.go`
+
+// Sample program to show how we can personally mock concrete types when we need to for
+// our own packages or tests.
+package main
+
+import (
+        "fmt"
+)
+
+// publisher is an interface to allow this package to mock the pubsub package.
+// When we are writing our applications, declare our own interface that map out all the APIs call
+// we need for the APIs. The concrete types APIs in the previous files satisfy it out of the box.
+// We can write the entire application with mocking decoupling from concrete implementations.
+type publisher interface {
+        Publish(key string, v interface{}) error
+        Subscribe(key string) error
+}
+
+// mock is a concrete type to help support the mocking of the pubsub package.
+type mock struct{}
+
+// Publish implements the publisher interface for the mock.
+func (m *mock) Publish(key string, v interface{}) error {
+        // ADD YOUR MOCK FOR THE PUBLISH CALL.
+        fmt.Println("Mock PubSub: Publish")
+        return nil
+}
+
+// Subscribe implements the publisher interface for the mock.
+func (m *mock) Subscribe(key string) error {
+        // ADD YOUR MOCK FOR THE SUBSCRIBE CALL.
+        fmt.Println("Mock PubSub: Subscribe")
+        return nil
+}
+
+func main() {
+        // Create a slice of publisher interface values. Assign the address of a pubsub.
+        // PubSub value and the address of a mock value.
+        pubs := []publisher{
+                New("localhost"),
+                &mock{},
+        }
+
+        // Range over the interface value to see how the publisher interface provides
+        // the level of decoupling the user needs. The pubsub package did not need
+        // to provide the interface type.
+        for _, p := range pubs {
+                p.Publish("key", "value")
+                p.Subscribe("key")
+        }
+} }}
+
+    - name: Build
+      # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
+      run: cmake --build ${{ // -------------------
+// Interface Pollution
+// -------------------
+
+// It comes from the fact that people are designing software from the interface first down instead
+// of concrete type up.
+
+// Why are we using an interface here?
+// Myth #1: We are using interfaces because we have to use interfaces.
+// Answer: No. We don't have to use interfaces. We use it when it is practical and reasonable to do so.
+// Even though they are wonderful, there is a cost of using interfaces: a level of indirection and
+// potential allocation when we store concrete type inside of them. Unless the cost of that is
+// worth whatever decoupling we are getting, we shouldn't be using interfaces.
+
+// Myth #2: We need to be able to test our code so we need to use interfaces.
+// Answer: No. We must design our API that are usable for user application developer first, not our test.
+
+// Below is an example that creates interface pollution by improperly using an interface
+// when one is not needed.
+
+package main
+
+// Server defines a contract for tcp servers.
+// This is a little bit of smell because this is some sort of APIs that going to be exposed to user
+// and already that is a lot of behaviors brought in a generic interface.
+type Server interface {
+        Start() error
+        Stop() error
+        Wait() error
+}
+
+// server is our Server implementation.
+// They match the name. However, that is not necessarily bad.
+type server struct {
+        host string
+        // PRETEND THERE ARE MORE FIELDS.
+}
+
+// NewServer returns an interface value of type Server with a server implementation.
+// Here is the factory function. It immediately starts to smell even worse. It is returning the
+// interface value.
+// It is not that functions and interfaces cannot return interface values. They can. But normally,
+// that should raise a flag. The concrete type is the data that has the behavior and the interface
+// normally should be used as accepting the input to the data, not necessarily going out.
+func NewServer(host string) Server {
+        // SMELL - Storing an unexported type pointer in the interface.
+        return &server{host}
+}
+
+// Start allows the server to begin to accept requests.
+func (s *server) Start() error {
+        // PRETEND THERE IS A SPECIFIC IMPLEMENTATION.
+        return nil
+}
+
+// Stop shuts the server down.
+func (s *server) Stop() error {
+        // PRETEND THERE IS A SPECIFIC IMPLEMENTATION.
+        return nil
+}
+
+// Wait prevents the server from accepting new connections.
+func (s *server) Wait() error {
+        // PRETEND THERE IS A SPECIFIC IMPLEMENTATION.
+        return nil
+}
+
+func main() {
+        // Create a new Server.
+        srv := NewServer("localhost")
+
+        // Use the API.
+        srv.Start()
+        srv.Stop()
+        srv.Wait()
+
+        // This code here couldn't care less nor would it change if srv was the concrete type, not the
+        // interface. The interface is not providing any level of support whatsoever. There is no
+        // decoupling here that is happening. It is not giving us anything special here. All is doing
+        // is causing us another level of indirection.
+}
+
+// It smells because:
+// ------------------
+// - The package declares an interface that matches the entire API of its own concrete type.
+// - The interface is exported but the concrete type is unexported.
+// - The factory function returns the interface value with the unexported concrete type value inside.
+// - The interface can be removed and nothing changes for the user of the API.
+// - The interface is not decoupling the API from change. }} --config ${{ // --------------------------
+// Remove Interface Pollution
+// --------------------------
+
+// This is basically just removing the improper interface usage from previous file pollution_1.go.
+
+package main
+
+// Server implementation.
+type Server struct {
+        host string
+        // PRETEND THERE ARE MORE FIELDS.
+}
+
+// NewServer returns just a concrete pointer of type Server
+func NewServer(host string) *Server {
+        return &Server{host}
+}
+
+// Start allows the server to begin to accept requests.
+func (s *Server) Start() error {
+        // PRETEND THERE IS A SPECIFIC IMPLEMENTATION.
+        return nil
+}
+
+// Stop shuts the server down.
+func (s *Server) Stop() error {
+        // PRETEND THERE IS A SPECIFIC IMPLEMENTATION.
+        return nil
+}
+
+// Wait prevents the server from accepting new connections.
+func (s *Server) Wait() error {
+        // PRETEND THERE IS A SPECIFIC IMPLEMENTATION.
+        return nil
+}
+
+func main() {
+        // Create a new Server.
+        srv := NewServer("localhost")
+
+        // Use the APIs.
+        srv.Start()
+        srv.Stop()
+        srv.Wait()
+}
+
+// Guidelines around interface pollution:
+// --------------------------------------
+// Use an interface:
+// - When users of the API need to provide an implementation detail.
+// - When APIs have multiple implementations that need to be maintained.
+// - When parts of the APIs that can change have been identified and require decoupling.
+// Question an interface:
+// - When its only purpose is for writing testable API’s (write usable APIs first).
+// - When it’s not providing support for the API to decouple from change.
+// - When it's not clear how the interface makes the code better. }}
+
+    - name: Test
+      working-directory: ${{ {
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: CLI",
+      "type": "python",
+      "request": "launch",
+      "program": "main.py",
+      "console": "integratedTerminal",
+      "args": ["start", "-vvvv", "--port=8080"]
+    }
+  ]
+} }}
+      # Execute tests defined by the CMake configuration. Note that --build-config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
+      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
+      run: ctest --build-config ${{ {
+  "python.venvPath": "/home/ewen/.cache/pypoetry/virtualenvs",
+  "python.pythonPath": "/home/ewen/.cache/pypoetry/virtualenvs/restapiboys-NMMVrvuz-py3.8/bin/python",
+  "yaml.schemas": {
+    "schemas/endpoint.schema.json": "**/endpoints/*.yaml"
+  },
+  "python.testing.pytestArgs": [
+    "tests"
+  ],
+  "python.testing.unittestEnabled": false,
+  "python.testing.nosetestsEnabled": false,
+  "python.testing.pytestEnabled": true,
+  "python.formatting.provider": "black"
 } }}
