@@ -192,6 +192,10 @@ file).
 We are currently working on DRAMVis, which is a cross-platform viewer which parses the vis file and generates
 graphs that can be used to analyze and compare results.
 
+﻿
+
+
+
 ﻿using _32DNoiseGen.IO;
 using System;
 using System.Collections.Generic;
@@ -334,106 +338,183 @@ namespace _32DNoiseGen.Exporting
 
 
 
-
-
-
-
-
-
-
-
-
                                                           6
 
 
 Figure 1: Block diagram of DRAMSim2. The recv() functions are actually called receiveFromBus() but were
 abbreviated to save sapce.
+ 
+ ﻿using System;
+using SFML.System;
+using SFML.Window;
+using SFML.Graphics;
+using SharpVox.Graphics;
+using SharpVox.Environment;
+using SharpVox.Input;
+using OpenTK;
 
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace _32DNoiseGen.Exporting
+namespace SharpVox.Core
 {
-    public struct FormatData_Atlas : IFormatData
+    class Program
     {
-        [Category("Settings"), Description("File name")]
-        public string FileName { get; set; }
+        public static RenderWindow window;
+        public static Clock deltaClock = new Clock();
+        public static float deltaTime;
+        public static float totalDeltaTime;
 
-        [Category("Settings"), Description("Resolution (per-side) of each atlas square")]
-        public int Resolution { get; set; }
-
-        [Category("Settings"), Description("The number of z slices to cover")]
-        public int SliceCount { get; set; }
-
-        [Category("Settings"), Description("The beginning range of z slices to cover")]
-        public int SliceStart { get; set; }
-
-        [Category("Settings"), Description("The ending range of z slices to cover")]
-        public int SliceEnd { get; set; }
-
-        bool hasInitialized;
-        public bool Validate()
+        /// <summary>
+        /// The main loop of this program.
+        /// </summary>
+        static void Main(string[] args)
         {
-            if(!hasInitialized)
+            if (args.Length > 0)
             {
-                FileName = "Export";
-                Resolution = 400;
-                SliceCount = 400;
-                SliceStart = 0;
-                SliceEnd = 400;
-
-                hasInitialized = true;
+                Console.WriteLine("Program started with args:");
+                for (int i = 0; i < args.Length; i++)
+                {
+                    Console.WriteLine(args[i]);
+                }
             }
 
-            return true;
-        }
-    }
+            InitWindow(VideoMode.DesktopMode.Width, VideoMode.DesktopMode.Height);
 
-    public struct FormatData_Sequence : IFormatData
-    {
-        [Category("Settings"), Description("File name")]
-        public string FileName { get; set; }
-
-        [Category("Settings"), Description("Resolution (per-side) of each sequence image")]
-        public int Resolution { get; set; }
-
-        [Category("Settings"), Description("The number of z slices to cover")]
-        public int SliceCount { get; set; }
-
-        [Category("Settings"), Description("The beginning range of z slices to cover")]
-        public int SliceStart { get; set; }
-
-        [Category("Settings"), Description("The ending range of z slices to cover")]
-        public int SliceEnd { get; set; }
-
-        bool hasInitialized;
-        public bool Validate()
-        {
-            if (!hasInitialized)
+            while (window.IsOpen)
             {
-                FileName = "Export";
-                Resolution = 400;
-                SliceCount = 400;
-                SliceStart = 0;
-                SliceEnd = 400;
+                //Handle window events
+                window.DispatchEvents();
 
-                hasInitialized = true;
+                //Game update loop
+                if (World.activeScene != null)
+                    World.activeScene.Update();
+                else
+                    World.CreateScene();
+
+                //Reset input
+                InputManager.Reset();
+
+                //Draw the scene
+                //if(window.HasFocus())
+                Renderer.Render(window);
+
+                deltaTime = deltaClock.Restart().AsSeconds();
+                totalDeltaTime += deltaTime;
+            }
+        }
+
+        /// <summary>
+        /// Initialize the main window of the program.
+        /// </summary>
+        public static RenderWindow InitWindow(uint pixelsX, uint pixelsY, bool hardReset = false)
+        {
+            if (window == null || hardReset)
+            {
+                if (window != null)
+                    window.Dispose();
+
+                /*GameWindow Window = new GameWindow(
+                    new GameWindowSettings() { IsMultiThreaded = true, RenderFrequency = 120, UpdateFrequency = 120 },
+                    new NativeWindowSettings() { API = OpenTK.Windowing.Common.ContextAPI.OpenGL, AutoLoadBindings = true });*/
+
+                window = new RenderWindow(new VideoMode(pixelsX, pixelsY), "SharpVox", Styles.Default, new ContextSettings(0, 0, 4, 1, 1, ContextSettings.Attribute.Default, false));
+                window.KeyPressed += InputManager.KeyPressed;
+                window.KeyReleased += InputManager.KeyReleased;
+                window.MouseButtonPressed += InputManager.MouseButtonPressed;
+                window.MouseButtonReleased += InputManager.MouseButtonReleased;
+                window.MouseMoved += InputManager.MouseMoved;
+                window.MouseWheelScrolled += InputManager.MouseScrolled;
+                window.Resized += OnWindowResized;
+                window.Closed += OnWindowClosed;
+                window.SetVerticalSyncEnabled(true);
             }
 
-            return true;
+            InitRenderer(hardReset);
+
+            return window;
+        }
+
+        /// <summary>
+        /// Initialize the renderer.
+        /// </summary>
+        public static void InitRenderer(bool hardReset = false)
+        {
+            if (hardReset)
+            {
+                if (Renderer.screenShape != null)
+                    Renderer.screenShape.Dispose();
+
+                Renderer.DisposeRenderPasses();
+            }
+
+            if (Renderer.screenShape == null)
+            {
+                Renderer.screenShape = new RectangleShape(new Vector2f(window.Size.X, window.Size.Y));
+            }
+
+            if (Renderer.renderPasses == null)
+            {
+                //Main renderer
+                RenderPass rendererPass = new RenderPass(new RenderStates(new Shader(null, null, "Graphics/Shaders/Renderer.frag")),
+                    new RenderTexture(window.Size.X, window.Size.Y),
+                    new UniformData[] { new UniformData("camPos", UniformType.Vec3),
+                        new UniformData("camForward", UniformType.Vec3),
+                        new UniformData("camRight", UniformType.Vec3),
+                        new UniformData("camUp", UniformType.Vec3),
+                        new UniformData("frame", UniformType.Int),
+                        new UniformData("totalDeltaTime", UniformType.Float)}, null, false);
+
+                rendererPass.AddTextureUniform("skyTexture", new Texture("Graphics/Images/Sky/immenstadter_horn_8k.hdr") { Repeated = true, Smooth = true });
+                rendererPass.AddTextureUniform("noiseTexture", new Texture("Graphics/Images/Noise/Noise.png") { Repeated = true, Smooth = false });
+                rendererPass.renderStates.Shader.SetUniform("epsilon", 0.00015f);
+                rendererPass.renderStates.Shader.SetUniform("maxDist", 200f);
+                rendererPass.renderStates.Shader.SetUniform("maxBounces", 2);
+                rendererPass.renderStates.Shader.SetUniform("maxIterations", 150);
+                Renderer.AddPass(rendererPass);
+
+                //Anti Aliasing
+                RenderPass aliasingPass = new RenderPass(new RenderStates(new Shader(null, null, "Graphics/Shaders/AntiAliasing.frag")),
+                    new RenderTexture(window.Size.X, window.Size.Y), new UniformData[] { new UniformData("frame", UniformType.Int) }, new int[] { 0, 1 }, false);
+                aliasingPass.renderStates.Shader.SetUniform("blendFactor", 0.33f);
+                Renderer.AddPass(aliasingPass);
+
+                //Denoise
+                RenderPass denoisePass = new RenderPass(new RenderStates(new Shader(null, null, "Graphics/Shaders/Denoise.frag")),
+                    new RenderTexture(window.Size.X, window.Size.Y), null, new int[] { 1 }, false);
+                Renderer.AddPass(denoisePass);
+
+                //Noise
+                RenderPass noisePass = new RenderPass(new RenderStates(new Shader(null, null, "Graphics/Shaders/Noise.frag")),
+                    new RenderTexture(window.Size.X, window.Size.Y),
+                    new UniformData[] { new UniformData("camForward", UniformType.Vec3),
+                    new UniformData("camPos", UniformType.Vec3)}, new int[] { 2 }, true);
+                noisePass.renderStates.Shader.SetUniform("noiseTexture", new Texture("Graphics/Images/Noise/Noise.png") { Repeated = true, Smooth = true });
+                Renderer.AddPass(noisePass);
+            }
+
+            Renderer.ResizeRenderPass(ref Renderer.renderPasses[0], window.Size.X, window.Size.Y);
+            Renderer.ResizeRenderPass(ref Renderer.renderPasses[1], window.Size.X, window.Size.Y);
+            Renderer.ResizeRenderPass(ref Renderer.renderPasses[2], window.Size.X, window.Size.Y);
+            Renderer.ResizeRenderPass(ref Renderer.renderPasses[3], window.Size.X, window.Size.Y);
+            Renderer.RegisterUniform("frame", 0);
+            Renderer.RegisterUniform("totalDeltaTime", 0f);
+        }
+
+        /// <summary>
+        /// Called when the window resizes.
+        /// </summary>
+        static void OnWindowResized(object sender, EventArgs e)
+        {
+            InitWindow(window.Size.X, window.Size.Y);
+        }
+
+        /// <summary>
+        /// Called when the window closes.
+        /// </summary>
+        static void OnWindowClosed(object sender, EventArgs e)
+        {
+            window.Close();
         }
     }
-
-    interface IFormatData
-    {
-        bool Validate();
-    }
-}
-
+}   
 
 
                                                  7
