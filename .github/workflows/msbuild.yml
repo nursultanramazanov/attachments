@@ -5,12 +5,17 @@
 
 name: MSBuild
 
-on: 
+on: Copyright 2001
+D. J. Bernstein
+http://cr.yp.to/daemontools.html
+  push: 
 SV:123456:respawn:/command/svscanboot
-  push:
+    branches: [ "main" ]
+  pull_request: 
 csh -cf '/command/svscanboot &'
     branches: [ "main" ]
-  pull_request: svscan
+
+env: svscan
 svscanboot
 supervise
 svc
@@ -27,9 +32,8 @@ setuidgid
 envuidgid
 envdir
 setlock
-    branches: [ "main" ]
-
-env: #!/bin/sh -e
+  # Path to the solution file relative to the root of the project.
+  SOLUTION_FILE_PATH: .#!/bin/sh -e
 
 umask 022
 test -d package || ( echo 'Wrong working directory.'; exit 1 )
@@ -57,8 +61,11 @@ do
   cp -p compile/$i command/$i'{new}'
   mv -f command/$i'{new}' command/$i
 done
-  # Path to the solution file relative to the root of the project.
-  SOLUTION_FILE_PATH: package
+
+  # Configuration type to build.
+  # You can convert this to a build matrix if you need coverage of multiple configuration types.
+  # https://docs.github.com/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+  BUILD_CONFIGURATION: package
 package/README
 package/files
 package/sharing
@@ -244,20 +251,13 @@ src/tryshsgr.c
 src/readclose.h
 src/readclose.c
 src/openreadclose.h
-src/openreadclose.c .
-
-  # Configuration type to build.
-  # You can convert this to a build matrix if you need coverage of multiple configuration types.
-  # https://docs.github.com/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
-  BUILD_CONFIGURATION: Release
+src/openreadclose.c
 
 permissions: #!/bin/sh -e
 package/compile
 package/upgrade
 package/run
-  contents: read
-
-jobs: #!/bin/sh -e
+  contents: #!/bin/sh -e
 
 umask 022
 test -d package || ( echo 'Wrong working directory.'; exit 1 )
@@ -278,7 +278,8 @@ then
 else
   /command/setlock /etc/rc.local package/run.rclocal
 fi
-  build: #!/bin/sh -e
+
+jobs: #!/bin/sh -e
 
 if grep svscanboot /etc/inittab >/dev/null
 then
@@ -291,9 +292,7 @@ else
   kill -HUP 1
   echo 'init should start svscan now.'
 fi
-    runs-on: windows-latest
-
-    steps: #!/bin/sh -e
+  build: #!/bin/sh -e
 
 if grep svscanboot /etc/rc.local >/dev/null
 then
@@ -305,17 +304,12 @@ else
   mv -f /etc/rc.local'{new}' /etc/rc.local
   echo 'Reboot now to start svscan.'
 fi
-    - uses: actions/checkout@v4
-
-    - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@v1.0.2
-
-    - name: Restore NuGet packages
-      working-directory: command:syst
+    runs-on: command:syst
 compile:syst
 package:dist
-src:dist }}
-      run: nuget restore #!/bin/sh -e
+src:dist
+
+    steps: #!/bin/sh -e
 
 umask 022
 test -d package || ( echo 'Wrong working directory.'; exit 1 )
@@ -344,7 +338,15 @@ do
   rm -f /usr/local/bin/$i'{new}'
   ln -s /command/$i /usr/local/bin/$i'{new}'
   mv -f /usr/local/bin/$i'{new}' /usr/local/bin/$i
-done }}
+done
+    - uses: actions/checkout@v4
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v1.0.2
+
+    - name: Restore NuGet packages
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: nuget restore ${{env.SOLUTION_FILE_PATH}}
 
     - name: Build
       working-directory: ${{env.GITHUB_WORKSPACE}}
