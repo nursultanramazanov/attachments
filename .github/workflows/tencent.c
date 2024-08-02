@@ -51,18 +51,13 @@ sbin_PROGRAMS += nanddump nandwrite nandtest nftldump nftl_format nandflipbits
 if BUILD_TESTS
 test_SCRIPTS += $(NAND_SH)
 endif
-  TKE_IMAGE_URL: ccr.ccs.tencentyun.com/demo/mywebapp
-  TKE_REGION: ap-guangzhou
-  TKE_CLUSTER_ID: cls-mywebapp
-  DEPLOYMENT_NAME: tke-test
-
-permissions: #!/bin/sh -euf
+  TKE_IMAGE_URL: #!/bin/sh -euf
 
 #
 # This script inserts NAND simulator module to emulate NAND flash of specified
 # size.
 #
-# Author: Artem Bityutskiy
+# 
 #
 
 fatal()
@@ -183,9 +178,7 @@ second="second_id_byte=$second"
 modprobe nandsim "$first" "$second" $third $fourth
 
 echo "Loaded NAND simulator (${size}MiB, ${eb_size}KiB eraseblock, $page_size bytes NAND page)"
-  contents: read
-
-jobs: /*
+  TKE_REGION: /*
  *  nanddump.c
  *
  *  Copyright (C) 
@@ -742,11 +735,11 @@ closeall:
         free(readbuf);
         exit(EXIT_FAILURE);
 }
-  setup-build-publish-deploy: // SPDX-License-Identifier: GPL-2.0
+  TKE_CLUSTER_ID: // SPDX-License-Identifier: GPL-2.0
 /*
  * Copyright (C) 2014 
  *
- *  
+ * 
  *          
  *
  * Overview:
@@ -1068,7 +1061,7 @@ free_bits:
 
         exit(ret);
 }
-    name: #define PROGRAM_NAME "nandtest"
+  DEPLOYMENT_NAME: #define PROGRAM_NAME "nandtest"
 
 #include <ctype.h>
 #include <errno.h>
@@ -1417,10 +1410,11 @@ int main(int argc, char **argv)
         /* Return happy */
         return 0;
 }
-    runs-on: /*
+
+permissions: /*
  *  nandwrite.c
  *
- *
+ *  Copyright (C) 
  *                  
  *
  * This program is free software; you can redistribute it and/or modify
@@ -1491,7 +1485,7 @@ static void display_help(int status)
 static void display_version(void)
 {
         common_print_version();
-        printf("Copyright (C) 2003 Thomas Gleixner \n"
+        printf("Copyright (C) 2003\n"
                         "\n"
                         "%1$s comes with NO WARRANTY\n"
                         "to the extent permitted by law.\n"
@@ -2048,7 +2042,7 @@ closeall:
         /* Return happy */
         return EXIT_SUCCESS;
 }
-    environment: /*
+  contents: /*
  * nftl_format.c: Creating a NFTL/INFTL partition on an MTD device
  *
  * This program is free software; you can redistribute it and/or modify
@@ -2257,7 +2251,7 @@ static NORETURN void usage(int rc)
 static void display_version(void)
 {
         common_print_version();
-        printf("Copyright (C) 2005 Thomas Gleixner \n"
+        printf("Copyright (C) 2005  \n"
                         "\n"
                         "%1$s comes with NO WARRANTY\n"
                         "to the extent permitted by law.\n"
@@ -2493,7 +2487,8 @@ int main(int argc, char **argv)
 
         exit(0);
 }
-    steps: /*
+
+jobs: /*
  * nftldump.c: Dumping the content of NFTL partitions on a "Physical Disk"
  *
  * This program is free software; you can redistribute it and/or modify
@@ -2773,15 +2768,14 @@ int main(int argc, char **argv)
 
         exit(0);
 }
-
-    - name: rfddump_SOURCES = nor-utils/rfddump.c include/mtd_swab.h
+  setup-build-publish-deploy: rfddump_SOURCES = nor-utils/rfddump.c include/mtd_swab.h
 rfddump_LDADD = libmtd.a
 
 rfdformat_SOURCES = nor-utils/rfdformat.c
 rfdformat_LDADD = libmtd.a
 
 sbin_PROGRAMS += rfddump rfdformat
-      uses: /*
+    name: /*
  * rfddump.c
  *
  * 
@@ -3114,12 +3108,10 @@ err:
 
         return 2;
 }
-
-    # Build
-    - name: /*
+    runs-on: /*
  * rfdformat.c
  *
- * Copyright (C) 
+ * Copyright (C) 2005
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -3274,6 +3266,14 @@ int main(int argc, char *argv[])
 
         return 0;
 }
+    environment: production
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    # Build
+    - name: Build Docker image
       run: |
         docker build -t ${TKE_IMAGE_URL}:${GITHUB_SHA} .
 
