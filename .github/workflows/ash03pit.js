@@ -207,9 +207,125 @@ files = {
 for i, f in ipairs(files) do
     dofile("C:\\Apps\\Factorio\\data\\base\\prototypes\\recipe\\" .. f .. ".lua")
 end
-        uses: denoland/setup-deno@61fe2df320078202e33d7d5ad347e7dcfa0e8f31  # v1.1.2
-        with:
-          deno-version: v1.x
+        uses: // A launch configuration that compiles the extension and then opens it inside a new window
+// Use IntelliSense to learn about possible attributes.
+// Hover to view descriptions of existing attributes.
+// For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Jest Tests",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "${workspaceFolder}/packages/foam-vscode/.test-workspace",
+        "--disable-extensions",
+        "--disable-workspace-trust",
+        "--extensionDevelopmentPath=${workspaceFolder}/packages/foam-vscode",
+        "--extensionTestsPath=${workspaceFolder}/packages/foam-vscode/out/test/suite"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/packages/foam-vscode/out/**/*.js"
+      ],
+      "preLaunchTask": "${defaultBuildTask}"
+    },
+    {
+      "name": "Run VSCode Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/packages/foam-vscode"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/packages/foam-vscode/out/**/*.js"
+      ],
+      "preLaunchTask": "${defaultBuildTask}"
+    },
+    {
+      "type": "node",
+      "name": "vscode-jest-tests",
+      "request": "launch",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "disableOptimisticBPs": true,
+      "cwd": "${workspaceFolder}/packages/foam-vscode",
+      "runtimeExecutable": "yarn",
+      "args": [
+        "jest",
+        "--runInBand",
+        "--watchAll=false"
+      ]
+    }
+  ]
+}  # v1.1.2
+        with: // Place your settings in this file to overwrite default and user settings.
+{
+  "files.exclude": {
+    // set these to true to hide folders with the compiled JS files,
+    "packages/**/out": false,
+    "packages/**/dist": false
+  },
+  "search.exclude": {
+    // set this to false to include compiled JS folders in search results
+    "packages/**/out": true,
+    "packages/**/dist": true
+  },
+  // Turn off tsc task auto detection since we have the necessary tasks as npm scripts
+  "typescript.tsc.autoDetect": "off",
+  "foam.edit.linkReferenceDefinitions": "withExtensions",
+  "foam.files.ignore": [
+    "**/.vscode/**/*",
+    "**/_layouts/**/*",
+    "**/_site/**/*",
+    "**/node_modules/**/*",
+    "packages/**/*"
+  ],
+  "editor.tabSize": 2,
+  "editor.formatOnSave": true,
+  "editor.formatOnSaveMode": "file",
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "jest.autoRun": "off",
+  "jest.rootPath": "packages/foam-vscode",
+  "jest.jestCommandLine": "yarn jest",
+  "gitdoc.enabled": false,
+  "search.mode": "reuseEditor",
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
+}
+          deno-version: // See https://go.microsoft.com/fwlink/?LinkId=733558
+// for the documentation about the tasks.json format
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "watch: foam-vscode",
+      "type": "npm",
+      "script": "watch",
+      "problemMatcher": "$tsc-watch",
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "test: all packages",
+      "type": "npm",
+      "script": "test",
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    }
+  ]
+} v1.x
 
       # Uncomment this step to verify the use of 'deno fmt' on each commit.
       # - name: Verify formatting
