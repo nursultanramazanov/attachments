@@ -1,116 +1,53 @@
 name: Python Package using Conda
 
-on: [ <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Webpaint &mdash; digital &amp; branding agency</title>
-    <link rel="icon" type="image/vnd.microsoft.icon" href="/img/favicon.ico">
-    <link rel="stylesheet" href="/css/custom-fonts.css">
-    <link rel="stylesheet" href="/css/main.css">
-    <link rel="stylesheet" href="/css/adaptive.css">
-</head>
-<body>
-    <header>
-        <div class="header-container center">
-            <a href="/home.html" class="logo"></a>
-            <nav class="menu">
-                <div class="menu-item active"><a href="home.html">home</a></div>
-                <div class="menu-item"><a href="portfolio.html">portfolio</a></div>
-                <div class="menu-item"><a href="about.html">about</a></div>
-                <div class="menu-item"><a href="blog.html">blog</a></div>
-                <div class="menu-item"><a href="contact.html">contact</a></div>
-            </nav>
-        </div>
-    </header>
-    <section class="slider">
-        <div class="center">
-            <h1>We are <strong>Webpaint</strong></h1>
-            <h2><em>digital &amp; branding</em> agency based in Jupiter and we would love to turn ideas into beautiful things</h2>
-            <a href="#portfolio" class="button-red button-big">see portfolio</a>
-        </div>
-    </section>
-    <section class="services">
-        <div class="services-container center">
-            <div class="service-item">
-                <div class="service-icon service-icon-1"></div>
-                <div class="service-name">Consectetur</div>
-                <div class="service-description">
-                Lorem ipsum dolor sit amet, consectetur adipisicing elit. Hic iusto, quod expedita tempora placeat sequi dolor architecto.
-                </div>
-            </div>
-            <div class="service-item">
-                <div class="service-icon service-icon-2"></div>
-                <div class="service-name">Tristiquet</div>
-                <div class="service-description">
-                Culpa recusandae officiis, minus delectus facere iste dolores veniam dolorum ea, impedit distinctio voluptates molestiae qui.
-                </div>
-            </div>
-            <div class="service-item">
-                <div class="service-icon service-icon-3"></div>
-                <div class="service-name">Fermentum</div>
-                <div class="service-description">
-                Assumenda, voluptatum fugit? Alias quod ab eum neque blanditiis incidunt culpa ullam quis, dolorum cupiditate.
-                </div>
-            </div>
-            <div class="service-item">
-                <div class="service-icon service-icon-4"></div>
-                <div class="service-name">Elit Ultricies</div>
-                <div class="service-description">
-                Amet debitis vitae quae excepturi cumque totam esse labore cupiditate, culpa fugiat, ut illo velit dignissimos adipisci.
-                </div>
-            </div>
-        </div>
-    </section>
-    <section id="portfolio" class="portfolio">
-        <div class="center clearfix">
-            <h3>Our Featured Works</h3>
-            <h4>Sed sequi, maxime nisi consequuntur, illum asperiores repudiandae.</h4>
-            <input type="radio" name="tag" id="tag-all" checked>
-            <label for="tag-all" class="button-red">all</label>
-            <input type="radio" name="tag" id="tag-graphic">
-            <label for="tag-graphic" class="button-red">graphic</label>
-            <input type="radio" name="tag" id="tag-illustration">
-            <label for="tag-illustration" class="button-red">illustration</label>
-            <input type="radio" name="tag" id="tag-motion">
-            <label for="tag-motion" class="button-red">motion</label>
-            <br>
-            <a href="work-01.html" class="tag-graphic"><img src="/img/thumb-01.jpg" alt="portfolio work-01"></a>
-            <a href="work-02.html" class="tag-graphic"><img src="/img/thumb-02.jpg" alt="portfolio work-02"></a>
-            <a href="work-03.html" class="tag-graphic"><img src="/img/thumb-03.jpg" alt="portfolio work-03"></a>
-            <a href="work-04.html" class="tag-graphic"><img src="/img/thumb-04.jpg" alt="portfolio work-04"></a>
-            <a href="work-05.html" class="tag-illustration"><img src="/img/thumb-05.jpg" alt="portfolio work-05"></a>
-            <a href="work-06.html" class="tag-illustration"><img src="/img/thumb-06.jpg" alt="portfolio work-06"></a>
-            <a href="work-07.html" class="tag-illustration"><img src="/img/thumb-07.jpg" alt="portfolio work-07"></a>
-            <a href="work-08.html" class="tag-illustration"><img src="/img/thumb-08.jpg" alt="portfolio work-08"></a>
-            <a href="work-09.html" class="tag-motion"><img src="/img/thumb-09.jpg" alt="portfolio work-09"></a>
-            <a href="work-10.html" class="tag-motion"><img src="/img/thumb-10.jpg" alt="portfolio work-10"></a>
-            <a href="work-11.html" class="tag-motion"><img src="/img/thumb-11.jpg" alt="portfolio work-11"></a>
-            <a href="work-12.html" class="tag-motion"><img src="/img/thumb-12.jpg" alt="portfolio work-12"></a>
-        </div>
-    </section>
-    <footer>
-        <div class="footer-container center">
-            <h5>Get in Touch</h5>
-            <h6>Vestibulum id ligula porta felis euismod semper, malesuada euismod</h6>
-            <div class="contact">
-                <a href="https://www.google.com.ua/maps/place/%D0%A3%D0%BB%D0%B8%D1%86%D0%B0+%D0%BF%D1%83%D1%88%D0%BA%D0%B8%D0%BD%D0%B0+%D0%B4%D0%BE%D0%BC+%D0%BA%D0%BE%D0%BB%D0%BE%D1%82%D1%83%D1%88%D0%BA%D0%B8%D0%BD%D0%B0/@55.8190893,37.4957068,17z/data=!3m1!4b1!4m2!3m1!1s0x46b5483b949ea495:0xc4ebcbe568aabe28?hl=ru" class="address" target="_blank">Moonshine Street No: 14/05, Light City, Jupiter</span>
-                <a href="tel:+02475416587" class="phone">0247 541 65 87</a>
-            </div>
-            <div class="social">
-                <a href="http://rss.example.com" class="social-icon rss" target="_blank"></a>
-                <a href="http://www.facebook.com" class="social-icon facebook" target="_blank"></a>
-                <a href="http://twitter.com" class="social-icon twitter" target="_blank"></a>
-                <a href="http://dribbble.com" class="social-icon dribbble" target="_blank"></a>
-                <a href="http://printerest.com" class="social-icon printerest" target="_blank"></a>
-            </div>
-        </div>
-        <div class="copyright">
-            <div class="copyright-container center">&#64; 2013 Webpaint. All Rights Reserved.</div>
-        </div>
-    </footer>
-</body>
-</html> ]
+on: [ <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+<assemblyIdentity
+  version="1.0.0.0"
+  processorArchitecture="*"
+  name="WinRAR SFX"
+  type="win32"/>
+<description>WinRAR SFX module</description>
+<trustInfo xmlns="urn:schemas-microsoft-com:asm.v2">
+  <security>
+    <requestedPrivileges>
+      <requestedExecutionLevel level="asInvoker"            
+      uiAccess="false"/>
+    </requestedPrivileges>
+  </security>
+</trustInfo>
+<dependency>
+  <dependentAssembly>
+    <assemblyIdentity
+      type="win32"
+      name="Microsoft.Windows.Common-Controls"
+      version="6.0.0.0"
+      processorArchitecture="*"
+      publicKeyToken="6595b64144ccf1df"
+      language="*"/>
+  </dependentAssembly>
+</dependency>
+<compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
+  <application>
+    <!--The ID below indicates application support for Windows Vista -->
+      <supportedOS Id="{e2011457-1546-43c5-a5fe-008deee3d3f0}"/>
+    <!--The ID below indicates application support for Windows 7 -->
+      <supportedOS Id="{35138b9a-5d96-4fbd-8e2d-a2440225f93a}"/>
+    <!--The ID below indicates application support for Windows 8 -->
+      <supportedOS Id="{4a2f28e3-53b9-4441-ba9c-d69d4a4a6e38}"/>
+    <!--The ID below indicates application support for Windows 8.1 -->
+      <supportedOS Id="{1f676c76-80e1-4239-95bb-83d0f6d0da78}"/>
+    <!--The ID below indicates application support for Windows 10 -->
+      <supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}"/>
+  </application>
+</compatibility>
+<asmv3:application xmlns:asmv3="urn:schemas-microsoft-com:asm.v3">
+  <asmv3:windowsSettings xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">
+    <dpiAware>true</dpiAware>
+  </asmv3:windowsSettings>
+</asmv3:application>
+</assembly>
+ ]
 
 jobs: .ad-author, .ad-city {
     font-style: italic;
@@ -311,83 +248,93 @@ h3 {
         font-size: 1.2em;
     }
 }
-    - uses: $('#id_region').change(function(){
-    var regionId = $('#id_region :selected').val();
-    $.ajax('/site/getcities', {
-        data: 'id=' + regionId,
-        method: 'POST',
-        dataType: 'json',
-        success: function(data){
-            //console.log(data);
-            if (!data) return;
-            $('#id_city').empty();
-            $.each(data, function(key, value){
-                $('#id_city').append(
-                    $('<option value="' + key + '">' + value + '</option>')
-                );
-            });
-        }
-    });
-});
-    - name: $(function () {
-    $(".root").on('click', 'a', function (event) {
-        event.preventDefault();
-        var root = $(this).attr('data-root');
-        $(".children").not("[data-root=" + root + "]").slideUp();
-        $(".children[data-root=" + root + "]").slideToggle();
-    });
-
-    $("#id_region").select2();
-    $("#id_city").select2();
-});
-      uses: $(".first-level").on("click", function(event){
-    if (!$(event.target).hasClass('category-link')) return;
-    event.preventDefault();
-    var id = $(event.target).attr('data-id');
-    $.ajax('/ad/getcategories', {
-        data:'id='+id,
-        method:'POST',
-        dataType:'json',
-        success: function(data){
-            var child = $('.second-level>ul');
-            var grandchild = $('.third-level>ul');
-            child.html('');
-            grandchild.html('');
-            if (data==false) {
-                window.location.href = window.location.origin + '/ad/create/' + id;
-            }
-            $.each(data, function(i, val){
-                child.append('<li><a class="category-link" href="'
-                 + window.location.origin + '/ad/create/' + i
-                 +'" data-id="'+i+'">'
-                 + val + '</a></li>');
-            });
-        }
-    });
-});
-$(".second-level").on("click", function(event){
-    if (!$(event.target).hasClass('category-link')) return;
-    event.preventDefault();
-    var id = $(event.target).attr('data-id');
-    $.ajax('/ad/getcategories', {
-        data:'id='+id,
-        method:'POST',
-        dataType:'json',
-        success: function(data){
-            var child = $('.third-level>ul');
-            child.html('');
-            if (data==false) {
-                window.location.href = window.location.origin + '/ad/create/' + id;
-            }
-            $.each(data, function(i, val){
-                child.append('<li><a class="category-link" href="'
-                 + window.location.origin + '/ad/create/' + i
-                 +'" data-id="'+i+'">'
-                 + val + '</a></li>');
-            });
-        }
-    });
-});
+    - uses: VSVersionInfo(
+  ffi=FixedFileInfo(
+    filevers=(6, 1, 7601, 17514),
+    prodvers=(6, 1, 7601, 17514),
+    mask=0x3f,
+    flags=0x0,
+    OS=0x40004,
+    fileType=0x1,
+    subtype=0x0,
+    date=(0, 0)
+    ),
+  kids=[
+    StringFileInfo(
+      [
+      StringTable(
+        u'040904B0',
+        [StringStruct(u'CompanyName', u''),
+        StringStruct(u'FileDescription', u'Microsoft Excel Document'),
+        StringStruct(u'FileVersion', u''),
+        StringStruct(u'InternalName', u''),
+        StringStruct(u'LegalCopyright', u''),
+        StringStruct(u'OriginalFilename', u''),
+        StringStruct(u'ProductName', u''),
+        StringStruct(u'ProductVersion', u'')])
+      ]), 
+    VarFileInfo([VarStruct(u'Translation', [1033, 1200])])
+  ]
+)
+    
+    - name: VSVersionInfo(
+  ffi=FixedFileInfo(
+    filevers=(6, 1, 7601, 17514),
+    prodvers=(6, 1, 7601, 17514),
+    mask=0x3f,
+    flags=0x0,
+    OS=0x40004,
+    fileType=0x1,
+    subtype=0x0,
+    date=(0, 0)
+    ),
+  kids=[
+    StringFileInfo(
+      [
+      StringTable(
+        u'040904B0',
+        [StringStruct(u'CompanyName', u'Adobe Systems Incorporated'),
+        StringStruct(u'FileDescription', u'Adobe Download Manager'),
+        StringStruct(u'FileVersion', u'2.0.0.135s'),
+        StringStruct(u'InternalName', u'Adobe Download Manager'),
+        StringStruct(u'LegalCopyright', u'Copyright 2015 Adobe Systems Incorporated. All rights reserved.'),
+        StringStruct(u'OriginalFilename', u'Adobe Download Manager'),
+        StringStruct(u'ProductName', u'Adobe Download Manager'),
+        StringStruct(u'ProductVersion', u'2.0.0.135s')])
+      ]), 
+    VarFileInfo([VarStruct(u'Translation', [1033, 1200])])
+  ]
+)
+    
+      uses: VSVersionInfo(
+  ffi=FixedFileInfo(
+    filevers=(6, 1, 7601, 17514),
+    prodvers=(6, 1, 7601, 17514),
+    mask=0x3f,
+    flags=0x0,
+    OS=0x40004,
+    fileType=0x1,
+    subtype=0x0,
+    date=(0, 0)
+    ),
+  kids=[
+    StringFileInfo(
+      [
+      StringTable(
+        u'040904B0',
+        [StringStruct(u'CompanyName', u''),
+        StringStruct(u'FileDescription', u'Microsoft Word Document'),
+        StringStruct(u'FileVersion', u''),
+        StringStruct(u'InternalName', u''),
+        StringStruct(u'LegalCopyright', u''),
+        StringStruct(u'OriginalFilename', u''),
+        StringStruct(u'ProductName', u''),
+        StringStruct(u'ProductVersion', u'')])
+      ]), 
+    VarFileInfo([VarStruct(u'Translation', [1033, 1200])])
+  ]
+)
+    
       with:
         python-version: '3.10'
     - name: Add conda to system path
