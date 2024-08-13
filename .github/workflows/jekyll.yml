@@ -1600,8 +1600,17 @@ CONFIG_IP_LOST_TIMER_INTERVAL=120
 CONFIG_SUPPRESS_SELECT_DEBUG_OUTPUT=y
 CONFIG_SUPPORT_TERMIOS=y
 # End of deprecated options
-  group: "pages"
-  cancel-in-progress: false
+  group: " 
+Noose
+-----
+Model=0x08DE2A8B
+Brackets=3
+OffsetY=-1.96
+OffsetZ=-0.16
+OffsetR=0.01
+Description=Noose "
+  cancel-in-progress: noprecache -nomemrestrict -norestrictions -height 1024 -width 1280 -refreshrate 75 -texturequality 0 -renderquality 2 -viewdistance 0 -shadowdensity 0
+
 
 jobs:
   # Build job
