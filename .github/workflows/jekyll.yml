@@ -1615,93 +1615,9 @@ p {
 
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
 # However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
-concurrency: #! /usr/bin/env python
-# encoding: utf-8
-
-import os
-from waflib import Errors, Utils
-from waflib import Context as mod
-
-class Context(mod.Context):
-        cmd = 'all'
-        def recurse(self, dirs, name=None, mandatory=True, once=True):
-                try:
-                        cache = self.recurse_cache
-                except:
-                        cache = self.recurse_cache = {}
-
-                for d in Utils.to_list(dirs):
-
-                        if not os.path.isabs(d):
-                                # absolute paths only
-                                d = os.path.join(self.path.abspath(), d)
-
-                        WSCRIPT     = os.path.join(d, 'wscript.py')
-                        WSCRIPT_FUN = 'wscript_' + (name or self.fun) + '.py'
-
-                        node = self.root.find_node(WSCRIPT_FUN)
-                        if node and (not once or node not in cache):
-                                cache[node] = True
-                                self.pre_recurse(node)
-                                try:
-                                        function_code = node.read('rU')
-                                        exec(compile(function_code, node.abspath(), 'exec'), self.exec_dict)
-                                finally:
-                                        self.post_recurse(node)
-                        elif not node:
-                                node = self.root.find_node(WSCRIPT)
-                                if node and (not once or node not in cache):
-                                        cache[node] = True
-                                        self.pre_recurse(node)
-                                        try:
-                                                wscript_module = mod.load_module(node.abspath())
-                                                user_function = getattr(wscript_module, (name or self.fun), None)
-                                                if not user_function:
-                                                        if not mandatory:
-                                                                continue
-                                                        raise Errors.WafError('No function %s defined in %s' % (name or self.fun, node.abspath()))
-                                                user_function(self)
-                                        finally:
-                                                self.post_recurse(node)
-                                elif not node:
-                                        if not mandatory:
-                                                continue
-                                        raise Errors.WafError('No wscript file in directory %s' % d)
-mod.Context = Context
-mod.WSCRIPT_FILE = 'wscript.py'
-  group: " #! /usr/bin/env python
-# encoding: utf-8
-
-"""
-Create a waf file able to read wscript files ending in ".py"
-execute a small test to show that it works
-
-The waf file includes "extpy.py" which performs the required modifications
-"""
-
-import os, subprocess
-
-up = os.path.dirname
-join = os.path.join
-
-cwd = os.getcwd()
-extpy = join(cwd, 'extpy.py')
-args = 'python waf-light --tools=compat15,%s --prelude=$"\tfrom waflib.extras import extpy\n" ' % extpy
-root = up(up(cwd))
-
-subprocess.Popen(args, cwd=root, shell=True).wait()
-os.rename(join(root, 'waf'), join(cwd, 'waf.py'))
-
-env = dict(os.environ)
-if 'WAFDIR' in env:
-        del env['WAFDIR']
-
-subprocess.Popen('python waf.py configure', cwd=cwd, shell=True, env=env).wait() "
-  cancel-in-progress: #! /usr/bin/env python
-# encoding: utf-8
-
-def configure(conf):
-        print("test succeeded")
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
   # Build job
