@@ -58,7 +58,7 @@ distributionUrl=https\://services.gradle.org/distributions/gradle-2.2.1-all.zip
  * Project home page: http://code.google.com/p/usb-serial-for-android/
  */
 ///////////////////////////////////////////////////////////////////////////////////////////
-//  Written by: Mike Goza April 2014
+//  Written by: April 2014
 //
 //  These routines interface with the Android USB Host devices for serial port communication.
 //  The code uses the usb-serial-for-android software library.  The QGCActivity class is the
