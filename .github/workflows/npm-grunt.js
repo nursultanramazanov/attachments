@@ -1,353 +1,254 @@
 name: NodeJS with Grunt
 
-on: #! /usr/bin/env python
-# encoding: utf-8
+on: 
+                                Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
 
-import os
-from waflib import Errors, Utils
-from waflib import Context as mod
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
 
-class Context(mod.Context):
-        cmd = 'all'
-        def recurse(self, dirs, name=None, mandatory=True, once=True):
-                try:
-                        cache = self.recurse_cache
-                except:
-                        cache = self.recurse_cache = {}
+   1. Definitions.
 
-                for d in Utils.to_list(dirs):
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
 
-                        if not os.path.isabs(d):
-                                # absolute paths only
-                                d = os.path.join(self.path.abspath(), d)
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
 
-                        WSCRIPT     = os.path.join(d, 'wscript.py')
-                        WSCRIPT_FUN = 'wscript_' + (name or self.fun) + '.py'
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
 
-                        node = self.root.find_node(WSCRIPT_FUN)
-                        if node and (not once or node not in cache):
-                                cache[node] = True
-                                self.pre_recurse(node)
-                                try:
-                                        function_code = node.read('rU')
-                                        exec(compile(function_code, node.abspath(), 'exec'), self.exec_dict)
-                                finally:
-                                        self.post_recurse(node)
-                        elif not node:
-                                node = self.root.find_node(WSCRIPT)
-                                if node and (not once or node not in cache):
-                                        cache[node] = True
-                                        self.pre_recurse(node)
-                                        try:
-                                                wscript_module = mod.load_module(node.abspath())
-                                                user_function = getattr(wscript_module, (name or self.fun), None)
-                                                if not user_function:
-                                                        if not mandatory:
-                                                                continue
-                                                        raise Errors.WafError('No function %s defined in %s' % (name or self.fun, node.abspath()))
-                                                user_function(self)
-                                        finally:
-                                                self.post_recurse(node)
-                                elif not node:
-                                        if not mandatory:
-                                                continue
-                                        raise Errors.WafError('No wscript file in directory %s' % d)
-mod.Context = Context
-mod.WSCRIPT_FILE = 'wscript.py'
-  push: #! /usr/bin/env python
-# encoding: utf-8
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
 
-"""
-Create a waf file able to read wscript files ending in ".py"
-execute a small test to show that it works
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
 
-The waf file includes "extpy.py" which performs the required modifications
-"""
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
 
-import os, subprocess
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
 
-up = os.path.dirname
-join = os.path.join
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
 
-cwd = os.getcwd()
-extpy = join(cwd, 'extpy.py')
-args = 'python waf-light --tools=compat15,%s --prelude=$"\tfrom waflib.extras import extpy\n" ' % extpy
-root = up(up(cwd))
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
 
-subprocess.Popen(args, cwd=root, shell=True).wait()
-os.rename(join(root, 'waf'), join(cwd, 'waf.py'))
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
 
-env = dict(os.environ)
-if 'WAFDIR' in env:
-        del env['WAFDIR']
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
 
-subprocess.Popen('python waf.py configure', cwd=cwd, shell=True, env=env).wait()
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "[]"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright [yyyy] [name of copyright owner]
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+  push: Use your text editor to write in your browser (Firefox, Chrome, Opera). Everything you type in the editor will be instantly updated in the browser.
+
+<strong>Compatible editors:</strong>
+
+<ul>
+    <li>Sublime Text - <a href="https://packagecontrol.io/packages/GhostText">Install extension</a></li>
+    <li>Atom - <a href="https://github.com/fregante/GhostText-for-Atom">Install extension</a></li>
+    <li>VS Code - <a href="https://marketplace.visualstudio.com/items?itemName=tokoph.ghosttext">Install extension</a></li>
+    <li>Vim - <a href="https://github.com/falstro/ghost-text-vim">Install extension</a></li>
+</ul>
+
+<strong>Setup:</strong>
+
+<ol>
+    <li>Install the extension in Firefox</li>
+    <li>Install the extension in your editor</li>
+    <li>If using Atom or VS Code, you'll have to "Enable the server" in the editor's command palette.</li>
+</ol>
+
+<strong>Usage:</strong>
+
+<ol>
+    <li>Visit a page with a compatible text field (<code>&lt;textarea&gt;</code>, CodeMirror and ACE editor); for example <a href="https://hastebin.com/">hastebin</a></li>
+    <li>Click the GhostText button in the upper-right corner of the browser</li>
+    <li>If more than one field is detected, you'll be asked to click in it</li>
+    <li>Once the field is selected, your editor will be connected.</li>
+    <li><em>Start typing!</em></li>
+</ol>
     branches: [ "main" ]
-  pull_request: #! /usr/bin/env python
-# encoding: utf-8
-
-def configure(conf):
-        print("test succeeded")
+  pull_request:
     branches: [ "main" ]
 
-jobs: #include "a.h"
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-void test() {
-
-}
-  build: void test();
-    runs-on: #include "a.h"
-
-int main() {
-        test();
-        return 0;
-}
-
-    strategy: #! /usr/bin/env python
-# encoding: utf-8
-# (ita)
-
-"""
-Calling 'waf build' executes a normal build with Waf
-Calling 'waf clean dump' will create a makefile corresponding to the build
-The dependencies will be extracted too
-"""
-
-VERSION='0.0.1'
-APPNAME='cc_test'
-
-top = '.'
-
-def options(opt):
-        opt.load('compiler_c')
-
-def configure(conf):
-        conf.load('compiler_c')
-
-def build(bld):
-        bld.program(source='main.c', target='app', use='mylib', cflags=['-O2'])
-        bld.stlib(source='a.c', target='mylib')
-
-# ---------------------------------------------------------------------------
-
-from waflib import Build, Logs
-class Dumper(Build.BuildContext):
-        fun = 'dump'
-        cmd = 'dump'
-
-def dump(bld):
-        # call the build function as if a real build were performed
-        build(bld)
-
-        from waflib import Task
-        bld.commands = []
-        bld.targets = []
-
-        # store the command executed
-        old_exec = Task.TaskBase.exec_command
-        def exec_command(self, *k, **kw):
-                ret = old_exec(self, *k, **kw)
-                self.command_executed = k[0]
-                self.path = kw['cwd'] or self.generator.bld.cwd
-                return ret
-        Task.TaskBase.exec_command = exec_command
-
-        # perform a fake build, and accumulate the makefile bits
-        old_process = Task.TaskBase.process
-        def process(self):
-                old_process(self)
-
-                lst = []
-                for x in self.outputs:
-                        lst.append(x.path_from(self.generator.bld.bldnode))
-                bld.targets.extend(lst)
-                lst.append(':')
-                for x in self.inputs + self.dep_nodes + self.generator.bld.node_deps.get(self.uid(), []):
-                        lst.append(x.path_from(self.generator.bld.bldnode))
-                try:
-                        if isinstance(self.command_executed, list):
-                                self.command_executed = ' '.join(self.command_executed)
-                except Exception as e:
-                        print(e)
-                else:
-                        bld.commands.append(' '.join(lst))
-                        bld.commands.append('\tcd %s && %s' % (self.path, self.command_executed))
-        Task.TaskBase.process = process
-
-        # write the makefile after the build is complete
-        def output_makefile(self):
-                self.commands.insert(0, "all: %s" % " ".join(self.targets))
-                node = self.bldnode.make_node('Makefile')
-                node.write('\n'.join(self.commands))
-                Logs.warn('Wrote %r', node)
-        bld.add_post_fun(output_makefile)
-      matrix: This example demonstrates the creation of a particular build tool which compiles
-specific files directly, for example:
-
-main.c includes foo.h
-foo.h has a corresponding foo.c file
-foo.c includes bar.h
-bar.h has a corresponding bar.c file
-
-Calling './dbd build' will then compile and link 'main.c', 'foo.c' and 'bar.c' into the program 'app'.
-No script file is required, although the build will create a .lock file and a c4che directory.
-
-To create the build tool:
-   ./create_it.sh
-
-To use on the file bbit which creates a program out of main.c:
-   ./cbd clean build
-
-        node-version: int bar = 4434;
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x, 22.x]
 
     steps:
-    - uses: # /bin/bash
+    - uses: actions/checkout@v4
 
-D=$PWD
-pushd ../..
-./waf-light configure build --tools=$D/dbdlib.py --prelude=$'\tfrom waflib.extras import dbdlib\n\tdbdlib.start(cwd, VERSION, wafdir)\n\tsys.exit(0)'
-popd
-cp ../../waf dbd
-
-
-    - name: Use Node.js ${{ #! /usr/bin/env python
-
-import os, sys, imp
-from waflib import Context, Options, Configure, Utils, Logs, TaskGen, Task
-import waflib.Tools.c
-
-"""
-Compile main.c and dependent object files into a single target (program/shlib/stlib or just object files)
-
-- no build directory and no script files
-- just a c4che directory for the configuration files
-- configure, clean or build
-
-Uses the task signatures and the dependency calculation results to avoid
-rescanning/rebuilding the files all the time
-"""
-
-def options(opt):
-        opt.add_option('--type', action='store', default='program', help='type: program, shlib, stlib, objects', dest='progtype')
-        opt.add_option('--source', action='store', default='main.c', help='space-separated list of source files', dest='source')
-        opt.add_option('--app', action='store', default='app', help='name of the binary file to create', dest='app')
-        opt.load('compiler_c')
-
-def configure(conf):
-        conf.options = Options.options
-        conf.load('compiler_c')
-
-def build(bld):
-        tp = Options.options.progtype
-        features = 'c cprogram'
-        if tp == 'shlib':
-                features = 'c cshlib'
-        elif tp == 'stlib':
-                features = 'c cstlib'
-        elif tp == 'objects':
-                features = 'c'
-
-        source = Options.options.source
-        app = Options.options.app
-        bld(features=features, source=source, target=app)
-
-def recurse_rep(x, y):
-        f = getattr(Context.g_module, x.cmd or x.fun, Utils.nada)
-        return f(x)
-
-def start(cwd, version, wafdir):
-        # this is the entry point of our small build system
-        # no script file here
-        Logs.init_log()
-        Context.waf_dir = wafdir
-        Context.out_dir = Context.top_dir = Context.run_dir = cwd
-        Context.g_module = imp.new_module('wscript')
-        Context.g_module.root_path = cwd
-        Context.Context.recurse = recurse_rep
-
-        Context.g_module.configure = configure
-        Context.g_module.build = build
-        Context.g_module.options = options
-        Context.g_module.top = Context.g_module.out = '.'
-
-        Options.OptionsContext().execute()
-
-        do_config = 'configure' in sys.argv
-        try:
-                os.stat(cwd + os.sep + 'c4che')
-        except:
-                do_config = True
-        if do_config:
-                Context.create_context('configure').execute()
-
-        if 'clean' in sys.argv:
-                Context.create_context('clean').execute()
-
-        if 'build' in sys.argv:
-                Context.create_context('build').execute()
-
-
-class c2(waflib.Tools.c.c):
-        # Make a subclass of the default c task, and bind the .c extension to it
-
-        def runnable_status(self):
-                ret = super(waflib.Tools.c.c, self).runnable_status()
-                self.more_tasks = []
-
-                # use a cache to avoid creating the same tasks
-                # for example, truc.cpp might be compiled twice
-                try:
-                        shared = self.generator.bld.shared_tasks
-                except AttributeError:
-                        shared = self.generator.bld.shared_tasks = {}
-
-                if ret != Task.ASK_LATER:
-                        for x in self.generator.bld.node_deps[self.uid()]:
-                                node = x.parent.get_src().find_resource(x.name.replace('.h', '.c'))
-                                if node:
-                                        try:
-                                                tsk = shared[node]
-                                        except:
-                                                tsk = shared[node] = self.generator.c_hook(node)
-
-                                                self.more_tasks.append(tsk)
-
-                                        # add the node created to the link task outputs
-                                        try:
-                                                link = self.generator.link_task
-                                        except AttributeError:
-                                                pass
-                                        else:
-                                                if not tsk.outputs[0] in link.inputs:
-                                                        link.inputs.append(tsk.outputs[0])
-                                                        link.set_run_after(tsk)
-
-                                                        # any change in the order of the input nodes may cause a recompilation
-                                                        link.inputs.sort(key=lambda x: x.abspath())
-
-                        # if you want to modify some flags
-                        # you *must* have the task recompute the signature
-                        self.env.append_value('CXXFLAGS', '-O2')
-                        delattr(self, 'cache_sig')
-                        return super(waflib.Tools.c.c, self).runnable_status()
-
-                return ret
-
-@TaskGen.extension('.c')
-def c_hook(self, node):
-        # re-bind the extension to this new class
-        return self.create_compiled_task('c2', node) }}
-      uses: #include "foo.h"
-#include "bar.h"
-
-int k = 334;
-      with:                         
-        node-version: ${{ #include "foo.h"
-#include <stdio.h>
-int main() {
-        printf("hello from app\n");
-        return 0;
-} }}
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
 
     - name: Build
       run: |
