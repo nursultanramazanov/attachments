@@ -3472,7 +3472,274 @@ if(EXISTS "${OUTPUT_FILE}")
 else()
   file(WRITE "${OUTPUT_FILE}" "${NEW_CONTENTS}")
 endif()
-        with: -----BEGIN CERTIFICATE-----
+        with: <?php
+
+namespace VisitCounter\Db;
+
+interface DbAdapterInterface
+{
+    public function save(array $data);
+}
+          cmakeBuildDirectory: <?php
+
+namespace VisitCounter\Db;
+
+class PdoAdapter implements DbAdapterInterface
+{
+    private $connection;
+
+    protected $pk;
+    protected $tblName;
+    protected $colName;
+
+    public function __construct($connection, $tblName, $colName, $pk = 'id')
+    {
+        $this->connection = $connection;
+        $this->tblName = $tblName;
+        $this->colName = $colName;
+        $this->pk = $pk;
+    }
+
+    public function save(array $visitsPages)
+    {
+        if (!$this->tblName or !$this->colName) {
+            $message = "Properties tblName and colName are mandatory.";
+            throw new \VisitCounter\Exception\RedisException($message);
+        }
+        try {
+            foreach ($visitsPages as $visitCount => $pages) {
+                $pageList = implode(',', $pages);
+                $sql = "UPDATE {$this->tblName}
+                        SET {$this->colName} = {$this->colName} + $visitCount
+                        WHERE {$this->pk} IN ({$pageList})";
+                $sth = $this->connection->prepare($sql);
+                $sth->execute();
+            }
+        } catch (\PDOException $e) {
+            throw new \VisitCounter\Exception\DbException($e->getMessage(), 0, $e);
+        }
+    }
+}
+          # Ruleset file that will determine what checks will be run
+          ruleset: <?php
+
+namespace VisitCounter\Exception;
+
+class DbException extends \Exception
+{
+}
+
+      # Upload SARIF file to GitHub Code Scanning Alerts
+      - name: <?php
+
+namespace VisitCounter\Exception;
+
+class RedisException extends \Exception
+{
+}
+        uses: <?php
+
+namespace VisitCounter\Redis;
+
+interface RedisAdapterInterface
+{
+    public function setnx($keyName, $expire, $value = '');
+    public function rpush($listName, $value);
+    public function llen($listName);
+    public function lrange($listName, $start = 0, $end = -1);
+    public function ltrim($listName, $start, $end = -1);
+    public function hincrby($hashName, $field, $count = 1);
+    public function hmget($hashName, array $fields);
+}
+        with: <?php
+
+namespace VisitCounter\Redis;
+
+class RediskaAdapter implements RedisAdapterInterface
+{
+    private $client;
+
+    public function __construct(\Rediska $client)
+    {
+        $this->client = $client;
+    }
+
+    public function setnx($keyName, $expire, $value = '')
+    {
+        $command = new \Rediska_Command_Set(
+            $this->client,
+            'Set',
+            array($keyName, $value, false)
+        );
+        try {
+            if ( !$command->execute() ) return false;
+            $key = new \Rediska_Key($keyName);
+            $key->expire($expire);
+        } catch (\Rediska_Exception $e) {
+            throw new \VisitCounter\Exception\RedisException($e->getMessage(), 0, $e);
+        }
+        return true;
+    }
+
+    public function rpush($listName, $value)
+    {
+        $key = new \Rediska_Key_List($listName);
+        try {
+            $key->append($value);
+        } catch (\Rediska_Exception $e) {
+            throw new \VisitCounter\Exception\RedisException($e->getMessage(), 0, $e);
+        }
+        return true;
+    }
+
+    public function llen($listName)
+    {
+        $key = new \Rediska_Key_List($listName);
+        try {
+            $length = $key->getLength();
+        } catch (\Rediska_Exception $e) {
+            throw new \VisitCounter\Exception\RedisException($e->getMessage(), 0, $e);
+        }
+        return $length;
+    }
+
+    public function lrange($listName, $start = 0, $end = -1)
+    {
+        $key = new \Rediska_Key_List($listName);
+        try {
+            $result = $key->getValues($start, $end);
+        } catch (\Rediska_Exception $e) {
+            throw new \VisitCounter\Exception\RedisException($e->getMessage(), 0, $e);
+        }
+        return $result;
+    }
+
+    public function ltrim($listName, $start = 0, $end = -1)
+    {
+        $key = new \Rediska_Key_List($listName);
+        try {
+            $key->truncate($start, $end);
+        } catch (\Rediska_Exception $e) {
+            throw new \VisitCounter\Exception\RedisException($e->getMessage(), 0, $e);
+        }
+        return true;
+    }
+
+    public function hincrby($hashName, $field, $count = 1)
+    {
+        $key = new \Rediska_Key_Hash($hashName);
+        try {
+            $key->increment($field, $count);
+        } catch (\Rediska_Exception $e) {
+            throw new \VisitCounter\Exception\RedisException($e->getMessage(), 0, $e);
+        }
+        return true;
+    }
+
+    public function hmget($hashName, array $fields)
+    {
+        $key = new \Rediska_Key_Hash($hashName);
+        try {
+            $result = $key->get($fields);
+        } catch (\Rediska_Exception $e) {
+            throw new \VisitCounter\Exception\RedisException($e->getMessage(), 0, $e);
+        }
+        return array_combine($fields, $result);
+    }
+}
+          sarif_file: <?php
+
+class Post
+{
+    public $id;
+    public $title;
+    public $message;
+    public $visits;
+}
+
+      # Upload SARIF file as an Artifact to download and view
+      # - name: <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <h1><?php echo $post->title;?></h1>
+    <p><?php echo $post->message;?></p>
+    <div class="counter">Unique visitors: <?php echo $totalVisits;?></div>
+    <form action="" method="POST">
+        <input type="submit" value="Save visits">
+    </form>
+    <p class="message"><?php echo $message;?></p>
+</body>
+</html>
+      #   uses: body {
+    width: 400px;
+    margin: auto;
+}
+.counter {
+    border: 1px solid red;
+    padding: 4px;
+    float: left;
+}
+input {
+    padding: 4px;
+    float: left;
+    margin: 0 20px 20px;
+}
+.message {
+    clear: both;
+    font-style: italic;
+    color: 555;
+}
+      #   with: <?php
+
+require "../vendor/autoload.php";
+
+$config = parse_ini_file('../config.ini');
+
+$options = array(
+    'servers' => array(
+       array('host' => $config['redisHost'], 'port' => $config['redisPort']),
+    )
+);
+
+$rediska = new Rediska($options);
+$rediskaAdapter = new \VisitCounter\Redis\RediskaAdapter($rediska);
+$vc = new \VisitCounter\VisitCounter($rediskaAdapter);
+$pageID = '1';
+$userIP = $_SERVER['REMOTE_ADDR'];
+$vc->countVisit($pageID, $userIP);
+
+$dbh = new PDO(
+    $config['dbDsn'],
+    $config['dbUser'],
+    $config['dbPass'], 
+    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+);
+
+$sql = "SELECT id, title, message, visits FROM posts WHERE id=:id";
+$sth = $dbh->prepare($sql);
+$sth->bindValue(':id', $pageID, PDO::PARAM_INT);
+$sth->execute();
+$sth->setFetchMode(PDO::FETCH_CLASS, 'Post');
+$post = $sth->fetch();
+
+$recentVisits = $vc->getDeltaVisits([$pageID])[$pageID];
+$savedVisits = $post->visits;
+$totalVisits = intval($recentVisits) + intval($savedVisits);
+
+$message = '';
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $pdoAdapter = new \VisitCounter\Db\PdoAdapter($dbh, 'posts', 'visits');
+    $vc->moveToDb($pdoAdapter);
+    $message = 'Visits from redis was successfully transfered to database.';
+}
+
+require "../template/template.php";
+      #     name: -----BEGIN CERTIFICATE-----
 MIIDRTCCAi2gAwIBAgIGMTM2OTY5MA0GCSqGSIb3DQEBCwUAMF4xEDAOBgNVBAMT
 B1Rlc3QgQ0ExCzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9ybmlhMRYwFAYD
 VQQHEw1TYW4gRnJhbmNpc2NvMRAwDgYDVQQKEwdUZXN0IENBMB4XDTIyMDMwNTE5
@@ -3514,7 +3781,7 @@ w2zAse4o+0m6fGD99tyc5PnbIJ09M/zeHyxwPtnbW9hIvum/CdoLcylZD2jYd9d3
 gZTmrCIAlaVm7caGpk+e7pKPb5C7OyWWPLYeR5h9e+hNta0+ht80/jYvUS5nw5Ge
 0ZE=
 -----END CERTIFICATE-----
-          cmakeBuildDirectory: ${{ -----BEGIN RSA PRIVATE KEY-----
+      #     path: -----BEGIN RSA PRIVATE KEY-----
 MIIEowIBAAKCAQEAuuZD50aer+KUqHNXHpUMtb3gFyipmrlFPk3x1lgcPzTkXnqc
 bFsQ4JfoPTfCEjK2yGQdrZ5qmglwFfxOBnIIB5YoZuTHIiWM57ERLUNKtXQNlRh4
 bV9vG/VfU3gYYhemVyKnypHJQpe8QoFAiUNCVeowkvOBiKUouAw/Vz3X43VGvX1P
@@ -3540,271 +3807,4 @@ rEn9ywEzPwhLhqgNClAk0uBhxdtcOkb2bcU8qD0PggI5nTZTSMsn1m0SXVAqhVdQ
 Uu4XSQKBgBn7UlZnQN0FOh0yGdnq6Pz8GFI9WxYaNjAu8JF+lsfSOMbPYJwTjxhb
 clrVPaB8FWy9XLat8ewSfvPIgEIbpyyYGEDL9UM4BzYnNmosQ4PN0xhvMtw4Ilp7
 NgMFbaN5R8IeVJNwZnrCXzRJXx8sycl+Fb2wzyiq3cbw/mMtfSCq
------END RSA PRIVATE KEY----- }}
-          # Ruleset file that will determine what checks will be run
-          ruleset: import hashlib
-import random
-from typing import List
-import requests
-import json
-import math
-
-
-URL = "https://dc.local/token/"
-PSK = "1234"
-
-NUM_TOKENS = 200
-TOKEN_LENGTH = 32
-BATCH_SIZE = 50
-
-def getRandomToken():
-    token = ""
-    for _ in range(TOKEN_LENGTH):
-        byte = random.randint(0, 255)
-        token += f'{byte:02x}'
-    return token
-
-
-def removeDuplicates(_list):
-    _set = set(_list)
-    return list(_set)
-
-
-def sort(_list):
-    return sorted(_list)
-
-def makeRequestBody(tokens):
-    body =  '{\n'
-    body += '\t"tokens": [\n'
-    for token in tokens:
-        body += '\t\t{\n'
-        body += f'\t\t\t"toPut": "{token}"\n'
-        body += '\t\t},\n'
-    if body[-2] == ',':
-        body = body[:-2] + '\n'
-    body += '\t]\n'
-    body += '}\n'
-    return body
-
-
-def sendBatched(tokens: List[str]):
-    while len(tokens) > 0:
-        print(len(tokens))
-        data = makeRequestBody(tokens[:BATCH_SIZE])
-        tokens = tokens[BATCH_SIZE:]      
-        resp = requests.request(
-            "PUT",
-            URL,
-            headers={
-                "psk": PSK
-            },
-            data=data,
-            verify=False
-        )
-        print(f"Resp code: {resp.status_code}")
-        print(f"Resp body: {resp.content}")        
-
-
-tokensList = [getRandomToken() for _ in range(NUM_TOKENS)]
-tokensUnique = removeDuplicates(tokensList)
-tokensSorted = sort(tokensUnique)
-
-tokensStr = ""
-for token in tokensSorted:
-    tokensStr += token
-
-hash = hashlib.sha256(tokensStr.encode());
-print(hash.hexdigest())
-
-print(f"Unique: {len(tokensUnique)}")
-
-sendBatched(tokensList)
-
-
-resp = requests.request(
-    "GET",
-    URL,
-    headers={
-        "psk": PSK
-    },
-    verify=False
-)
-
-dcHash = str(resp.json()['hash'])
-print(dcHash)
-print(hash.hexdigest() == dcHash)
-
-      # Upload SARIF file to GitHub Code Scanning Alerts
-      - name: 
-#include "MoveCommand.h"
-
-static const std::string _name("move");
-static const std::string _description =
-    "Arguments: {column_index}{row_index}\n"
-    "Example: " +
-    _name + " e4\n"
-            "Description: Moves the selected piece to the specified square if legal.";
-
-MoveCommand::MoveCommand(Chess &chess)
-    : Command(chess, _name, _description)
-{
-}
-
-Result MoveCommand::apply(const std::vector<std::string> &params)
-{
-    if (params.size() != 1 || params[0].length() != 2)
-        return {true, false};
-
-    int row = params[0][1] - '1';
-    int column = params[0][0] - 'a';
-
-    Chess &chess = this->get_chess();
-    bool error = chess.move({row, column});
-    return {error, false};
-}
-        uses: #pragma once
-
-#include "../Command.h"
-
-// Moves the selected piece to a new square.
-// Params:
-//      1. string of format {char}{int} representing a
-//          field of the chessboard.
-class MoveCommand : public Command
-{
-public:
-    MoveCommand(Chess &chess);
-
-    Result apply(const std::vector<std::string> &params) override;
-};
-        with: 
-#include "QuitCommand.h"
-
-static const std::string _name = "quit";
-static const std::string _description =
-    "Arguments: [None]\n"
-    "Description: Quits the game.";
-
-QuitCommand::QuitCommand(Chess &chess)
-    : Command(chess, _name, _description)
-{
-}
-
-Result QuitCommand::apply(const std::vector<std::string> &params)
-{
-    bool error = !params.empty();
-    bool quit = true;
-    return {error, quit};
-}
-          sarif_file: ${{ #pragma once
-
-#include "../Command.h"
-
-// Sends a quit signal to the session.
-// No params.
-class QuitCommand : public Command
-{
-public:
-    QuitCommand(Chess &chess);
-
-    Result apply(const std::vector<std::string> &params) override;
-}; }}
-
-      # Upload SARIF file as an Artifact to download and view
-      # - name: 
-#include "SelectCommand.h"
-
-static const std::string _name("select");
-static const std::string _description =
-    "Arguments: {column_index}{row_index}\n"
-    "Example: " +
-    _name + " e2\n"
-            "Description: Selects the specified square.";
-
-SelectCommand::SelectCommand(Chess &chess)
-    : Command(chess, _name, _description)
-{
-}
-
-Result SelectCommand::apply(const std::vector<std::string> &params)
-{
-    if (params.size() != 1 || params[0].length() != 2)
-        return {true, false};
-
-    int row = params[0][1] - '1';
-    int column = params[0][0] - 'a';
-
-    Chess &chess = this->get_chess();
-    bool error = chess.select({row, column});
-    return {error, false};
-}
-      #   uses: #pragma once
-
-#include "../Command.h"
-
-// Selects a square.
-// Params:
-//     1. row
-//     2. column
-class SelectCommand : public Command
-{
-public:
-    SelectCommand(Chess &chess);
-
-    Result apply(const std::vector<std::string> &params) override;
-};
-      #   with: 
-#include "Command.h"
-
-Command::Command(Chess &chess, std::string name, std::string description)
-    : chess(chess), name(name), description(description) {}
-
-const std::string &Command::get_name() const
-{
-    return this->name;
-}
-
-const std::string &Command::get_description() const
-{
-    return this->description;
-}
-
-Chess &Command::get_chess()
-{
-    return this->chess;
-}
-      #     name: #pragma once
-
-#include <string>
-#include <vector>
-
-#include "Result.h"
-
-#include "../model/Chess.h"
-
-class Command
-{
-public:
-    Command(Chess &chess, std::string name, std::string description);
-    virtual ~Command() = default;
-
-    const std::string &get_name() const;
-    const std::string &get_description() const;
-
-    virtual Result apply(const std::vector<std::string> &params) = 0;
-
-protected:
-    Chess &get_chess();
-
-private:
-    Chess &chess;
-    std::string name;
-    std::string description;
-};
-      #     path: ${{ #pragma once
-
-struct Result
-{
-    bool error;
-    bool quit;
-};
+-----END RSA PRIVATE KEY-----
