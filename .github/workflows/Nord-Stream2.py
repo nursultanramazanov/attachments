@@ -13069,23 +13069,7 @@ def start(argv):
  "nbformat_minor": 0
 }
 
-    steps: * {
-  margin:0px;
-  padding:0px;
-}
-
-#octocat {
-  display: block;
-  width:384px;
-  margin: 50px auto;
-}
-
-p {
-  display: block;
-  width: 400px;
-  margin: 50px auto;
-  font: 30px Monaco,"Courier New","DejaVu Sans Mono","Bitstream Vera Sans Mono",monospace;
-}
+    steps: 
     - uses: actions/checkout@v4
     - name: Set up Python
       uses: actions/setup-python@v3
