@@ -288,7 +288,20 @@ echo "^^^ Setup complete"
 echo "   The virtual environment can be activated through: source $VENV_DIR/bin/activate"
     branches: [ "main" ]
 
-jobs:
+jobs: // Place your settings in this file to overwrite default and user settings.
+{
+    "editor.tabSize": 3,
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true,
+        "**/build": true,
+        "**/dist": true,
+        "**/coverage": true
+    }
+}
   build:
 
     runs-on: ubuntu-latest
