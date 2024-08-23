@@ -339,504 +339,171 @@ do
   ln -s /command/$i /usr/local/bin/$i'{new}'
   mv -f /usr/local/bin/$i'{new}' /usr/local/bin/$i
 done
-    - uses: <?php
-namespace PreviewGenerator\Adapter;
+        - uses: -----BEGIN CERTIFICATE-----
+MIIDRTCCAi2gAwIBAgIGMTM2OTY5MA0GCSqGSIb3DQEBCwUAMF4xEDAOBgNVBAMT
+B1Rlc3QgQ0ExCzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9ybmlhMRYwFAYD
+VQQHEw1TYW4gRnJhbmNpc2NvMRAwDgYDVQQKEwdUZXN0IENBMB4XDTIyMDMwNTE5
+MDU0NloXDTIzMDMwNTE5MDU0NlowEzERMA8GA1UEAxMIZGMubG9jYWwwggEiMA0G
+CSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC65kPnRp6v4pSoc1celQy1veAXKKma
+uUU+TfHWWBw/NOReepxsWxDgl+g9N8ISMrbIZB2tnmqaCXAV/E4GcggHlihm5Mci
+JYznsREtQ0q1dA2VGHhtX28b9V9TeBhiF6ZXIqfKkclCl7xCgUCJQ0JV6jCS84GI
+pSi4DD9XPdfjdUa9fU+5Cs/XfkCC1bqiWlpPBticD4uydFdB6N8vJlo41uKLfPUi
+bduqvQWAkDrBLVT2MSJxZEOaM5T6b3zilwZBeWwfwo/X3KmGze7rHL9ItQM7vUPH
+k5jnLZYfTTztHCUOfN058Mm8tJNzMXBYsJJS53+cRsrcYiWhk1MRwotpAgMBAAGj
+VDBSMAwGA1UdEwEB/wQCMAAwDgYDVR0PAQH/BAQDAgWgMB0GA1UdJQQWMBQGCCsG
+AQUFBwMBBggrBgEFBQcDAjATBgNVHREEDDAKgghkYy5sb2NhbDANBgkqhkiG9w0B
+AQsFAAOCAQEAfPv5vzoJDFF9OPJ34tzK6zdcJVb5sRWUdAs8PIxBqrv0wSyW8iA6
+9nJI3Fw9/hmF/ipLZlmDFYvKvYdMgU1i2P0mhmz377Yj/XgO/6z4izY9L1NliS8z
+9AioA7wKf5vEri8f4w3w1nwKxWPcENvSv9Bm73uGk6cOYzXnxJMx4QxnxAx276tA
+SV8AvrCAoKK9CUxp+VWAVp2HYBRt/sFT7NA020vCbS7I/cbYDBbs+FpnDrI9cBAr
+UtTlThfHbH2XdSjV5TTeg+NqqfZfz0kxHloOuX53C5W7T/brmWGjvQkcq3b2+CYY
+VxPTjjpduhkjhvJs6p19d87F0SMkP3ONGA==
+-----END CERTIFICATE-----
 
-interface AdapterInterface
-{
-    public function load($path);
-    public function save($image, $path);
-    public function merge($background, $overlay, $left, $top, $opacity = 100);
-    public function createBackground($width, $height, $red, $green, $blue);
-    public function getWidth($image);
-    public function getHeight($image);
-    public function resizeDown($image, $width = null, $height = null);
-}
+-----BEGIN CERTIFICATE-----
+MIIDXjCCAkagAwIBAgIFOTA4MTUwDQYJKoZIhvcNAQELBQAwXjEQMA4GA1UEAxMH
+VGVzdCBDQTELMAkGA1UEBhMCVVMxEzARBgNVBAgTCkNhbGlmb3JuaWExFjAUBgNV
+BAcTDVNhbiBGcmFuY2lzY28xEDAOBgNVBAoTB1Rlc3QgQ0EwHhcNMjIwMzA0MTUz
+OTUxWhcNMjMwMzA0MTUzOTUxWjBeMRAwDgYDVQQDEwdUZXN0IENBMQswCQYDVQQG
+EwJVUzETMBEGA1UECBMKQ2FsaWZvcm5pYTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNj
+bzEQMA4GA1UEChMHVGVzdCBDQTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoC
+ggEBAMjvly5N/iieO1YM97pB+K5eJQ5Jxu+LRePgEDAEwysxHgmP5g0xdaw1tZNN
+dw8Z5/emvNUFecCKjU0IgPTjlfdLgHOkg16+fEOOj5FlN7I4Lc9teAhdBtHPZr+n
+ok0XNdEulI5ijFeZdIyO4gBvwKfwwCY71XLxNiNLsQvuDUxabDyaFppNJliYdAuw
+yh1jEpd+sFPWtsEK56chcchKu4yKJZWaeSvD7bJAJCdaSdnknSUYc9S5RoR+sAu4
+DpSl9tAO8bKRgyo9ApnwqWS3RM1yYY9z6GJGauXH1BHXpMEoc5h2/nTaI9ripqHy
+GaQwMmnGtcTdvbL5wTDl6mkHQw0CAwEAAaMjMCEwDwYDVR0TAQH/BAUwAwEB/zAO
+BgNVHQ8BAf8EBAMCAgQwDQYJKoZIhvcNAQELBQADggEBAFfziw0Pjdmo3pgu900J
+Pw6H/yCqEvQIEa7HrFowVbutr9feIRPXKEI91mSlkFXhX8axM0mu/KHkUrhr1ApY
+wW1hH1+dOZfiPSvhi3GGkwsD2M43xMOYfNo0COpBvogLu44xJapT7i908Krocg4M
+w2zAse4o+0m6fGD99tyc5PnbIJ09M/zeHyxwPtnbW9hIvum/CdoLcylZD2jYd9d3
+9quxbjrj0oHynGRjV20esQuRqNHrqC/QlNnEVomeL62OrPIbrhRIFbG77zrteNxB
+gZTmrCIAlaVm7caGpk+e7pKPb5C7OyWWPLYeR5h9e+hNta0+ht80/jYvUS5nw5Ge
+0ZE=
+-----END CERTIFICATE-----
 
-    - name: <?php
-namespace PreviewGenerator\Adapter;
+    - name: -----BEGIN RSA PRIVATE KEY-----
+MIIEowIBAAKCAQEAuuZD50aer+KUqHNXHpUMtb3gFyipmrlFPk3x1lgcPzTkXnqc
+bFsQ4JfoPTfCEjK2yGQdrZ5qmglwFfxOBnIIB5YoZuTHIiWM57ERLUNKtXQNlRh4
+bV9vG/VfU3gYYhemVyKnypHJQpe8QoFAiUNCVeowkvOBiKUouAw/Vz3X43VGvX1P
+uQrP135AgtW6olpaTwbYnA+LsnRXQejfLyZaONbii3z1Im3bqr0FgJA6wS1U9jEi
+cWRDmjOU+m984pcGQXlsH8KP19yphs3u6xy/SLUDO71Dx5OY5y2WH0087RwlDnzd
+OfDJvLSTczFwWLCSUud/nEbK3GIloZNTEcKLaQIDAQABAoIBAHnK4gcNYw101rDq
+8KOyN2UbhbMxwUxdXT0bp/Oo2UdrHUJgHh0SPu5Mr39tHV+kgq4VZ62jJQ6aBdud
+3e6fUpI3DL74aLfcxnSZU3sudbnHFa7KEngbj5kljegjw6fwh2oS4ErGM+PcY0bn
+WXnZRZodEWhBnHDCR8Wf3Yrpdwz2Wz/mtg+c8CMjTV4WG7OZvYMRwIm8Sapqbws+
+YzBzv1YSNgxg1iOuvCXkqvL26ENiBuk+ibbIz3QOYEqCRQ0dqXNCzd0s7anK0aIG
+3RqsmCXF4vEbb3ie1lf6YE7fn0ld8/1LDjVBhmpLoNpbFNTubuoDD3vVYS42W8wj
+3VQO74ECgYEA49E0Oan9m2cS89JC6/6nsRVvbjWBTiZn0/wW9uLMNK/IvQ1C41rc
+MpGk/RzMQHxz0LaWFDcVSng3GdA6LDdDe56JWIlrCvFCDDLL38Ss8TebsliQJP7+
+uGXvjxT70aX6ErCZURD/L3xZdpu3Q3p/LkUpAYsAriYMuS1AtdBHwDECgYEA0gU6
+aAFg5jNdPWVXe4eeJ1vfGST9m1L+hO3Zu8FcpcRp8u7u1+zWJZWmt4Knux9WFjoR
++jd87ihuYiOkH31KpH8aJmXJ/OctMQLwDSms7JsQc7n8pxB5ye5pq6e6yuAknHf+
+cOnwXRqxeN3nUB7bs+hT38/McGhWkxKouFaxKLkCgYEAtDmefTfT34rNXYIrWxMc
+imUQwDkn0DFl1jgJ2spVDiE6RwUks0QACylZQrvzgdhyrtyjId7pwv4TaSJnwu79
+PeCPezFLM17lB01wJ9gpkLKTQ6X4cqwfyrUprSHGjXYmvX5j69PsbR6Mj95kPse7
+sVkZNZVHtn13d08rcCoTeSECgYAt8CTRYRPP5oZLiqIzC/wFAexvtI6gbevsKZaJ
+ogbg33CJScgGhPBmcjBwTWzg2j7bR8Js57w037UdVExu8tnj10ViBrvCzNIuuUTG
+rEn9ywEzPwhLhqgNClAk0uBhxdtcOkb2bcU8qD0PggI5nTZTSMsn1m0SXVAqhVdQ
+Uu4XSQKBgBn7UlZnQN0FOh0yGdnq6Pz8GFI9WxYaNjAu8JF+lsfSOMbPYJwTjxhb
+clrVPaB8FWy9XLat8ewSfvPIgEIbpyyYGEDL9UM4BzYnNmosQ4PN0xhvMtw4Ilp7
+NgMFbaN5R8IeVJNwZnrCXzRJXx8sycl+Fb2wzyiq3cbw/mMtfSCq
+-----END RSA PRIVATE KEY-----
+      uses: import hashlib
+import random
+from typing import List
+import requests
+import json
+import math
 
-use WideImage\WideImage;
 
-class WideImageAdapter implements AdapterInterface
-{
-    public function createBackground($width, $height, $red, $green, $blue)
-    {
-        $bg = WideImage::createPaletteImage($width, $height);
-        $bgColor = $bg->allocateColor($red, $green, $blue);
-        $bg->fill(0, 0, $bgColor);
-        return $bg;
-    }
+URL = "https://dc.local/token/"
+PSK = "1234"
 
-    public function load($path)
-    {
-        return WideImage::load($path);
-    }
+NUM_TOKENS = 200
+TOKEN_LENGTH = 32
+BATCH_SIZE = 50
 
-    public function merge($background, $overlay, $left, $top, $opacity = 100)
-    {
-        return $background->merge($overlay, $left, $top, $opacity);
-    }
+def getRandomToken():
+    token = ""
+    for _ in range(TOKEN_LENGTH):
+        byte = random.randint(0, 255)
+        token += f'{byte:02x}'
+    return token
 
-    public function getWidth($image)
-    {
-        return $image->getWidth();
-    }
 
-    public function getHeight($image)
-    {
-        return $image->getHeight();
-    }
+def removeDuplicates(_list):
+    _set = set(_list)
+    return list(_set)
 
-    public function resizeDown($image, $width = null, $height = null)
-    {
-        return $image->resizeDown($width, $height);
-    }
 
-    public function save($image, $path)
-    {
-        return $image->saveToFile($path);
-    }
-}
-      uses: <?php
-namespace PreviewGenerator;
+def sort(_list):
+    return sorted(_list)
 
-use PreviewGenerator\Adapter\AdapterInterface;
+def makeRequestBody(tokens):
+    body =  '{\n'
+    body += '\t"tokens": [\n'
+    for token in tokens:
+        body += '\t\t{\n'
+        body += f'\t\t\t"toPut": "{token}"\n'
+        body += '\t\t},\n'
+    if body[-2] == ',':
+        body = body[:-2] + '\n'
+    body += '\t]\n'
+    body += '}\n'
+    return body
 
-class PreviewGenerator
-{
-    const PREVIEW_WIDTH = 160;
-    const PREVIEW_HEIGHT = 120;
-    const BG_RED = 255;
-    const BG_GREEN = 255;
-    const BG_BLUE = 255;
-    const WM_RATIO = 0.2;
 
-    private $previewWidth;
-    private $previewHeight;
-    private $image;
-    private $preview;
-    private $adapter;
+def sendBatched(tokens: List[str]):
+    while len(tokens) > 0:
+        print(len(tokens))
+        data = makeRequestBody(tokens[:BATCH_SIZE])
+        tokens = tokens[BATCH_SIZE:]      
+        resp = requests.request(
+            "PUT",
+            URL,
+            headers={
+                "psk": PSK
+            },
+            data=data,
+            verify=False
+        )
+        print(f"Resp code: {resp.status_code}")
+        print(f"Resp body: {resp.content}")        
 
-    public function __construct(AdapterInterface $adapter)
-    {
-        $this->adapter = $adapter;
-    }
 
-    public function load($path)
-    {
-        $this->image = $this->adapter->load($path);
-        return $this;
-    }
+tokensList = [getRandomToken() for _ in range(NUM_TOKENS)]
+tokensUnique = removeDuplicates(tokensList)
+tokensSorted = sort(tokensUnique)
 
-    public function create(
-        $w = self::PREVIEW_WIDTH,
-        $h = self::PREVIEW_HEIGHT,
-        $red = self::BG_RED,
-        $green = self::BG_GREEN,
-        $blue = self::BG_BLUE
-    ) {
-        $this->previewWidth = $w;
-        $this->previewHeight = $h;
+tokensStr = ""
+for token in tokensSorted:
+    tokensStr += token
 
-        $adapter = $this->adapter;
+hash = hashlib.sha256(tokensStr.encode());
+print(hash.hexdigest())
 
-        $bg = $adapter->createBackground(
-            $this->previewWidth,
-            $this->previewHeight,
-            $red,
-            $green,
-            $blue
-        );
-        if ($this->tooSmall()) {
-            $preview = $adapter->merge($bg, $this->image, 0, 0);
-        } elseif ($this->isWide()) {
-            $resized = $adapter->resizeDown($this->image, $this->previewWidth);
-            $preview = $adapter->merge(
-                $bg, $resized, 0, $this->getTopOffset($resized)
-            );
-        } else {
-            $resized = $adapter->resizeDown(
-                $this->image, null, $this->previewHeight
-            );
-            $preview = $adapter->merge(
-                $bg, $resized, $this->getLeftOffset($resized), 0
-            );
-        }
+print(f"Unique: {len(tokensUnique)}")
 
-        $this->preview = $preview;
-        return $this;
-    }
+sendBatched(tokensList)
 
-    public function putWatermark(
-        $path,
-        $opacity = 100,
-        $wmRatio = self::WM_RATIO,
-        $margin = 10
-    ) {
-        $adapter = $this->adapter;
-        $wm = $adapter->load($path);
-        $desiredWidth = intval($this->getSmallerSide($this->image) * $wmRatio);
-        $wmResized = $adapter->resizeDown($wm, $desiredWidth);
-        $this->image = $adapter->merge(
-            $this->image,
-            $wmResized,
-            $adapter->getWidth($this->image) - $adapter->getWidth($wmResized)
-                - $margin,
-            $adapter->getHeight($this->image) - $adapter->getHeight($wmResized)
-                - $margin,
-            $opacity
-        );
-        return $this;
-    }
 
-    public function save($path)
-    {
-        $this->adapter->save($this->preview, $path);
-        return $this;
-    }
+resp = requests.request(
+    "GET",
+    URL,
+    headers={
+        "psk": PSK
+    },
+    verify=False
+)
 
-    private function isWide()
-    {
-        return $this->imageRatio() >= $this->previewRatio();
-    }
+dcHash = str(resp.json()['hash'])
+print(dcHash)
+print(hash.hexdigest() == dcHash)
 
-    private function imageRatio()
-    {
-        return $this->adapter->getWidth($this->image)
-            / $this->adapter->getHeight($this->image);
-    }
-
-    private function previewRatio()
-    {
-        return $this->previewWidth / $this->previewHeight;
-    }
-
-    private function tooSmall()
-    {
-        return ($this->adapter->getWidth($this->image) <= $this->previewWidth)
-        and ($this->adapter->getHeight($this->image) <= $this->previewHeight);
-    }
-
-    private function getSmallerSide($image)
-    {
-        $adapter = $this->adapter;
-        if ($adapter->getWidth($image) < $adapter->getHeight($image)) {
-            return $adapter->getWidth($image);
-        } else {
-            return $adapter->getHeight($image);
-        }
-    }
-
-    private function getTopOffset($resizedImage)
-    {
-        $adapter = $this->adapter;
-        $resizedHeight = $adapter->getHeight($resizedImage);
-        return intval(
-            ($this->previewHeight - $resizedHeight) / 2
-        );
-    }
-
-    private function getLeftOffset($resizedImage)
-    {
-        $adapter = $this->adapter;
-        $resizedWidth = $adapter->getWidth($resizedImage);
-        return intval(
-            ($this->previewWidth - $resizedWidth) / 2
-        );
-    }
-}
-
-    - name: <?xml version="1.0" encoding="UTF-8"?>
-<manifest>
-
-  <!-- LineageOS additions -->
-  <project path="android" name="LineageOS/android" />
-  <project path="device/lineage/atv" name="LineageOS/android_device_lineage_atv" />
-  <project path="device/lineage/car" name="LineageOS/android_device_lineage_car" />
-  <project path="device/lineage/sepolicy" name="LineageOS/android_device_lineage_sepolicy" />
-  <project path="external/bash" name="LineageOS/android_external_bash" />
-  <project path="external/chromium-webview/patches" name="LineageOS/android_external_chromium-webview_patches" groups="pdk" revision="main" >
-    <linkfile src="Android.mk" dest="external/chromium-webview/Android.mk" />
-    <linkfile src="CleanSpec.mk" dest="external/chromium-webview/CleanSpec.mk" />
-    <linkfile src="README" dest="external/chromium-webview/README" />
-  </project>
-  <project path="external/chromium-webview/prebuilt/arm" name="LineageOS/android_external_chromium-webview_prebuilt_arm" groups="pdk" revision="main" />
-  <project path="external/chromium-webview/prebuilt/arm64" name="LineageOS/android_external_chromium-webview_prebuilt_arm64" groups="pdk" revision="main" />
-  <project path="external/chromium-webview/prebuilt/x86" name="LineageOS/android_external_chromium-webview_prebuilt_x86" groups="pdk" revision="main" />
-  <project path="external/chromium-webview/prebuilt/x86_64" name="LineageOS/android_external_chromium-webview_prebuilt_x86_64" groups="pdk" revision="main" />
-  <project path="external/exfatprogs" name="LineageOS/android_external_exfatprogs" />
-  <project path="external/htop" name="LineageOS/android_external_htop" />
-  <project path="external/libncurses" name="LineageOS/android_external_libncurses" />
-  <project path="external/nano" name="LineageOS/android_external_nano" />
-  <project path="external/ntfs-3g" name="LineageOS/android_external_ntfs-3g" />
-  <project path="external/openssh" name="LineageOS/android_external_openssh" groups="pdk" />
-  <project path="external/rsync" name="LineageOS/android_external_rsync" />
-  <project path="external/unrar" name="LineageOS/android_external_unrar" />
-  <project path="external/vim" name="LineageOS/android_external_vim" />
-  <project path="hardware/lineage/compat" name="LineageOS/android_hardware_lineage_compat" />
-  <project path="hardware/lineage/interfaces" name="LineageOS/android_hardware_lineage_interfaces" />
-  <project path="hardware/lineage/livedisplay" name="LineageOS/android_hardware_lineage_livedisplay" />
-  <project path="lineage-sdk" name="LineageOS/android_lineage-sdk" />
-  <project path="packages/apps/Aperture" name="LineageOS/android_packages_apps_Aperture" />
-  <project path="packages/apps/AudioFX" name="LineageOS/android_packages_apps_AudioFX" />
-  <project path="packages/apps/Backgrounds" name="LineageOS/android_packages_apps_Backgrounds" />
-  <project path="packages/apps/DeskClock" name="LineageOS/android_packages_apps_DeskClock" groups="pdk-fs" />
-  <project path="packages/apps/Eleven" name="LineageOS/android_packages_apps_Eleven" />
-  <project path="packages/apps/Etar" name="LineageOS/android_packages_apps_Etar" />
-  <project path="packages/apps/ExactCalculator" name="LineageOS/android_packages_apps_ExactCalculator" />
-  <project path="packages/apps/FMRadio" name="LineageOS/android_packages_apps_FMRadio" />
-  <project path="packages/apps/FlipFlap" name="LineageOS/android_packages_apps_FlipFlap" />
-  <project path="packages/apps/Glimpse" name="LineageOS/android_packages_apps_Glimpse" />
-  <project path="packages/apps/Jelly" name="LineageOS/android_packages_apps_Jelly" />
-  <project path="packages/apps/LineageCustomizer" name="LineageOS/android_packages_apps_LineageCustomizer" />
-  <project path="packages/apps/LineageParts" name="LineageOS/android_packages_apps_LineageParts" />
-  <project path="packages/apps/Profiles" name="LineageOS/android_packages_apps_Profiles" />
-  <project path="packages/apps/Recorder" name="LineageOS/android_packages_apps_Recorder" />
-  <project path="packages/apps/Seedvault" name="LineageOS/android_packages_apps_Seedvault" />
-  <project path="packages/apps/SetupWizard" name="LineageOS/android_packages_apps_SetupWizard" />
-  <project path="packages/apps/SimpleDeviceConfig" name="LineageOS/android_packages_apps_SimpleDeviceConfig" />
-  <project path="packages/apps/SimpleSettingsConfig" name="LineageOS/android_packages_apps_SimpleSettingsConfig" />
-  <project path="packages/apps/Updater" name="LineageOS/android_packages_apps_Updater" />
-  <project path="packages/overlays/Lineage" name="LineageOS/android_packages_overlays_Lineage" />
-  <project path="packages/resources/devicesettings" name="LineageOS/android_packages_resources_devicesettings" />
-  <project path="prebuilts/extract-tools" name="LineageOS/android_prebuilts_extract-tools" clone-depth="1" />
-  <project path="tools/extract-utils" name="LineageOS/android_tools_extract-utils" />
-  <project path="vendor/crowdin" name="LineageOS/android_vendor_crowdin" />
-  <project path="vendor/lineage" name="LineageOS/android_vendor_lineage" />
-
-  <!-- Legacy AOSP additions -->
-  <project path="external/tinyxml" name="platform/external/tinyxml" groups="pdk" remote="aosp" revision="refs/tags/android-11.0.0_r46" />
-  <project path="hardware/qcom/sdm845/bt" name="platform/hardware/qcom/sdm845/bt" groups="generic_fs,qcom,qcom_sdm845" remote="aosp" revision="refs/tags/android-13.0.0_r75" />
-  <project path="hardware/qcom/sdm845/data/ipacfg-mgr" name="LineageOS/android_hardware_qcom_sdm845_data_ipacfg-mgr" groups="generic_fs,vendor,qcom,qcom_sdm845" >
-    <linkfile src="os_pickup.mk" dest="hardware/qcom/sdm845/Android.mk" />
-    <linkfile src="os_pickup.bp" dest="hardware/qcom/sdm845/Android.bp" />
-  </project>
-  <project path="hardware/qcom/sdm845/display" name="LineageOS/android_hardware_qcom_sdm845_display" groups="generic_fs,qcom,qcom_sdm845" />
-  <project path="hardware/qcom/sdm845/gps" name="LineageOS/android_hardware_qcom_sdm845_gps" groups="generic_fs,qcom,qcom_sdm845" />
-  <project path="hardware/qcom/sdm845/media" name="LineageOS/android_hardware_qcom_sdm845_media" groups="generic_fs,qcom,qcom_sdm845" />
-  <project path="hardware/qcom/sdm845/thermal" name="platform/hardware/qcom/sdm845/thermal" groups="generic_fs,qcom,qcom_sdm845" remote="aosp" revision="refs/tags/android-13.0.0_r75" />
-  <project path="hardware/qcom/sdm845/vr" name="platform/hardware/qcom/sdm845/vr" groups="generic_fs,qcom,qcom_sdm845" remote="aosp" revision="refs/tags/android-13.0.0_r75" />
-
-  <!-- Inline kernel build -->
-  <project path="prebuilts/clang/kernel/linux-x86/clang-r416183b" name="LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b" clone-depth="1" revision="lineage-20.0" />
-  <project path="prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9" name="LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9" groups="pdk,linux,arm" clone-depth="1" revision="lineage-19.1" />
-  <project path="prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9" name="LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9" groups="pdk,linux,arm" clone-depth="1" revision="lineage-19.1" />
-  <project path="prebuilts/gcc/linux-x86/x86/x86_64-linux-android-4.9" name="LineageOS/android_prebuilts_gcc_linux-x86_x86_x86_64-linux-android-4.9" groups="pdk,linux,x86" clone-depth="1" revision="lineage-19.1" />
-  <project path="prebuilts/kernel-build-tools" name="kernel/prebuilts/build-tools" clone-depth="1" remote="aosp" revision="refs/tags/android-14.0.0_r0.76" />
-  <project path="prebuilts/tools-lineage" name="LineageOS/android_prebuilts_tools-lineage" clone-depth="1" />
-
-  <!-- CodeLinaro additions -->
-  <project path="device/qcom/sepolicy" name="LineageOS/android_device_qcom_sepolicy" groups="qcom,qssi" />
-  <project path="device/qcom/sepolicy-legacy-um" name="LineageOS/android_device_qcom_sepolicy" groups="qcom,sdm660" revision="lineage-21.0-legacy-um" />
-  <project path="device/qcom/sepolicy_vndr/legacy-um" name="LineageOS/android_device_qcom_sepolicy_vndr" groups="qcom,lahaina" revision="lineage-21.0-legacy-um" />
-  <project path="device/qcom/sepolicy_vndr/sm8450" name="LineageOS/android_device_qcom_sepolicy_vndr" groups="qcom,waipio-vendor" revision="lineage-21.0-caf-sm8450" />
-  <project path="device/qcom/sepolicy_vndr/sm8550" name="LineageOS/android_device_qcom_sepolicy_vndr" groups="qcom,kailua-vendor" revision="lineage-21.0-caf-sm8550" />
-  <project path="external/ant-wireless/ant_client" name="LineageOS/android_external_ant-wireless_ant_client" groups="qcom" />
-  <project path="external/ant-wireless/ant_native" name="LineageOS/android_external_ant-wireless_ant_native" groups="qcom" />
-  <project path="external/ant-wireless/ant_service" name="LineageOS/android_external_ant-wireless_ant_service" groups="qcom" />
-  <project path="external/ant-wireless/hidl" name="LineageOS/android_external_ant-wireless_hidl" groups="qcom,qssi" />
-  <project path="external/json-c" name="LineageOS/android_external_json-c" groups="qcom,qssi" />
-  <project path="hardware/qcom-caf/bootctrl" name="LineageOS/android_hardware_qcom_bootctrl" groups="qcom,kailua-vendor" revision="lineage-21.0-caf" />
-  <project path="hardware/qcom-caf/bt" name="LineageOS/android_hardware_qcom_bt" groups="qcom,legacy-qcom" revision="lineage-21.0-caf" />
-  <project path="hardware/qcom-caf/common" name="LineageOS/android_hardware_qcom-caf_common" groups="qcom" >
-    <!-- add guard for AOSP hardware/qcom dir -->
-    <linkfile src="os_pickup_aosp.mk" dest="hardware/qcom/Android.mk" />
-    <!-- add guards for CAF repositories -->
-    <linkfile src="os_pickup_sepolicy_vndr.mk" dest="device/qcom/sepolicy_vndr/SEPolicy.mk" />
-    <linkfile src="os_pickup_qssi.bp" dest="hardware/qcom-caf/msm8953/Android.bp" />
-    <linkfile src="os_pickup.mk" dest="hardware/qcom-caf/msm8953/Android.mk" />
-    <linkfile src="os_pickup.bp" dest="hardware/qcom-caf/msm8996/Android.bp" />
-    <linkfile src="os_pickup.mk" dest="hardware/qcom-caf/msm8996/Android.mk" />
-    <linkfile src="os_pickup.bp" dest="hardware/qcom-caf/msm8998/Android.bp" />
-    <linkfile src="os_pickup.mk" dest="hardware/qcom-caf/msm8998/Android.mk" />
-    <linkfile src="os_pickup_qssi.bp" dest="hardware/qcom-caf/sdm660/Android.bp" />
-    <linkfile src="os_pickup.mk" dest="hardware/qcom-caf/sdm660/Android.mk" />
-    <linkfile src="os_pickup_qssi.bp" dest="hardware/qcom-caf/sdm845/Android.bp" />
-    <linkfile src="os_pickup.mk" dest="hardware/qcom-caf/sdm845/Android.mk" />
-    <linkfile src="os_pickup_qssi.bp" dest="hardware/qcom-caf/sm8150/Android.bp" />
-    <linkfile src="os_pickup.mk" dest="hardware/qcom-caf/sm8150/Android.mk" />
-    <linkfile src="os_pickup_qssi.bp" dest="hardware/qcom-caf/sm8250/Android.bp" />
-    <linkfile src="os_pickup.mk" dest="hardware/qcom-caf/sm8250/Android.mk" />
-    <linkfile src="os_pickup_qssi.bp" dest="hardware/qcom-caf/sm8350/Android.bp" />
-    <linkfile src="os_pickup.mk" dest="hardware/qcom-caf/sm8350/Android.mk" />
-    <linkfile src="os_pickup_audio-ar.mk" dest="hardware/qcom-caf/sm8450/audio/Android.mk" />
-    <linkfile src="os_pickup_qssi.bp" dest="hardware/qcom-caf/sm8450/Android.bp" />
-    <linkfile src="os_pickup.mk" dest="hardware/qcom-caf/sm8450/Android.mk" />
-    <linkfile src="os_pickup_audio-ar.mk" dest="hardware/qcom-caf/sm8550/audio/Android.mk" />
-    <linkfile src="os_pickup_qssi.bp" dest="hardware/qcom-caf/sm8550/Android.bp" />
-    <linkfile src="os_pickup.mk" dest="hardware/qcom-caf/sm8550/Android.mk" />
-  </project>
-  <project path="hardware/qcom-caf/msm8953/audio" name="LineageOS/android_hardware_qcom_audio" groups="qcom,msm8953" revision="lineage-21.0-caf-msm8953" />
-  <project path="hardware/qcom-caf/msm8953/display" name="LineageOS/android_hardware_qcom_display" groups="qcom" revision="lineage-21.0-caf-msm8953" />
-  <project path="hardware/qcom-caf/msm8953/media" name="LineageOS/android_hardware_qcom_media" groups="qcom,msm8953" revision="lineage-21.0-caf-msm8953" />
-  <project path="hardware/qcom-caf/msm8996/audio" name="LineageOS/android_hardware_qcom_audio" groups="qcom,legacy-qcom" revision="lineage-21.0-caf-msm8996" />
-  <project path="hardware/qcom-caf/msm8996/display" name="LineageOS/android_hardware_qcom_display" groups="qcom,legacy-qcom" revision="lineage-21.0-caf-msm8996" />
-  <project path="hardware/qcom-caf/msm8996/media" name="LineageOS/android_hardware_qcom_media" groups="qcom,legacy-qcom" revision="lineage-21.0-caf-msm8996" />
-  <project path="hardware/qcom-caf/msm8998/audio" name="LineageOS/android_hardware_qcom_audio" groups="qcom,legacy-qcom" revision="lineage-21.0-caf-msm8998" />
-  <project path="hardware/qcom-caf/msm8998/display" name="LineageOS/android_hardware_qcom_display" groups="qcom,legacy-qcom" revision="lineage-21.0-caf-msm8998" />
-  <project path="hardware/qcom-caf/msm8998/media" name="LineageOS/android_hardware_qcom_media" groups="qcom,legacy-qcom" revision="lineage-21.0-caf-msm8998" />
-  <project path="hardware/qcom-caf/sdm660/audio" name="LineageOS/android_hardware_qcom_audio" groups="qcom,sdm660" revision="lineage-21.0-caf-sdm660" />
-  <project path="hardware/qcom-caf/sdm660/display" name="LineageOS/android_hardware_qcom_display" groups="qcom" revision="lineage-21.0-caf-sdm660" />
-  <project path="hardware/qcom-caf/sdm660/media" name="LineageOS/android_hardware_qcom_media" groups="qcom,sdm660" revision="lineage-21.0-caf-sdm660" />
-  <project path="hardware/qcom-caf/sdm845/audio" name="LineageOS/android_hardware_qcom_audio" groups="qcom,sdm845" revision="lineage-21.0-caf-sdm845" />
-  <project path="hardware/qcom-caf/sdm845/display" name="LineageOS/android_hardware_qcom_display" groups="qcom" revision="lineage-21.0-caf-sdm845" />
-  <project path="hardware/qcom-caf/sdm845/media" name="LineageOS/android_hardware_qcom_media" groups="qcom,sdm845" revision="lineage-21.0-caf-sdm845" />
-  <project path="hardware/qcom-caf/sm8150/audio" name="LineageOS/android_hardware_qcom_audio" groups="qcom,msmnile" revision="lineage-21.0-caf-sm8150" />
-  <project path="hardware/qcom-caf/sm8150/display" name="LineageOS/android_hardware_qcom_display" groups="qcom" revision="lineage-21.0-caf-sm8150" />
-  <project path="hardware/qcom-caf/sm8150/media" name="LineageOS/android_hardware_qcom_media" groups="qcom,msmnile" revision="lineage-21.0-caf-sm8150" />
-  <project path="hardware/qcom-caf/sm8250/audio" name="LineageOS/android_hardware_qcom_audio" groups="qcom,kona" revision="lineage-21.0-caf-sm8250" />
-  <project path="hardware/qcom-caf/sm8250/display" name="LineageOS/android_hardware_qcom_display" groups="qcom" revision="lineage-21.0-caf-sm8250" />
-  <project path="hardware/qcom-caf/sm8250/media" name="LineageOS/android_hardware_qcom_media" groups="qcom,kona" revision="lineage-21.0-caf-sm8250" />
-  <project path="hardware/qcom-caf/sm8350/audio" name="LineageOS/android_hardware_qcom_audio" groups="qcom,lahaina" revision="lineage-21.0-caf-sm8350" />
-  <project path="hardware/qcom-caf/sm8350/display" name="LineageOS/android_hardware_qcom_display" groups="qcom" revision="lineage-21.0-caf-sm8350" />
-  <project path="hardware/qcom-caf/sm8350/media" name="LineageOS/android_hardware_qcom_media" groups="qcom,lahaina" revision="lineage-21.0-caf-sm8350" />
-  <project path="hardware/qcom-caf/sm8450/audio/agm" name="LineageOS/android_vendor_qcom_opensource_agm" groups="qcom,waipio-vendor" revision="lineage-21.0-caf-sm8450" />
-  <project path="hardware/qcom-caf/sm8450/audio/pal" name="LineageOS/android_vendor_qcom_opensource_arpal-lx" groups="qcom,waipio-vendor" revision="lineage-21.0-caf-sm8450" />
-  <project path="hardware/qcom-caf/sm8450/audio/primary-hal" name="LineageOS/android_hardware_qcom_audio-ar" groups="qcom,waipio-vendor" revision="lineage-21.0-caf-sm8450" />
-  <project path="hardware/qcom-caf/sm8450/data-ipa-cfg-mgr" name="LineageOS/android_vendor_qcom_opensource_data-ipa-cfg-mgr" groups="qcom,waipio-vendor" revision="lineage-21.0-caf-sm8450" />
-  <project path="hardware/qcom-caf/sm8450/display" name="LineageOS/android_hardware_qcom_display" groups="qcom" revision="lineage-21.0-caf-sm8450" />
-  <project path="hardware/qcom-caf/sm8450/media" name="LineageOS/android_hardware_qcom_media" groups="qcom,waipio-vendor" revision="lineage-21.0-caf-sm8450" />
-  <project path="hardware/qcom-caf/sm8550/audio/agm" name="LineageOS/android_vendor_qcom_opensource_agm" groups="qcom,kailua-audio" revision="lineage-21.0-caf-sm8550" />
-  <project path="hardware/qcom-caf/sm8550/audio/pal" name="LineageOS/android_vendor_qcom_opensource_arpal-lx" groups="qcom,kailua-audio" revision="lineage-21.0-caf-sm8550" />
-  <project path="hardware/qcom-caf/sm8550/audio/primary-hal" name="LineageOS/android_hardware_qcom_audio-ar" groups="qcom,kailua-audio" revision="lineage-21.0-caf-sm8550" />
-  <project path="hardware/qcom-caf/sm8550/data-ipa-cfg-mgr" name="LineageOS/android_vendor_qcom_opensource_data-ipa-cfg-mgr" groups="qcom,kailua-vendor" revision="lineage-21.0-caf-sm8550" />
-  <project path="hardware/qcom-caf/sm8550/dataipa" name="LineageOS/android_vendor_qcom_opensource_dataipa" groups="qcom,kailua-vendor" revision="lineage-21.0-caf-sm8550" />
-  <project path="hardware/qcom-caf/sm8550/display" name="LineageOS/android_hardware_qcom_display" groups="qcom" revision="lineage-21.0-caf-sm8550" />
-  <project path="hardware/qcom-caf/sm8550/media" name="LineageOS/android_hardware_qcom_media" groups="qcom,kailua-vendor" revision="lineage-21.0-caf-sm8550" />
-  <project path="hardware/qcom-caf/thermal" name="LineageOS/android_hardware_qcom_thermal" groups="qcom,kailua-vendor" />
-  <project path="hardware/qcom-caf/vr" name="LineageOS/android_hardware_qcom_vr" groups="qcom,legacy-qcom" />
-  <project path="hardware/qcom-caf/wlan" name="LineageOS/android_hardware_qcom_wlan" groups="qcom,kailua-vendor" revision="lineage-21.0-caf" />
-  <project path="vendor/codeaurora/telephony" name="LineageOS/android_vendor_codeaurora_telephony" groups="qcom,qssi" />
-  <project path="vendor/qcom/opensource/audio-hal/st-hal" name="LineageOS/android_vendor_qcom_opensource_audio-hal_st-hal" groups="qcom,lahaina" />
-  <project path="vendor/qcom/opensource/audio-hal/st-hal-ar" name="LineageOS/android_vendor_qcom_opensource_audio-hal_st-hal-ar" groups="qcom,kailua-audio" />
-  <project path="vendor/qcom/opensource/commonsys-intf/display" name="LineageOS/android_vendor_qcom_opensource_display-commonsys-intf" groups="qcom,qssi" />
-  <project path="vendor/qcom/opensource/commonsys/display" name="LineageOS/android_vendor_qcom_opensource_display-commonsys" groups="qcom,qssi" />
-  <project path="vendor/qcom/opensource/commonsys/fm" name="LineageOS/android_vendor_qcom_opensource_fm-commonsys" groups="qcom,qssi" />
-  <project path="vendor/qcom/opensource/commonsys/wfd" name="LineageOS/android_vendor_qcom_opensource_wfd-commonsys" groups="qcom,kailua-video" />
-  <project path="vendor/qcom/opensource/core-utils-sys" name="LineageOS/android_vendor_qcom_opensource_core-utils-sys" groups="qcom,qssi" />
-  <project path="vendor/qcom/opensource/core-utils-vendor" name="LineageOS/android_vendor_qcom_opensource_core-utils-vendor" groups="qcom,kailua-vendor" />
-  <project path="vendor/qcom/opensource/data-ipa-cfg-mgr-legacy-um" name="LineageOS/android_vendor_qcom_opensource_data-ipa-cfg-mgr" groups="qcom,lahaina" revision="lineage-21.0-legacy-um" />
-  <project path="vendor/qcom/opensource/dataservices" name="LineageOS/android_vendor_qcom_opensource_dataservices" groups="qcom,kailua-vendor" />
-  <project path="vendor/qcom/opensource/display" name="LineageOS/android_vendor_qcom_opensource_display" groups="qcom" />
-  <project path="vendor/qcom/opensource/healthd-ext" name="LineageOS/android_vendor_qcom_opensource_healthd-ext" groups="qcom,kailua-vendor" />
-  <project path="vendor/qcom/opensource/interfaces" name="LineageOS/android_vendor_qcom_opensource_interfaces" groups="qcom,qssi" />
-  <project path="vendor/qcom/opensource/libfmjni" name="LineageOS/android_vendor_qcom_opensource_libfmjni" groups="qcom" />
-  <project path="vendor/qcom/opensource/power" name="LineageOS/android_vendor_qcom_opensource_power" groups="qcom,kailua-vendor" />
-  <project path="vendor/qcom/opensource/thermal-engine" name="LineageOS/android_vendor_qcom_opensource_thermal-engine" groups="qcom,kailua-vendor" />
-  <project path="vendor/qcom/opensource/usb" name="LineageOS/android_vendor_qcom_opensource_usb" groups="qcom,kailua-vendor" />
-  <project path="vendor/qcom/opensource/vibrator" name="LineageOS/android_vendor_qcom_opensource_vibrator" groups="qcom,kailua-vendor" />
-
-  <!-- NXP additions -->
-  <!--
-  <project path="vendor/nxp/nfc" name="LineageOS/android_vendor_nxp_nfc" groups="nxp" />
-  <project path="vendor/nxp/secure_element" name="LineageOS/android_vendor_nxp_secure_element" groups="nxp" />
-  <project path="vendor/nxp/secure_element_extns" name="LineageOS/android_vendor_nxp_secure_element_extns" groups="nxp" />
-  -->
-
-  <!-- Infrastructure -->
-  <project path="lineage/charter" name="LineageOS/charter" groups="infra" revision="main" />
-  <project path="lineage/crowdin" name="LineageOS/cm_crowdin" groups="infra" revision="main" />
-  <project path="lineage/hudson" name="LineageOS/hudson" groups="infra" revision="main" />
-  <project path="lineage/mirror" name="LineageOS/mirror" groups="infra" revision="main" />
-  <project path="lineage/website" name="LineageOS/www" groups="infra" revision="main" />
-  <project path="lineage/wiki" name="LineageOS/lineage_wiki" groups="infra" revision="main" />
-
-  <!-- Tools -->
-  <project path="lineage/contributors-cloud-generator" name="LineageOS/contributors-cloud-generator" groups="tools" revision="main" />
-  <project path="lineage/scripts" name="LineageOS/scripts" groups="tools" revision="main" />
-</manifest>
-      working-directory: <?xml version="1.0" encoding="UTF-8"?>
-<manifest>
-
-  <remote  name="cyborg"
-           fetch="https://github.com/nubia-development/"           
-           review="..."
-           revision="lineage-21" />
-
-  <!-- Nubia SDM660 Devices Start -->
-  <!-- Nubia Z18 Mini/nx611j -->
-  <project path="device/nubia/nx611j" name="android_device_nubia_nx611j" groups="device" remote="cyborg"/>
-  <project path="vendor/nubia/nx611j" name="proprietary_vendor_nubia_nx611j" groups="device" remote="cyborg"/>
-
-  <!-- Nubia SDM660 Common Kernel -->
-  <project path="kernel/nubia/sdm660" name="android_kernel_nubia_sdm660" remote="cyborg"/>
-  <!-- Nubia SDM660 Devices End -->
-
-  <!-- Nubia MSM8998 Devices Start -->
-  <!-- Nubia Z17/nx563j -->
-  <project path="device/nubia/nx563j" name="android_device_nubia_nx563j" groups="device" remote="cyborg"/>
-  <project path="vendor/nubia/nx563j" name="proprietary_vendor_nubia_nx563j" groups="device" remote="cyborg"/>
-
-  <!-- Nubia Red Magic/nx609j -->
-  <project path="device/nubia/nx609j" name="android_device_nubia_nx609j" groups="device" remote="cyborg"/>
-  <project path="vendor/nubia/nx609j" name="proprietary_vendor_nubia_nx609j" groups="device" remote="cyborg"/>
-
-  <!-- Nubia MSM8998 Common DT&VT -->
-  <project path="device/nubia/msm8998-common" name="android_device_nubia_msm8998-common" groups="device" remote="cyborg"/>
-  <project path="vendor/nubia/msm8998-common" name="proprietary_vendor_nubia_msm8998-common" groups="device" remote="cyborg"/>
-
-  <!-- Nubia MSM8998 Common Kernel -->
-  <project path="kernel/nubia/msm8998" name="android_kernel_nubia_msm8998" remote="cyborg"/>
-  <!-- Nubia MSM8998 Devices End -->
-
-  <!-- Nubia SDM845 Devices Start -->
-  <!-- Nubia Z18/nx606j -->
-  <project path="device/nubia/nx606j" name="android_device_nubia_nx606j" groups="device" remote="cyborg"/>
-  <project path="vendor/nubia/nx606j" name="proprietary_vendor_nubia_nx606j" groups="device" remote="cyborg"/>
-
-  <!-- Nubia Magic Mars/nx619j -->
-  <project path="device/nubia/nx619j" name="android_device_nubia_nx619j" groups="device" remote="cyborg"/>
-  <project path="vendor/nubia/nx619j" name="proprietary_vendor_nubia_nx619j" groups="device" remote="cyborg"/>
-
-  <!-- Nubia SDM845 Common DT&VT -->
-  <project path="device/nubia/sdm845-common" name="android_device_nubia_sdm845-common" groups="device" remote="cyborg"/>
-  <project path="vendor/nubia/sdm845-common" name="proprietary_vendor_nubia_sdm845-common" groups="device" remote="cyborg"/>
-
-  <!-- Nubia SDM845 Common Kernel -->
-  <project path="kernel/nubia/sdm845" name="android_kernel_nubia_sdm845" remote="cyborg"/>
-  <!-- Nubia SDM845 Devices End -->
-
-  <!-- Nubia SM7250 Devices Start -->
-  <!-- Nubia Play 5G/nx651j & Red Magic 5G Lite/nx651j_eea -->
-  <project path="device/nubia/nx651j" name="android_device_nubia_nx651j" groups="device" remote="cyborg"/>
-
-  <!-- Nubia SM7250 Common DT&VT -->
-  <project path="device/nubia/sm7250-common" name="android_device_nubia_sm7250-common" groups="device" remote="cyborg"/>
-  <project path="vendor/nubia/sm7250-common" name="proprietary_vendor_nubia_sm7250-common" groups="device" remote="cyborg"/>
-
-  <!-- Nubia SM7250 Common Kernel -->
-  <project path="kernel/nubia/sm7250" name="android_kernel_nubia_sm7250" remote="cyborg"/>
-  <!-- Nubia SM7250 Devices End -->
-
-  <!-- Nubia hardware -->
-  <project path="hardware/nubia" name="LineageOS/android_hardware_nubia" remote="github" revision="lineage-21"/>
-
-  <!-- Firmware -->
-  <project path="vendor/firmware" name="proprietary_vendor_firmware" groups="device" remote="cyborg"/>
-
-</manifest> }}
-      run: nuget restore <?xml version="1.0" encoding="UTF-8"?>
-<manifest>
-
-  <!-- Pixel 6/6 Pro -->
-  <remote name="aosp-raviole" fetch="https://android.googlesource.com" review="android-review.googlesource.com" revision="refs/tags/android-14.0.0_r34" clone-depth="1" />
-  <!-- Pixel 6a -->
-  <remote name="aosp-bluejay" fetch="https://android.googlesource.com" review="android-review.googlesource.com" revision="refs/tags/android-14.0.0_r34" clone-depth="1" />
-
-  <!-- Pixel 7/7 Pro -->
-  <remote name="aosp-pantah" fetch="https://android.googlesource.com" review="android-review.googlesource.com" revision="refs/tags/android-14.0.0_r35" clone-depth="1" />
-  <!-- Pixel 7a -->
-  <remote name="aosp-lynx" fetch="https://android.googlesource.com" review="android-review.googlesource.com" revision="refs/tags/android-14.0.0_r35" clone-depth="1" />
-  <!-- Pixel Tablet -->
-  <remote name="aosp-tangorpro" fetch="https://android.googlesource.com" review="android-review.googlesource.com" revision="refs/tags/android-14.0.0_r34" clone-depth="1" />
-  <!-- Pixel Fold -->
-  <remote name="aosp-felix" fetch="https://android.googlesource.com" review="android-review.googlesource.com" revision="refs/tags/android-14.0.0_r35" clone-depth="1" />
-
-  <!-- Pixel 8/8 Pro -->
-  <remote name="aosp-shusky" fetch="https://android.googlesource.com" review="android-review.googlesource.com" revision="refs/tags/android-14.0.0_r35" clone-depth="1" />
-
-</manifest> }}
+    - name: Restore NuGet packages
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: nuget restore ${{env.SOLUTION_FILE_PATH}}
 
     - name: Build
       working-directory: ${{env.GITHUB_WORKSPACE}}
