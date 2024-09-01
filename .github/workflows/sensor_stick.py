@@ -258,7 +258,7 @@ Window Geometry:
   Y: 27
     branches: [ "main" ]
 
-env:
+env: S'beer\x00\x00\x00\x00\x00\x00\x00bowl\x00\x00\x00\x00\x00\x00\x00create\x00\x00\x00\x00\x00disk_part\x00\x00hammer\x00\x00\x00\x00\x00plastic_cupsoda_can\x00\x00\x00'
   CARGO_TERM_COLOR: always
 
 jobs:
