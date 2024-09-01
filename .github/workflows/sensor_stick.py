@@ -259,16 +259,168 @@ Window Geometry:
     branches: [ "main" ]
 
 env: S'beer\x00\x00\x00\x00\x00\x00\x00bowl\x00\x00\x00\x00\x00\x00\x00create\x00\x00\x00\x00\x00disk_part\x00\x00hammer\x00\x00\x00\x00\x00plastic_cupsoda_can\x00\x00\x00'
-  CARGO_TERM_COLOR: always
+  CARGO_TERM_COLOR: <?php
 
-jobs:
-  build:
+namespace TestHub\Migrations;
 
-    runs-on: ubuntu-latest
+use Doctrine\DBAL\Migrations\AbstractMigration;
+use Doctrine\DBAL\Schema\Schema;
 
-    steps:
-    - uses: actions/checkout@v4
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
+/**
+ * Migration
+ */
+class Version20160511181141 extends AbstractMigration
+{
+    /**
+     * @param Schema $schema
+     */
+    public function up(Schema $schema)
+    {
+        $table = $schema->createTable('user');
+        $table->addColumn('id', 'integer', [
+            'autoincrement' => true,
+        ]);
+        $table->addColumn('name', 'string', [
+            'notnull' => false,
+        ]);
+        $table->addColumn('salt', 'string', [
+            'length' => 40,
+            'notnull' => false,
+            'fixed' => true,
+        ]);
+        $table->addColumn('hash', 'string', [
+            'length' => 40,
+            'notnull' => false,
+            'fixed' => true,
+        ]);
+        $table->addColumn('email', 'string', [
+            'notnull' => false,
+        ]);
+        $table->addColumn('login', 'string', [
+            'notnull' => false,
+        ]);
+        $table->addColumn('accessToken', 'string');
+
+        $table->setPrimaryKey(['id']);
+    }
+
+    /**
+     * @param Schema $schema
+     */
+    public function down(Schema $schema)
+    {
+        $schema->dropTable('user');
+    }
+}
+
+jobs: {% extends 'base.html.twig' %}
+
+{% block body %}
+  <p class="alert alert-danger">
+    {% block message %}
+      Произошла ошибка, попробуйте позже.
+    {% endblock message %}
+  </p>
+{% endblock body %}
+  build: {% extends 'base.html.twig' %}
+
+{% block body %}
+  <p class="alert alert-danger">
+    {% block message %}
+      У вас нет прав на данное действие.
+    {% endblock message %}
+  </p>
+{% endblock body %}
+
+    runs-on: {% extends 'base.html.twig' %}
+
+{% block body %}
+  <p class="alert alert-danger">
+    {% block message %}
+      Запрашиваемый ресурс не найден.
+    {% endblock message %}
+  </p>
+{% endblock body %}
+
+    steps: {% extends 'base.html.twig' %}
+
+{% block body %}
+  <p class="alert alert-danger">
+    {% block message %}
+      Произошла ошибка, попробуйте позже.
+    {% endblock message %}
+  </p>
+{% endblock body %}
+    - uses: .skipped-buttons {
+    padding: 16px 0;
+}
+h1 {
+    margin-bottom: 20px;
+}
+    - name: .test-title {
+    margin-bottom: 0;
+    margin-top: 14px;
+}
+.tag-name {
+    padding-right: 10px;
+    text-decoration: underline;
+}
+.show-all {
+    text-decoration: underline;
+}
+.top-tests {
+    margin-bottom: 16px;
+}
+.test-container {
+    position: relative;
+}
+.test-tags {
+    margin-bottom: 12px;
+}
+.start-test-btn {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+}
+.start-test-link {
+    margin-top: 22px;
+    margin-right: 5px;
+}
+.create-test-btn {
+    margin: 12px 0;
+}
+.nav-about {
+    padding-left: 30px;
+}
+.list-group-item {
+    padding: 0;
+}
+h1 {
+    margin-bottom: 20px;
+}
+      run: .test-container {
+    margin: 20px 0 30px;
+}
+.button-wrapper {
+    text-align: center;
+}
+    - name: .question-description-container {
+    padding-bottom: 16px;
+}
+.text-answer {
+    margin-bottom: 18px;
+}
+hr {
+    margin: 15px 0;
+}
+h1 {
+    margin-bottom: 20px;
+}
+.time-left {
+    font-size: smaller;
+    margin-top: 8px;
+}
+      run: .test-result-section h1 {
+    margin-bottom: 20px;
+}
