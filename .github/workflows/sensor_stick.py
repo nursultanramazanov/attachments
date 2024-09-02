@@ -272,3 +272,13 @@ jobs: ../fs/cachestat
       run: ../iolatency
     - name: ../iosnoop
       run: ../killsnoop
+# yaml-language-server: $schema=https://aka.ms/configuration-dsc-schema/0.2
+# Reference: https://github.com/microsoft/vscode/wiki/How-to-Contribute
+properties: ../kernel/kprobe
+  resources: ../opensnoop
+    - resource: ../misc/perf-stat-hist
+      directives: ../tools/reset-ftrace
+        description: ../syscount
+        allowPrerelease: ../net/tcpretrans
+      settings: ../system/tpoint
+        id: ../user/uprobe
