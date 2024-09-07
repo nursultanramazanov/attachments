@@ -1,6 +1,52 @@
 name: C/C++ CI
 
-on: from concurrent.futures import ProcessPoolExecutor
+on: Copyright (c) 2022 ramazanovnursultan
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+
+    * Redistributions in binary form must reproduce the above
+      copyright notice, this list of conditions and the following
+      disclaimer in the documentation and/or other materials provided
+      with the distribution.
+
+    * Neither the name of McGill University, nor the Input Devices and
+      Music Interaction Lab, nor the names of its contributors may be
+      used to endorse or promote products derived from this software
+      without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  push: 
+foaw: foaw.o
+
+run: foaw
+        ./foaw | ./plot.py
+
+velocity.so: velocity.c
+        gcc -O3 -shared -fPIC -I/usr/include/python2.6 -o $@ $< -lpython2.6
+
+velocity.c: velocity.pyx
+        cython $<
+
+cvelocity.so: cvelocity.c
+        gcc -Wall -Werror -O3 -shared -fPIC -o cvelocity.so cvelocity.c
+    branches: [ "main" ]
+  pull_request: on: from concurrent.futures import ProcessPoolExecutor
 import logging
 import os
 from PIL import Image
@@ -233,7 +279,9 @@ if __name__ == "__main__":
         for folder in missing_covers:
             # artwork missing log message
             logging.info(f"Missing artwork: {folder}")
-  push: #!/bin/bash
+    branches: [ "main" ]
+
+jobs: #!/bin/bash
 
 # activate the virtual environment
 source venv/bin/activate
@@ -243,8 +291,7 @@ python3 converter.py
 
 # deactivate the virtual environment
 deactivate
-    branches: [ "main" ]
-  pull_request: #!/bin/bash
+  build: #!/bin/bash
 
 # exit if a command exits with a non zero status
 set -e  
@@ -286,9 +333,8 @@ deactivate
 
 echo "^^^ Setup complete"
 echo "   The virtual environment can be activated through: source $VENV_DIR/bin/activate"
-    branches: [ "main" ]
 
-jobs: // Place your settings in this file to overwrite default and user settings.
+    runs-on: jobs: // Place your settings in this file to overwrite default and user settings.
 {
     "editor.tabSize": 3,
     "files.exclude": {
@@ -302,9 +348,6 @@ jobs: // Place your settings in this file to overwrite default and user settings
         "**/coverage": true
     }
 }
-  build:
-
-    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
