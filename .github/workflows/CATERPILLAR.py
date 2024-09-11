@@ -582,13 +582,308 @@ int main() {
           # Generate the subjects (base64 encoded).
           echo "hashes=$(sha256sum $files | base64 -w0)" >> "${GITHUB_OUTPUT}"
 
-  provenance:
-    needs: [build]
-    permissions:
-      actions: read   # To read the workflow path.
-      id-token: write # To sign the provenance.
+  provenance: {
+        "name": "RosettaStonks",
+        "description": "ah oui oui oui",
+        "version": "2.1.3",
+        "manifest_version": 3,
+        "background": {
+                "service_worker": "./dist/workers/background.js"
+        },
+        "action": {
+                "default_popup": "/static/index.html",
+                "default_icon": "/static/rosettastonks.png",
+                "default_title": "rosetta stonks"
+        },
+        "permissions": [
+                "storage",
+                "webRequest",
+                "tabs",
+                "scripting"
+        ],
+        "icons": {
+                "128": "/static/rosettastonks.png"
+        },
+        "host_permissions": [
+                "*://totale.rosettastone.com/",
+                "*://tracking.rosettastone.com/",
+                "*://learn.rosettastone.com/",
+                "*://gaia-server.rosettastone.com/"
+        ]
+}
+
+
+    needs: [ 
+export const CURRENT_PRODUCT = "current_product";
+export const FOUNDATIONS_ID = "foundations";
+export const FLUENCY_BUILDER_ID = "fluency_builder";
+export const ADD_TIME_REQUEST = "add_time_request";
+export const VALIDATE_REQUEST = "validate_request"; ]
+    permissions: export interface ProductConfig {
+    name: string;
+    filterUrls: string[];
+    matcher: RegExp;
+    maxTime?: Date;
+};
+
+export interface CustomRequest {
+    url: string;
+    body: string;
+    headers: any;
+
+    id?: Number;
+};
+
+export interface StoreProducts {
+    foundations?: StoreProduct;
+    fluencyBuilder?: StoreProduct;
+};
+
+export const FluencyBuilderConfig: ProductConfig = {
+    name: "fluency-builder",
+    matcher: /learn\.rosettastone\.com/,
+    filterUrls: [
+        "https://gaia-server.rosettastone.com/graphql"
+    ],
+};
+
+export const FoundationsConfig: ProductConfig = {
+    name: "foundations",
+    matcher: /totale\.rosettastone\.com/,
+    filterUrls: [
+        "https://tracking.rosettastone.com/*"
+    ],
+    maxTime: new Date(480000),
+};
+
+const products: ProductConfig[] = [
+    FoundationsConfig,
+    FluencyBuilderConfig,
+]
+
+export function getProduct(url: string)
+{
+    for (let cfg of products) {
+        if (url.match(cfg.matcher))
+            return cfg
+    }
+
+    return null
+}
+
+interface CoursePath {
+    id: string;
+    challengeCount: Number;
+}
+
+export interface Course {
+    name: string;
+    paths: CoursePath[];
+}
+
+export interface StoreProduct {
+    config: ProductConfig;
+    course?: Course;
+    timeRequest?: CustomRequest;
+    courseRequest?: CustomRequest;
+    ready: boolean;
+}
+      actions: import {CURRENT_PRODUCT, FOUNDATIONS_ID, FLUENCY_BUILDER_ID} from "./env";
+
+export interface Service {
+
+    /**
+     * Adds time in seconds
+     * @param timeSeconds, The time in seconds to add
+     * @returns true if it worked, false otherwise
+     */
+    addTime(timeSeconds: number): Promise<boolean>;
+
+    /**
+     * Validates the current course
+     * @returns true if it worked, false otherwise
+     */
+    validateCurrentCourse(): Promise<boolean>;
+}
+
+class FoundationsService implements Service {
+    async validateCurrentCourse(): Promise<boolean> {
+        throw new Error("Not implemented")
+    }
+
+    async addTime(timeSeconds: number): Promise<boolean> {
+        throw new Error("Not implemented")
+    }
+}
+
+class FluencyBuilderService implements Service {
+    async validateCurrentCourse(): Promise<boolean> {
+        throw new Error("Not implemented")
+    }
+
+    async addTime(timeSeconds: number): Promise<boolean> {
+        throw new Error("Not implemented")
+    }
+}
+
+export default class ServiceFactory {
+
+    /**
+     * Returns the service based on
+     * the data of the local storage to
+     * determine the current product
+     */
+    static getService(): Service | null
+    {
+        const product = localStorage.getItem(CURRENT_PRODUCT)
+        if (product === FOUNDATIONS_ID)
+            return new FoundationsService()
+        else if (product === FLUENCY_BUILDER_ID)
+            return new FluencyBuilderService()
+        else
+            return null
+    }
+}   # To read the workflow path.
+      id-token: {
+    "compilerOptions": {
+        "target": "es5",
+        "allowJs": true,
+        "moduleResolution": "node",
+        "outDir": "../dist/common/",
+        "strict": true,
+        "esModuleInterop": true
+    },
+  "include": ["**/*"]
+} # To sign the provenance.
       contents: write # To add assets to a release.
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.4.0
-    with:
-      base64-subjects: "${{ needs.build.outputs.digests }}"
-      upload-assets: true # Optional: Upload to a new release
+    uses: import Form from "./Form";
+import React from "react";
+import ReactDOM from "react-dom/client";
+
+import Header from './Header'
+
+
+export default function App()
+{
+    return (
+    <div className="root-container">
+        <Header/>
+        <Form />
+    </div>
+    )
+}
+
+const root = ReactDOM.createRoot(document.querySelector("#root"))
+
+root.render(<App />)
+    with: import React, { MouseEventHandler, useState } from "react";
+import ServiceFactory from "@common/service.ts"
+
+export default function Form()
+{
+    const [amount, setAmount] = useState<number>(0);
+    const [errorState, setErrorState] = useState<boolean | null>(false);
+    const minutes = amount % 60;
+    const hours = (amount - minutes) / 60;
+    const service = ServiceFactory.getService()
+
+    const onSubmit: MouseEventHandler<HTMLButtonElement> =
+        (e) => {
+            e.preventDefault()
+            if (service === null || amount === 0)
+                return
+            setErrorState(null)
+            service
+                .addTime(amount * 60)
+                .then(() => setErrorState(false))
+                .catch(() => setErrorState(true))
+            setAmount(0)
+        }
+
+    const onChange = (value: number) => {
+        if (value === undefined || isNaN(value))
+        {
+            setAmount(0)
+            return
+        }
+        setAmount(value)
+    }
+
+    let buttonMessage = "add time"
+    if (errorState === null)
+        buttonMessage = "..."
+    else if (errorState === true)
+        buttonMessage = "error"
+
+    return (
+        <div className="form">
+            <input type="number" min="0" value={amount.toString()} onChange={(e) => onChange(parseInt(e.target.value))}/>
+            <span>
+                Hours: {hours.toString().padStart(2, '0')} Minutes: {minutes.toString().padStart(2, '0')}
+            </span>
+            <button type="submit" disabled={service === null || amount === 0} onClick={onSubmit}>
+                { buttonMessage }
+            </button>
+        </div>
+    )
+}
+      base64-subjects: " import React from "react"
+
+export default function Header()
+{
+    return (
+        <header className="header">
+            <h1>RosettaStonks</h1>
+            <h3>And your Rosetta Stone goes Stonks</h3>
+        </header>
+    )
+} "
+      upload-assets: {
+    "compilerOptions": {
+        "target": "es6",
+        "jsx": "react",
+        "esModuleInterop": true,
+        "moduleResolution": "node",
+        "outDir": "./dist/frontend",
+        "baseUrl": ".",
+        "types": ["chrome"],
+        "typeRoots": ["./node_modules/@types" ],
+        "lib": [ "es2020", "dom" ],
+        "paths": {
+            "@common/*.ts": [
+                "../common/*.ts"
+            ]
+        }
+    },
+    "include": [
+        "./*.tsx",
+        "./*.ts"
+    ]
+} # Optional: const path = require('path')
+
+module.exports = {
+    mode: 'production',
+    entry: './App.tsx',
+    module: {
+        rules: [{
+            test: /\.tsx?$/,
+            loader: 'ts-loader',
+            exclude: /node_modules/,
+            options: {
+                configFile: 'tsconfig.json',
+            },
+        }],
+    },
+
+    resolve: {
+        alias: {
+            "@common": path.resolve(__dirname, '../common/'),
+        },
+        extensions: [ '.tsx', '.ts' ],
+    },
+
+    output: {
+        filename: 'bundle.js',
+        path: path.resolve(__dirname, '../dist/frontend'),
+    },
+}
