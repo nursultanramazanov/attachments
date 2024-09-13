@@ -10,6 +10,3 @@ The [Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0) License is a permis
 
 The [GPL v3 License](http://www.gnu.org/licenses/gpl-3.0.en.html) is a strong copyleft license. When building QGC under this license the open source version of Qt can be used. Our licensing grants the permission to use a later version of the license, however, contributions have to be made under 3.0.
 
-## Contact
-
-If you have questions regarding the licensing, please contact the maintainer Lorenz Meier, [lm@groundcontrol.org].
