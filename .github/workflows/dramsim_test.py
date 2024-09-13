@@ -1880,967 +1880,916 @@ lightning:
       target: ldm.modules.encoders.modules.FrozenCLIPEmbedder
 
       # Upload SARIF file to GitHub Code Scanning Alerts
-      - name: CC := gcc
-ifeq ($(USE_GPU),1)
-CUCC := nvcc
-endif
-
-# Select backend files based on selected backend
-# Supported values: naive, onednn
-BACKEND ?= onednn
-
-# Set to 1 to use accelerated matrix products when using naive backend
-USE_AVX ?= 0
-
-# The root directory of the oneDNN library, only needed when using
-# onednn backend
-ONEDNN_ROOT_DIR ?= lib/onednn
-ONEDNN_INCLUDE_DIR := $(ONEDNN_ROOT_DIR)/include
-ONEDNN_SHARED_DIR := $(ONEDNN_ROOT_DIR)/lib/
-
-# Can be set in case the directory where libcudart.so is located is not
-# in the default directories
-CUDA_LIB_DIR ?=
-
-# Select log level
-# Supported values: 1(error), 2(warn), 3(info), 4(trace)
-LOG_LEVEL ?= 3
-
-# Set to 1 to enable gdb support
-DEBUG ?= 0
-
-
-ifeq ($(DEBUG),1)
-ifeq ($(USE_AVX),1)
-$(error Can not have DEBUG=1 and USE_AVX=1 at the same time)
-endif
-endif
-
-
-CFLAGS :=
-CUFLAGS :=
-ifdef LOG_LEVEL
-CFLAGS += -DLOG_LEVEL=$(LOG_LEVEL)
-CUFLAGS += -DLOG_LEVEL=$(LOG_LEVEL)
-endif
-ifeq ($(USE_AVX),1)
-CFLAGS += -march=haswell -DUSE_AVX
-endif
-ifeq ($(USE_GPU),1)
-CFLAGS += -DUSE_GPU
-CUFLAGS += -DUSE_GPU
-endif
-ifeq ($(DEBUG),1)
-CFLAGS += -g -DDEBUG
-CUFLAGS += -g -DDEBUG
-else
-CFLAGS += -O3 -Ofast
-CUFLAGS += -O3
-endif
-
-
-# math library
-LDFLAGS := -lm
-
-
-SOURCEDIR := src
-
-# INCLUDE and SOURCE file located in the src directory
-INCLUDE := -I$(SOURCEDIR)/lib -I$(SOURCEDIR)/common
-SRC := $(shell find $(SOURCEDIR)/common -name '*.c')
-SRC += $(SOURCEDIR)/lib/log.c $(SOURCEDIR)/lib/config_info.c $(SOURCEDIR)/lib/random.c
-# Also add the target source file
-SRC += $(TARGET).c
-
-
-# Select backend files based on selected backend
-ifeq ($(BACKEND),naive)
-INCLUDE += -I$(SOURCEDIR)/naive -I$(SOURCEDIR)/include
-SRC += $(shell find $(SOURCEDIR)/naive -name '*.c')
-ifeq ($(USE_GPU),1)
-SRC += $(shell find $(SOURCEDIR)/naive -name '*.cu')
-ifneq ($(CUDA_LIB_DIR),)
-LDFLAGS += -L$(CUDA_LIB_DIR)
-endif
-LDFLAGS += -lcudart
-endif
-CFLAGS += -DBACKEND_NAIVE
-CUFLAGS += -DBACKEND_NAIVE
-else ifeq ($(BACKEND),onednn)
-INCLUDE += -I$(SOURCEDIR)/onednn -I$(ONEDNN_INCLUDE_DIR)
-SRC += $(shell find $(SOURCEDIR)/onednn -name '*.c')
-LDFLAGS += -L$(ONEDNN_SHARED_DIR) -ldnnl 
-CFLAGS += -DBACKEND_ONEDNN
-else
-$(error Only naive and onednn implementation available.)
-endif
-
-
-# Object files are placed in same directory as src files, just with different file extension
-OBJ := $(SRC:.c=.o)
-ifeq ($(USE_GPU),1)
-OBJ := $(OBJ:.cu=.o)
-endif
-        uses: include config/defines.mk
-
-
-# Link all object files into a source file
-$(TARGET): $(OBJ)
-        $(CC) $^ -o $@ $(LDFLAGS)
-
-
-# Rule to compile a single translation unit
-%.o: %.c
-        $(CC) $(INCLUDE) $(CFLAGS) -c $< -o $@
-
-# Rule to compile a single cuda translation unit
-ifeq ($(USE_GPU),1)
-%.o: %.cu
-        $(CUCC) $(INCLUDE) $(CUFLAGS) -c $< -o $@
-endif
-
-
-clean:
-        @$(RM) -rv $(TARGET) $(OBJ)
-
-
-rebuild:
-        make clean && make
-
-
-run: $(TARGET)
-# since oneDNN is built as a shared library, need to add its location
-# to LD_LIBRARY_PATH so that the target executable can find it
-ifeq ($(BACKEND),onednn)
-run: export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$(ONEDNN_SHARED_DIR)
-endif
-run:
-        @$(TARGET)
-
-
-.PHONY: clean rebuild run
-        with: /**
- * @file lenet5_mnist.c
- * @brief Training a CNN on Fashion MNIST
- * 
- * Training a CNN on Fashion MNIST.
- */
-
-
-#include <inttypes.h>
-#include <math.h>
-#include <stdio.h>
-
-
-#include "core/layer.h"
-#include "core/loss.h"
-#include "core/optimizer.h"
-
-#include "optimizer/adam.h"
-#include "optimizer/rmsprop.h"
-#include "optimizer/sgd.h"
-
-#include "sequential/model_desc.h"
-#include "sequential/sequential_model.h"
-
-#include "dataset/dataset.h"
-#include "dataset/dataset_utils.h"
-#include "dataset/mnist.h"
-
-#include "augment/augment_pipeline.h"
-#include "augment/image_flip.h"
-#include "augment/random_crop.h"
-#include "augment/color_augment.h"
-
-#include "util/training_utils.h"
-
-#include "config_info.h"
-#include "log.h"
-#include "tensor.h"
-
-
-/* set to location of mnist or fashion_mnist root folder */
-static const char* mnist_path = "datasets/fashion_mnist";
-
-static const size_t batch_size = 32;
-static const size_t num_epochs = 10000;
-static const size_t test_every = 5;
-
-/* learning rate schedule parameters */
-static const float initial_lr = 0.2f;
-static const float final_lr = 0.01f;
-static const size_t decay_begin = 0;
-static const size_t decay_end = 20;
-static const int32_t reduce_lr_after = 7;
-static const float reduce_lr_by_factor = 10.0f;
-
-static const float dropout_rate = 0.25f;
-
-/* augmentation config */
-static const bool augment = true;
-static const size_t padding = 2;
-
-/* optimizer config */
-static const optimizer_impl_t* optimizer = &sgd_optimizer;
-static const sgd_config_t optimizer_config = {
-    .learning_rate = 0.0f, /* overwritten by lr_schedule */
-    .weight_reg_kind = SGD_WEIGHT_REG_L2,
-    .weight_reg_strength = 1e-4f,
-};
-
-/* conv -> batchnorm -> relu -> conv -> batchnorm -> relu -> pool */
-void model_desc_add_conv_block(model_desc_t* desc, size_t out_channels, size_t filter_size)
-{
-    static const float bn_momentum = 0.9f;
-    static const float bn_eps = 1e-8f;
-
-    const size_t padding = filter_size / 2;
-
-    model_desc_add_convolutional_layer(desc, out_channels, filter_size, 1, padding, winit_he, winit_zeros);
-    model_desc_add_batch_norm_layer(desc, bn_momentum, bn_eps);
-    model_desc_add_activation_layer(desc, ACTIVATION_FUNCTION_RELU);
-
-    model_desc_add_convolutional_layer(desc, out_channels, filter_size, 1, padding, winit_he, winit_zeros);
-    model_desc_add_batch_norm_layer(desc, bn_momentum, bn_eps);
-    model_desc_add_activation_layer(desc, ACTIVATION_FUNCTION_RELU);
-
-    model_desc_add_pooling_layer(desc, 2, 1, 0, POOLING_MAX);
-}
-
-/* linear -> relu -> ?dropout */
-void model_desc_add_linear_dropout(model_desc_t* desc, size_t out_channels, float dropout_rate)
-{
-    model_desc_add_linear_layer(desc, out_channels, winit_he, winit_zeros);
-    model_desc_add_activation_layer(desc, ACTIVATION_FUNCTION_RELU);
-    if (dropout_rate > 0.0f) {
-        model_desc_add_dropout_layer(desc, dropout_rate);
-    }
-}
-
-
-/* crop1: 93.51% */
-layer_t create_small_cnn(const tensor_shape_t* input_shape, float dropout_rate, size_t batch_size)
-{
-    layer_t model = NULL;
-    model_desc_t* desc = NULL;
-
-    model_desc_create(&desc);
-
-    model_desc_add_conv_block(desc, 64, 3);
-    model_desc_add_conv_block(desc, 64, 3);
-    model_desc_add_linear_dropout(desc, 512, dropout_rate);
-    model_desc_add_linear_dropout(desc, 128, dropout_rate);
-    model_desc_add_linear_layer(desc, 10, winit_he, winit_zeros);
-
-    model_desc_dump(desc);
-
-    const sequential_model_create_info_t create_info = {
-        .desc = desc,
-        .max_batch_size = batch_size,
-    };
-    layer_create(&model, &sequential_model_impl, &create_info, input_shape, batch_size);
-
-    model_desc_destroy(desc);
-    return model;
-}
-
-
-/* crop: 2, dropout: 0.5 - 93.60%, dropout: 0.25 - 94.10% */
-layer_t create_cnn(const tensor_shape_t* input_shape, float dropout_rate, size_t batch_size)
-{
-    layer_t model = NULL;
-    model_desc_t* desc = NULL;
-
-    model_desc_create(&desc);
-
-    model_desc_add_conv_block(desc, 128, 3);
-    model_desc_add_conv_block(desc, 128, 3);
-    model_desc_add_linear_dropout(desc, 1024, dropout_rate);
-    model_desc_add_linear_dropout(desc, 256, dropout_rate);
-    model_desc_add_linear_layer(desc, 10, winit_he, winit_zeros);
-
-
-    /* Print a model overview to stdout. */
-    model_desc_dump(desc);
-
-    const sequential_model_create_info_t create_info = {
-        .desc = desc,
-        .max_batch_size = batch_size,
-    };
-    layer_create(&model, &sequential_model_impl, &create_info, input_shape, batch_size);
-
-    model_desc_destroy(desc);
-    return model;
-}
-
-
-augment_pipeline_t setup_augment_pipeline()
-{
-    const image_flip_config_t flip_config = {
-        .horizontal_flip_prob = 0.5f,
-        .vertical_flip_prob = 0.0f,
-    };
-
-    const random_crop_config_t crop_config = {
-        .padding = padding,
-    };
-
-    const color_augment_config_t color_config = {
-        .brightness_augment_prob = 1.0f,
-        .brightness_std = 0.1f,
-        .contrast_augment_prob = 1.0f,
-        .contrast_std = 0.1f,
-        .contrast_midpoint = 0.0f /* since images are normalized */
-    };
-
-
-    const augment_pipeline_config_entry_t pipeline_entries[] = {
-        { .impl = &aug_image_flip, .config = &flip_config },
-        { .impl = &aug_random_crop, .config = &crop_config },
-        //{ .impl = &aug_color, .config = &color_config }
-    };
-
-    const augment_pipeline_config_t pipeline_config = {
-        .entries = pipeline_entries,
-        .num_entries = sizeof(pipeline_entries) / sizeof(*pipeline_entries),
-    };
-
-    augment_pipeline_t augment_pipeline = NULL;
-    augment_pipeline_create(&augment_pipeline, &pipeline_config);
-    return augment_pipeline;
-}
-
-
-static dataset_t train_set = NULL, test_set = NULL;
-static Loss loss;
-void train_callback(const training_state_t* state)
-{
-    float test_accuracy = NAN;
-    float test_loss = NAN;
-
-    if (state->epoch % test_every == 0) {    
-        module_test(state->model, test_set, batch_size, &loss, &test_accuracy, &test_loss);
-        printf("Epoch %" PRIi32 " | Train loss %f | Train accuracy %5.2f%% | Test loss %f "
-            "| Test accuracy %5.2f%% | lr %.2e\n",
-            state->epoch,
-            state->train_loss,
-            state->train_accuracy * 100.0f,
-            test_loss,
-            test_accuracy * 100.0f,
-            optimizer_get_learning_rate(state->optimizer)
-        );
-    }
-}
-
-
-float linear_lr_schedule(const training_state_t* state)
-{
-    static float min_train_loss = INFINITY;
-    static int32_t min_train_loss_epoch = 0;
-
-    if (state->train_loss < min_train_loss) {
-        min_train_loss = state->train_loss;
-        min_train_loss_epoch = state->epoch;
-    }
-
-    if (state->epoch < decay_begin) {
-        return initial_lr;
-    } else if (state->epoch <= decay_end) {
-        return final_lr + (initial_lr - final_lr) * (decay_end - state->epoch)
-            / (decay_end - decay_begin);
-    } else {
-        if (reduce_lr_after != 0 && state->epoch - min_train_loss_epoch >= reduce_lr_after) {
-            min_train_loss = state->train_loss;
-            min_train_loss_epoch = state->epoch;
-            return optimizer_get_learning_rate(state->optimizer) / reduce_lr_by_factor;
-        } else {
-            return optimizer_get_learning_rate(state->optimizer);
-        }
-    }
-}
-
-
-int main()
-{
-    /* load the dataset */
-    const mnist_create_info_t dataset_config = {
-        .path = mnist_path,
-        .padding = 0,
-    };
-
-    if (dataset_create_train_and_test(&mnist_dataset, &dataset_config, true, &train_set,
-                                      &test_set) != 0) {
-        LOG_ERROR("There was an error loading the mnist dataset\n");
-        return 1;
-    }
-    LOG_INFO("Successfully loaded mnist\n");
-
-
-    /* initialize augmentation pipeline */
-    augment_pipeline_t augment_pipeline = augment ? setup_augment_pipeline() : NULL;
-    if (augment && augment_pipeline == NULL) {
-        LOG_ERROR("There was an error setting up the augmentation pipeline\n");
-        return 1;
-    }
-    LOG_INFO("Successfully set up the augmentation pipeline\n");
-
-
-    /* create the model */
-    const tensor_shape_t* data_shape = dataset_get_shape(train_set);
-    layer_t model = create_cnn(data_shape, dropout_rate, batch_size);
-    size_t num_params = module_get_num_params(model);
-    LOG_INFO("Created the model. #params = %zu. Training starts now\n", num_params);
-
-
-    /* initialize loss */
-    LossInit(&loss, layer_get_output_shape(model), batch_size, LOSS_FUNCTION_CROSS_ENTROPY);
-
-    /* train */
-    module_train(model, train_set, augment_pipeline, num_epochs, batch_size, optimizer,
-        &optimizer_config, linear_lr_schedule, &loss, train_callback);
-
-
-    /* free resources */
-    layer_destroy(model);
-    dataset_destroy(train_set);
-    dataset_destroy(test_set);
-    if (augment_pipeline != NULL) {
-        augment_pipeline_destroy(augment_pipeline);
-    }
-    LossDeinit(&loss);
-
-    return 0;
-}
-          sarif_file: /**
- * @file lenet5_mnist.c
- * @brief Train LeNet-5 on the MNIST dataset
- * 
- * This example illustrates how this library can be used to implement the LeNet-5 architecture
- * and train it on the MNIST dataset.
- */
-
-#include <inttypes.h>
-#include <math.h>
-
-#include "neuralnet.h"
-#include "sequential/model_desc.h"
-#include "sequential/sequential_model.h"
-#include "dataset/mnist.h"
-#include "optimizer/sgd.h"
-
-/* path to MNIST or Fashion MNIST dataset */
-const char* mnist_path = "datasets/mnist";
-
-#if defined(USE_GPU)
-static const device_t device = device_gpu;
-#else
-static const device_t device = device_cpu;
-#endif
-
-/* When training on mnist with this configuration, the model should reach an accuracy of 90%+
-    after one epoch and an accuracy of ~98% after 10 epochs */
-static const size_t num_epochs = 50;
-static const size_t batch_size = 32;
-static const sgd_config_t optimizer_config = {
-    .learning_rate = 1e-2f,
-    .weight_reg_kind = WEIGHT_REG_NONE,
-};
-
-
-layer_t create_lenet5(const tensor_shape_t* input_shape, size_t batch_size)
-{
-    model_desc_t* desc = NULL;
-    layer_t model = NULL;
-
-    /* Some default configurations */
-    const activation_layer_create_info_t act_config = {
-        .activation_function = ACTIVATION_FUNCTION_TANH,
-    };
-    const pooling_layer_create_info_t pool_config = {
-        .kernel_width = 2,
-        .pooling_operation = POOLING_AVERAGE,
-    };
-    const linear_layer_create_info_t linear_default_config = {
-        .weight_init = winit_xavier,
-        .bias_init = winit_zeros,
-    };
-
-    model_desc_create(&desc);
-
-    convolutional_layer_create_info_t conv1_config = conv_default_config;
-    conv1_config.output_channels = 6;
-    conv1_config.filter_height = 5;
-    conv1_config.filter_width = 5;
-    conv1_config.padding_y = 2;
-    conv1_config.padding_x = 2;
-    model_desc_add_layer(desc, &convolutional_layer_impl, &conv1_config);
-    model_desc_add_layer(desc, &activation_layer_impl, &act_config);
-    model_desc_add_layer(desc, &pooling_layer_impl, &pool_config);
-
-    convolutional_layer_create_info_t conv2_config = conv_default_config;
-    conv2_config.output_channels = 16;
-    conv2_config.filter_height = 5;
-    conv2_config.filter_width = 5;
-    model_desc_add_layer(desc, &convolutional_layer_impl, &conv2_config);
-    model_desc_add_layer(desc, &activation_layer_impl, &act_config);
-    model_desc_add_layer(desc, &pooling_layer_impl, &pool_config);
-
-    linear_layer_create_info_t linear1_config = linear_default_config;
-    linear1_config.output_size = 120;
-    model_desc_add_layer(desc, &linear_layer_impl, &linear1_config);
-    model_desc_add_layer(desc, &activation_layer_impl, &act_config);
-
-    linear_layer_create_info_t linear2_config = linear_default_config;
-    linear2_config.output_size = 84;
-    model_desc_add_layer(desc, &linear_layer_impl, &linear2_config);
-    model_desc_add_layer(desc, &activation_layer_impl, &act_config);
-
-    linear_layer_create_info_t linear3_config = linear_default_config;
-    linear3_config.output_size = 10;
-    model_desc_add_layer(desc, &linear_layer_impl, &linear3_config);
-
-    model_desc_dump(desc);
-
-    const sequential_model_create_info_t create_info = {
-        .desc = desc,
-        .max_batch_size = batch_size,
-    };
-    layer_create(&model, &sequential_model_impl, &create_info, input_shape, device, batch_size);
-    model_desc_destroy(desc);
-
-    return model;
-}
-
-
-dataset_t train_set = NULL, test_set = NULL;
-void train_callback(const training_state_t* state)
-{
-    float test_accuracy = NAN;
-    float test_loss = NAN;
-
-    module_test(state->model, test_set, batch_size, state->loss, &test_accuracy, &test_loss);
-    LOG_INFO("Epoch %" PRIi32 " | Train loss %f | Train accuracy %5.3f%% | Test loss %f "
-        "| Test accuracy %5.3f%%\n",
-        state->epoch,
-        state->train_loss,
-        state->train_accuracy * 100.0f,
-        test_loss,
-        test_accuracy * 100.0f
-    );
-}
-
-
-int main()
-{
-    /* load the dataset */
-    const mnist_create_info_t dataset_config = {
-        .path = mnist_path,
-        .padding = 0,
-    };
-    if (dataset_create_train_and_test(&mnist_dataset, &dataset_config, true, &train_set,
-                                      &test_set) != 0) {
-        LOG_ERROR("There was an error loading the mnist dataset\n");
-        return 1;
-    }
-    LOG_INFO("Successfully loaded mnist\n");
-
-
-    layer_t lenet5 = create_lenet5(dataset_get_shape(train_set), batch_size);
-
-    const size_t num_params = module_get_num_params(lenet5);
-    LOG_INFO("Created the model. #parameters %d. Start training...\n", num_params);
-
-    /* create the loss */
-    Loss loss;
-    LossInit(&loss, layer_get_output_shape(lenet5), batch_size, LOSS_FUNCTION_CROSS_ENTROPY);
-
-
-    module_train(lenet5, train_set, NULL, num_epochs, batch_size, &sgd_optimizer, &optimizer_config,
-                 NULL, &loss, train_callback);
-
-
-    /* Free resources */
-    dataset_destroy(train_set);
-    dataset_destroy(test_set);
-    layer_destroy(lenet5);
-    LossDeinit(&loss);
-
-    return 0;
-}
+            - name: import torch
+import torch.nn as nn
+import numpy as np
+from pytorch3d.structures import Meshes
+from core.BaseModel import BaseReconModel
+from pytorch3d.renderer import (
+    look_at_view_transform,
+    FoVPerspectiveCameras,
+    PointLights,
+    RasterizationSettings,
+    MeshRenderer,
+    MeshRasterizer,
+    SoftPhongShader,
+    TexturesVertex,
+    blending
+)
+
+
+class BFM09ReconModel(BaseReconModel):
+    def __init__(self, model_dict, **kargs):
+        super(BFM09ReconModel, self).__init__(**kargs)
+
+        self.skinmask = torch.tensor(
+            model_dict['skinmask'], requires_grad=False, device=self.device)
+
+        self.kp_inds = torch.tensor(
+            model_dict['keypoints']-1).squeeze().long().to(self.device)
+
+        self.meanshape = torch.tensor(model_dict['meanshape'],
+                                      dtype=torch.float32, requires_grad=False,
+                                      device=self.device)
+
+        self.idBase = torch.tensor(model_dict['idBase'],
+                                   dtype=torch.float32, requires_grad=False,
+                                   device=self.device)
+
+        self.expBase = torch.tensor(model_dict['exBase'],
+                                    dtype=torch.float32, requires_grad=False,
+                                    device=self.device)
+
+        self.meantex = torch.tensor(model_dict['meantex'],
+                                    dtype=torch.float32, requires_grad=False,
+                                    device=self.device)
+
+        self.texBase = torch.tensor(model_dict['texBase'],
+                                    dtype=torch.float32, requires_grad=False,
+                                    device=self.device)
+
+        self.tri = torch.tensor(model_dict['tri']-1,
+                                dtype=torch.int64, requires_grad=False,
+                                device=self.device)
+
+        self.point_buf = torch.tensor(model_dict['point_buf']-1,
+                                      dtype=torch.int64, requires_grad=False,
+                                      device=self.device)
+
+    def get_lms(self, vs):
+        lms = vs[:, self.kp_inds, :]
+        return lms
+
+    def split_coeffs(self, coeffs):
+        id_coeff = coeffs[:, :80]  # identity(shape) coeff of dim 80
+        exp_coeff = coeffs[:, 80:144]  # expression coeff of dim 64
+        tex_coeff = coeffs[:, 144:224]  # texture(albedo) coeff of dim 80
+        # ruler angles(x,y,z) for rotation of dim 3
+        angles = coeffs[:, 224:227]
+        # lighting coeff for 3 channel SH function of dim 27
+        gamma = coeffs[:, 227:254]
+        translation = coeffs[:, 254:]  # translation coeff of dim 3
+
+        return id_coeff, exp_coeff, tex_coeff, angles, gamma, translation
+
+    def merge_coeffs(self, id_coeff, exp_coeff, tex_coeff, angles, gamma, translation):
+        coeffs = torch.cat([id_coeff, exp_coeff, tex_coeff,
+                            angles, gamma, translation], dim=1)
+        return coeffs
+
+    def forward(self, coeffs, render=True):
+        batch_num = coeffs.shape[0]
+
+        id_coeff, exp_coeff, tex_coeff, angles, gamma, translation = self.split_coeffs(
+            coeffs)
+
+        vs = self.get_vs(id_coeff, exp_coeff)
+
+        rotation = self.compute_rotation_matrix(angles)
+
+        vs_t = self.rigid_transform(
+            vs, rotation, translation)
+
+        lms_t = self.get_lms(vs_t)
+        lms_proj = self.project_vs(lms_t)
+        lms_proj = torch.stack(
+            [lms_proj[:, :, 0], self.img_size-lms_proj[:, :, 1]], dim=2)
+        if render:
+            face_texture = self.get_color(tex_coeff)
+            face_norm = self.compute_norm(vs, self.tri, self.point_buf)
+            face_norm_r = face_norm.bmm(rotation)
+            face_color = self.add_illumination(
+                face_texture, face_norm_r, gamma)
+            face_color_tv = TexturesVertex(face_color)
+
+            mesh = Meshes(vs_t, self.tri.repeat(
+                batch_num, 1, 1), face_color_tv)
+            rendered_img = self.renderer(mesh)
+            rendered_img = torch.clamp(rendered_img, 0, 255)
+
+            return {'rendered_img': rendered_img,
+                    'lms_proj': lms_proj,
+                    'face_texture': face_texture,
+                    'vs': vs_t,
+                    'tri': self.tri,
+                    'color': face_color}
+        else:
+            return {'lms_proj': lms_proj}
+
+    def get_vs(self, id_coeff, exp_coeff):
+        n_b = id_coeff.size(0)
+
+        face_shape = torch.einsum('ij,aj->ai', self.idBase, id_coeff) + \
+            torch.einsum('ij,aj->ai', self.expBase, exp_coeff) + self.meanshape
+
+        face_shape = face_shape.view(n_b, -1, 3)
+        face_shape = face_shape - \
+            self.meanshape.view(1, -1, 3).mean(dim=1, keepdim=True)
+
+        return face_shape
+
+    def get_color(self, tex_coeff):
+        n_b = tex_coeff.size(0)
+        face_texture = torch.einsum(
+            'ij,aj->ai', self.texBase, tex_coeff) + self.meantex
+
+        face_texture = face_texture.view(n_b, -1, 3)
+        return face_texture
+
+    def get_skinmask(self):
+        return self.skinmask
+
+    def init_coeff_dims(self):
+        self.id_dims = 80
+        self.tex_dims = 80
+        self.exp_dims = 64
+        uses: import torch
+import torch.nn as nn
+import numpy as np
+from pytorch3d.structures import Meshes
+from pytorch3d.renderer import (
+    look_at_view_transform,
+    FoVPerspectiveCameras,
+    PointLights,
+    RasterizationSettings,
+    MeshRenderer,
+    MeshRasterizer,
+    SoftPhongShader,
+    TexturesVertex,
+    blending
+)
+
+
+class BaseReconModel(nn.Module):
+    def __init__(self, batch_size=1,
+                 focal=1015, img_size=224, device='cuda:0'):
+        super(BaseReconModel, self).__init__()
+
+        self.focal = focal
+        self.batch_size = batch_size
+        self.img_size = img_size
+
+        self.device = torch.device(device)
+        self.renderer = self._get_renderer(self.device)
+
+        self.p_mat = self._get_p_mat(device)
+        self.reverse_z = self._get_reverse_z(device)
+        self.camera_pos = self._get_camera_pose(device)
+
+        self.rot_tensor = None
+        self.exp_tensor = None
+        self.id_tensor = None
+        self.tex_tensor = None
+        self.trans_tensor = None
+        self.gamma_tensor = None
+
+        self.init_coeff_dims()
+
+        self.init_coeff_tensors()
+
+    def _get_camera_pose(self, device):
+        camera_pos = torch.tensor(
+            [0.0, 0.0, 10.0], device=device).reshape(1, 1, 3)
+        return camera_pos
+
+    def _get_p_mat(self, device):
+        half_image_width = self.img_size // 2
+        p_matrix = np.array([self.focal, 0.0, half_image_width,
+                             0.0, self.focal, half_image_width,
+                             0.0, 0.0, 1.0], dtype=np.float32).reshape(1, 3, 3)
+        return torch.tensor(p_matrix, device=device)
+
+    def _get_reverse_z(self, device):
+        reverse_z = np.reshape(
+            np.array([1.0, 0, 0, 0, 1, 0, 0, 0, -1.0], dtype=np.float32), [1, 3, 3])
+        return torch.tensor(reverse_z, device=device)
+
+    def _get_renderer(self, device):
+        R, T = look_at_view_transform(10, 0, 0)  # camera's position
+        cameras = FoVPerspectiveCameras(device=device, R=R, T=T, znear=0.01,
+                                        zfar=50,
+                                        fov=2*np.arctan(self.img_size//2/self.focal)*180./np.pi)
+
+        lights = PointLights(device=device, location=[[0.0, 0.0, 1e5]],
+                             ambient_color=[[1, 1, 1]],
+                             specular_color=[[0., 0., 0.]], diffuse_color=[[0., 0., 0.]])
+
+        raster_settings = RasterizationSettings(
+            image_size=self.img_size,
+            blur_radius=0.0,
+            faces_per_pixel=1,
+        )
+        blend_params = blending.BlendParams(background_color=[0, 0, 0])
+
+        renderer = MeshRenderer(
+            rasterizer=MeshRasterizer(
+                cameras=cameras,
+                raster_settings=raster_settings
+            ),
+            shader=SoftPhongShader(
+                device=device,
+                cameras=cameras,
+                lights=lights,
+                blend_params=blend_params
+            )
+        )
+        return renderer
+
+    def compute_norm(self, vs, tri, point_buf):
+
+        face_id = tri
+        point_id = point_buf
+        v1 = vs[:, face_id[:, 0], :]
+        v2 = vs[:, face_id[:, 1], :]
+        v3 = vs[:, face_id[:, 2], :]
+        e1 = v1 - v2
+        e2 = v2 - v3
+        face_norm = e1.cross(e2)
+        empty = torch.zeros((face_norm.size(0), 1, 3),
+                            dtype=face_norm.dtype, device=face_norm.device)
+        face_norm = torch.cat((face_norm, empty), 1)
+        v_norm = face_norm[:, point_id, :].sum(2)
+        v_norm = v_norm / v_norm.norm(dim=2).unsqueeze(2)
+
+        return v_norm
+
+    def project_vs(self, vs):
+        batchsize = vs.shape[0]
+
+        vs = torch.matmul(vs, self.reverse_z.repeat(
+            (batchsize, 1, 1))) + self.camera_pos
+        aug_projection = torch.matmul(
+            vs, self.p_mat.repeat((batchsize, 1, 1)).permute((0, 2, 1)))
+
+        face_projection = aug_projection[:, :, :2] / \
+            torch.reshape(aug_projection[:, :, 2], [batchsize, -1, 1])
+        return face_projection
+
+    def compute_rotation_matrix(self, angles):
+        n_b = angles.size(0)
+        sinx = torch.sin(angles[:, 0])
+        siny = torch.sin(angles[:, 1])
+        sinz = torch.sin(angles[:, 2])
+        cosx = torch.cos(angles[:, 0])
+        cosy = torch.cos(angles[:, 1])
+        cosz = torch.cos(angles[:, 2])
+
+        rotXYZ = torch.eye(3).view(1, 3, 3).repeat(
+            n_b * 3, 1, 1).view(3, n_b, 3, 3).to(angles.device)
+
+        rotXYZ[0, :, 1, 1] = cosx
+        rotXYZ[0, :, 1, 2] = -sinx
+        rotXYZ[0, :, 2, 1] = sinx
+        rotXYZ[0, :, 2, 2] = cosx
+        rotXYZ[1, :, 0, 0] = cosy
+        rotXYZ[1, :, 0, 2] = siny
+        rotXYZ[1, :, 2, 0] = -siny
+        rotXYZ[1, :, 2, 2] = cosy
+        rotXYZ[2, :, 0, 0] = cosz
+        rotXYZ[2, :, 0, 1] = -sinz
+        rotXYZ[2, :, 1, 0] = sinz
+        rotXYZ[2, :, 1, 1] = cosz
+
+        rotation = rotXYZ[2].bmm(rotXYZ[1]).bmm(rotXYZ[0])
+
+        return rotation.permute(0, 2, 1)
+
+    def add_illumination(self, face_texture, norm, gamma):
+
+        n_b, num_vertex, _ = face_texture.size()
+        n_v_full = n_b * num_vertex
+        gamma = gamma.view(-1, 3, 9).clone()
+        gamma[:, :, 0] += 0.8
+
+        gamma = gamma.permute(0, 2, 1)
+
+        a0 = np.pi
+        a1 = 2 * np.pi / np.sqrt(3.0)
+        a2 = 2 * np.pi / np.sqrt(8.0)
+        c0 = 1 / np.sqrt(4 * np.pi)
+        c1 = np.sqrt(3.0) / np.sqrt(4 * np.pi)
+        c2 = 3 * np.sqrt(5.0) / np.sqrt(12 * np.pi)
+        d0 = 0.5 / np.sqrt(3.0)
+
+        Y0 = torch.ones(n_v_full).to(gamma.device).float() * a0 * c0
+        norm = norm.view(-1, 3)
+        nx, ny, nz = norm[:, 0], norm[:, 1], norm[:, 2]
+        arrH = []
+
+        arrH.append(Y0)
+        arrH.append(-a1 * c1 * ny)
+        arrH.append(a1 * c1 * nz)
+        arrH.append(-a1 * c1 * nx)
+        arrH.append(a2 * c2 * nx * ny)
+        arrH.append(-a2 * c2 * ny * nz)
+        arrH.append(a2 * c2 * d0 * (3 * nz.pow(2) - 1))
+        arrH.append(-a2 * c2 * nx * nz)
+        arrH.append(a2 * c2 * 0.5 * (nx.pow(2) - ny.pow(2)))
+
+        H = torch.stack(arrH, 1)
+        Y = H.view(n_b, num_vertex, 9)
+        lighting = Y.bmm(gamma)
+
+        face_color = face_texture * lighting
+        return face_color
+
+    def rigid_transform(self, vs, rot, trans):
+
+        vs_r = torch.matmul(vs, rot)
+        vs_t = vs_r + trans.view(-1, 1, 3)
+
+        return vs_t
+
+    def get_lms(self, vs):
+        raise NotImplementedError()
+
+    def forward(self, coeffs, render=True):
+        raise NotImplementedError()
+
+    def get_vs(self, id_coeff, exp_coeff):
+        raise NotImplementedError()
+
+    def get_color(self, tex_coeff):
+        raise NotImplementedError()
+
+    def get_rot_tensor(self):
+        return self.rot_tensor
+
+    def get_trans_tensor(self):
+        return self.trans_tensor
+
+    def get_exp_tensor(self):
+        return self.exp_tensor
+
+    def get_tex_tensor(self):
+        return self.tex_tensor
+
+    def get_id_tensor(self):
+        return self.id_tensor
+
+    def get_gamma_tensor(self):
+        return self.gamma_tensor
+
+    def init_coeff_dims(self):
+        raise NotImplementedError()
+
+    def get_packed_tensors(self):
+        return self.merge_coeffs(self.id_tensor.repeat(self.batch_size, 1),
+                                 self.exp_tensor,
+                                 self.tex_tensor.repeat(self.batch_size, 1),
+                                 self.rot_tensor, self.gamma_tensor,
+                                 self.trans_tensor)
+
+    def init_coeff_tensors(self, id_coeff=None, tex_coeff=None):
+        if id_coeff is None:
+            self.id_tensor = torch.zeros(
+                (1, self.id_dims), dtype=torch.float32,
+                requires_grad=True, device=self.device)
+        else:
+            assert id_coeff.shape == (1, self.id_dims)
+            self.id_tensor = torch.tensor(
+                id_coeff, dtype=torch.float32,
+                requires_grad=True, device=self.device)
+
+        if tex_coeff is None:
+            self.tex_tensor = torch.zeros(
+                (1, self.tex_dims), dtype=torch.float32,
+                requires_grad=True, device=self.device)
+        else:
+            assert tex_coeff.shape == (1, self.tex_dims)
+            self.tex_tensor = torch.tensor(
+                tex_coeff, dtype=torch.float32,
+                requires_grad=True, device=self.device)
+
+        self.exp_tensor = torch.zeros(
+            (self.batch_size, self.exp_dims), dtype=torch.float32,
+            requires_grad=True, device=self.device)
+        self.gamma_tensor = torch.zeros(
+            (self.batch_size, 27), dtype=torch.float32,
+            requires_grad=True, device=self.device)
+        self.trans_tensor = torch.zeros(
+            (self.batch_size, 3), dtype=torch.float32,
+            requires_grad=True, device=self.device)
+        self.rot_tensor = torch.zeros(
+            (self.batch_size, 3), dtype=torch.float32,
+            requires_grad=True, device=self.device)
+        with: from core.BFM09Model import BFM09ReconModel
+from scipy.io import loadmat
+
+
+def get_recon_model(model='bfm09', **kargs):
+    if model == 'bfm09':
+        model_path = 'BFM/BFM09_model_info.mat'
+        model_dict = loadmat(model_path)
+        recon_model = BFM09ReconModel(model_dict, **kargs)
+        return recon_model
+    else:
+        raise NotImplementedError()
+          sarif_file: 
+import numpy as np
+from torch.utils import data
+import torch
+import os
+import pickle
+import cv2
+
+
+class FittingDataset(data.Dataset):
+
+    def __init__(self, img_folder, pkl_path, worker_num=1, worker_ind=0):
+        super(FittingDataset, self).__init__()
+        with open(pkl_path, 'rb') as f:
+            lm_dict = pickle.load(f)
+        self.lm_dict = lm_dict
+        keys = list(lm_dict.keys())
+        keys = sorted(keys)
+        self.item_list = []
+        for k in keys:
+            img_full_path = os.path.join(img_folder, str(k)+'.png')
+            assert os.path.exists(
+                img_full_path), 'file %s does not exist' % img_full_path
+            self.item_list.append((k, img_full_path))
+        num_insts = len(self.item_list)
+        self.start_ind = worker_ind*(num_insts//worker_num)
+        if worker_ind == worker_num-1:
+            self.group_len = num_insts - self.start_ind
+        else:
+            self.group_len = num_insts//worker_num
+
+    def __getitem__(self, index):
+
+        k, img_full_path = self.item_list[self.start_ind:self.start_ind +
+                                          self.group_len][index]
+        lms = self.lm_dict[k]
+        img = cv2.imread(img_full_path)[:, :, ::-1].astype(np.float32)
+        return torch.tensor(lms), torch.tensor(img), k
+
+    def __len__(self):
+        return self.group_len
 
       # Upload SARIF file as an Artifact to download and view
-      # - name: /**
- * @file logistic_regression.c
- * @brief Multi-class logistic regression with linear classifier
- * 
- */
-
-
-#if defined(BACKEND_ONEDNN)
-#error "onednn backend is not supported by this example" 
-#endif
-
-
-#include <inttypes.h>
-#include <math.h>
-#include <stddef.h>
-
-#include "neuralnet.h"
-#include "dataset/mnist.h"
-#include "layer/linear_layer.h"
-#include "optimizer/sgd.h"
-
-
-static const char* mnist_path = "datasets/mnist";
-
-#if defined(USE_GPU)
-static const device_t device = device_gpu;
-#else
-static const device_t device = device_cpu;
-#endif
-
-/* config */
-static const size_t num_epochs = 1000;
-static const float learning_rate = 0.1f;
-static const float l2_reg_strength = 0.0f; /* ridge regression */
-
-dataset_t train_set, test_set;
-void train_callback(const training_state_t* state)
-{
-    float test_accuracy = NAN;
-    float test_loss = NAN;
-
-    const tensor_shape_t* test_set_shape = dataset_get_shape(test_set);
-    const size_t test_samples = tensor_shape_get_dim(test_set_shape, TENSOR_BATCH_DIM);
-
-    if (state->epoch != 0) {
-        module_test(state->model, test_set, test_samples, state->loss, &test_accuracy, &test_loss);
-        LOG_INFO("Epoch %" PRIi32 " | Train loss %f | Train accuracy %5.3f%% | Test loss %f "
-            "| Test accuracy %5.3f%%\n",
-            state->epoch,
-            state->train_loss,
-            state->train_accuracy * 100.0f,
-            test_loss,
-            test_accuracy * 100.0f
-        );
-    }
-}
-
-
-int main()
-{
-    /* load the dataset */
-    const mnist_create_info_t dataset_config = {
-        .path = mnist_path,
-        .padding = 0,
-    };
-    if (dataset_create_train_and_test(&mnist_dataset, &dataset_config, true, &train_set,
-                                      &test_set) != 0) {
-        LOG_ERROR("There was an error loading the mnist dataset\n");
-        return 1;
-    }
-    LOG_INFO("Successfully loaded mnist\n");
-
-    const tensor_shape_t* train_set_shape = dataset_get_shape(train_set);
-    const size_t num_samples = tensor_shape_get_dim(train_set_shape, TENSOR_BATCH_DIM);
-
-
-    /* create classifier as simple linear layer */
-    layer_t classifier;
-    const linear_layer_create_info_t classifier_config = {
-        .output_size = 10,
-        .weight_init = winit_xavier,
-        .bias_init = winit_zeros
-    };
-    layer_create(&classifier, &linear_layer_impl, &classifier_config, train_set_shape, device, num_samples);
-    if (classifier == NULL) {
-        LOG_ERROR("There was an error creating the model\n");
-        return 1;
-    }
-    LOG_INFO("Created the classifier. Start training...\n");
-
-
-    /* create the loss */
-    Loss loss;
-    LossInit(&loss, layer_get_output_shape(classifier), num_samples, LOSS_FUNCTION_CROSS_ENTROPY);
-
-
-    /* training loop */
-    const sgd_config_t optimizer_config = {
-        .learning_rate = learning_rate,
-        .weight_reg_kind = WEIGHT_REG_L2,
-        .weight_reg_strength = l2_reg_strength
-    };
-    module_train(classifier, train_set, NULL, num_epochs, num_samples, &sgd_optimizer, &optimizer_config,
-                 NULL, &loss, train_callback);
-
-
-    dataset_destroy(train_set);
-    dataset_destroy(test_set);
-    layer_destroy(classifier);
-    LossDeinit(&loss);
-
-    return 0;
-}
-      #   uses: /**
- * @file two_layer_mlp_mnist.c
- * @brief Train a two-layered MLP on the MNIST dataset
- * 
- * This example illustrates how this library can be used to implement a two layer deep MLP and
- * trains it on the MNIST dataset.
- */
-
-#include <inttypes.h>
-#include <math.h>
-#include <stddef.h>
-
-#include "neuralnet.h"
-
-#include "sequential/model_desc.h"
-#include "sequential/sequential_model.h"
-
-#include "dataset/mnist.h"
-#include "optimizer/sgd.h"
-
-
-#if defined(USE_GPU)
-static const device_t device = device_gpu;
-#else
-static const device_t device = device_cpu;
-#endif
-
-
-static const char* mnist_path = "datasets/mnist";
-
-/* config */
-static const size_t num_epochs = 100;
-static const size_t hidden_size = 300;
-static const size_t batch_size = 32;
-static const float learning_rate = 0.5f;
-
-
-/* FC(hidden_size) -> Sigmoid -> FC(10) */
-layer_t create_mlp(const tensor_shape_t* input_shape, size_t hidden_size, size_t batch_size)
-{
-    model_desc_t* desc;
-    layer_t model;
+      # - name: import numpy as np
+import torch
+import torch.nn.functional as F
 
-    model_desc_create(&desc);
-
-    model_desc_add_linear_layer(desc, hidden_size, winit_xavier, winit_zeros);
-    model_desc_add_activation_layer(desc, ACTIVATION_FUNCTION_SIGMOID);
-    model_desc_add_linear_layer(desc, 10, winit_xavier, winit_zeros);
-
-    /* Print a model overview to stdout. */
-    model_desc_dump(desc);
 
-    const sequential_model_create_info_t config = {
-        .desc = desc,
-        .max_batch_size = batch_size
-    };
-    layer_create(&model, &sequential_model_impl, &config, input_shape, device, batch_size);
-
-    /* Model desc not needed anymore */
-    model_desc_destroy(desc);
-
-    return model;
-}
-
-
-dataset_t train_set, test_set;
-void train_callback(const training_state_t* state)
-{
-    float test_accuracy = NAN;
-    float test_loss = NAN;
-
-    module_test(state->model, test_set, batch_size, state->loss, &test_accuracy, &test_loss);
-    LOG_INFO("Epoch %" PRIi32 " | Train loss %f | Train accuracy %5.3f%% | Test loss %f "
-        "| Test accuracy %5.3f%%\n",
-        state->epoch,
-        state->train_loss,
-        state->train_accuracy * 100.0f,
-        test_loss,
-        test_accuracy * 100.0f
-    );
-}
-
+def photo_loss(pred_img, gt_img, img_mask):
+    pred_img = pred_img.float()
+    loss = torch.sqrt(torch.sum(torch.square(
+        pred_img - gt_img), 3))*img_mask/255
+    loss = torch.sum(loss, dim=(1, 2)) / torch.sum(img_mask, dim=(1, 2))
+    loss = torch.mean(loss)
 
-int main()
-{
-    /* load the dataset */
-    const mnist_create_info_t dataset_config = {
-        .path = mnist_path,
-        .padding = 0,
-    };
-    if (dataset_create_train_and_test(&mnist_dataset, &dataset_config, true, &train_set,
-                                      &test_set) != 0) {
-        LOG_ERROR("There was an error loading the mnist dataset\n");
-        return 1;
-    }
-    LOG_INFO("Successfully loaded mnist\n");
-
-
-    /* create the model */
-    layer_t mlp = create_mlp(dataset_get_shape(train_set), hidden_size, batch_size);
-    if (mlp == NULL) {
-        LOG_ERROR("There was an error creating the model\n");
-        return 1;
-    }
-    LOG_INFO("Created the model. Start training...\n");
-
-
-    /* create the loss */
-    Loss loss;
-    LossInit(&loss, layer_get_output_shape(mlp), batch_size, LOSS_FUNCTION_CROSS_ENTROPY);
-
-
-    /* Training loop */
-    const sgd_config_t optimizer_config = {
-        .learning_rate = learning_rate,
-        .weight_reg_kind = WEIGHT_REG_NONE
-    };
-    module_train(mlp, train_set, NULL, num_epochs, batch_size, &sgd_optimizer, &optimizer_config,
-                 NULL, &loss, train_callback);
-
-
-    /* Free resources */
-    dataset_destroy(train_set);
-    dataset_destroy(test_set);
-    layer_destroy(mlp);
-    LossDeinit(&loss);
-
-    return 0;
-}
-      #   with: #include "tensor.h"
-#include "tensor_impl.h"
+    return loss
 
-#include "context.h"
 
-#include "layer/activation_layer.h"
-#include "core/layer.h"
+def lm_loss(pred_lms, gt_lms, weight, img_size=224):
+    loss = torch.sum(torch.square(pred_lms/img_size - gt_lms /
+                                  img_size), dim=2) * weight.reshape(1, -1)
+    loss = torch.mean(loss.sum(1))
 
-#include "random.h"
+    return loss
 
-#include "log.h"
-#include <stdio.h>
 
-void test_tensor()
-{
-    tensor_shape_t shape = make_tensor_shape(4, 1, 2, 3, 4);
-    LOG_INFO("Created shape\n");
+# def reg_loss(id_coeff, ex_coeff, tex_coeff):
 
-    size_t size = tensor_size_from_shape(&shape);
-    LOG_INFO("Tensor size is %zu\n", size);
+#     loss = torch.square(id_coeff).sum() + \
+#         torch.square(tex_coeff).sum() * 1.7e-3 + \
+#         torch.square(ex_coeff).sum(1).mean() * 0.8
 
-    tensor_t tensor; 
-    tensor_allocate(&tensor, &shape);
-    LOG_INFO("Allocated tensor\n");
+#     return loss
+def get_l2(tensor):
+    return torch.square(tensor).sum()
 
-    LOG_INFO("Tensor data:\n");
-    float* data = tensor_get_data(&tensor);
-    for (size_t i = 0; i < size; i++) {
-        printf("%f ", data[i]);
-    }
-    printf("\n");
 
-    LOG_INFO("Filling tensor\n");
-    tensor_fill(&tensor, 42.0f);
+def reflectance_loss(tex, skin_mask):
 
-    LOG_INFO("Tensor data:\n");
-    for (size_t i = 0; i < size; i++) {
-        printf("%f ", data[i]);
-    }
-    printf("\n");
+    skin_mask = skin_mask.unsqueeze(2)
+    tex_mean = torch.sum(tex*skin_mask, 1, keepdims=True)/torch.sum(skin_mask)
+    loss = torch.sum(torch.square((tex-tex_mean)*skin_mask/255.)) / \
+        (tex.shape[0]*torch.sum(skin_mask))
 
-    LOG_INFO("Destroying tensor\n");
-    tensor_destory(&tensor);
-}
+    return loss
 
 
-void test_activation_layer()
-{
-    layer_t layer;
+def gamma_loss(gamma):
 
-    tensor_shape_t input_shape = make_tensor_shape(4, 1, 1, 2, 2);
-    size_t size = tensor_size_from_shape(&input_shape);
+    gamma = gamma.reshape(-1, 3, 9)
+    gamma_mean = torch.mean(gamma, dim=1, keepdims=True)
+    gamma_loss = torch.mean(torch.square(gamma - gamma_mean))
 
-    activation_layer_create_info_t act_config = {
-        .activation_function = ACTIVATION_FUNCTION_RELU
-    };
+    return gamma_loss
+      #   uses: import torch
+import torch.nn as nn
+import numpy as np
+from pytorch3d.structures import Meshes
+from pytorch3d.renderer import (
+    look_at_view_transform,
+    FoVPerspectiveCameras,
+    PointLights,
+    RasterizationSettings,
+    MeshRenderer,
+    MeshRasterizer,
+    SoftPhongShader,
+    TexturesVertex,
+    blending
+)
 
-    LOG_INFO("Creating activation layer\n");
-    layer_create(&layer, &activation_layer_impl, &act_config, &input_shape, 0);
 
-    LOG_INFO("Allocating input tensor\n");
-    tensor_t input;
-    tensor_allocate(&input, &input_shape);
-    float* input_data = tensor_get_data(&input);
-    for (size_t i = 0; i < size; i++) {
-        input_data[i] = RandomNormal(0.0f, 1.0f);
-        printf("%f ", input_data[i]);
-    }
-    printf("\n");
+class ReconModel(nn.Module):
+    def __init__(self, face_model, 
+                focal=1015, img_size=224, device='cuda:0'):
+        super(ReconModel, self).__init__()
+        self.facemodel = face_model
 
-    LOG_INFO("Applying activation\n");
-    tensor_t* output;
-    layer_forward(layer, LAYER_FORWARD_TRAINING, &input, &output);
+        self.focal = focal
+        self.img_size = img_size
 
-    float* output_data = tensor_get_data(output);
-    for (size_t i = 0; i < size; i++) {
-        printf("%f ", output_data[i]);
-    }
-    printf("\n");
+        self.device = torch.device(device)
 
-    LOG_INFO("Destroying input\n");
-    tensor_destory(&input);
-    LOG_INFO("Destroying layer\n");
-    layer_destroy(layer);
-}
+        self.renderer = self.get_renderer(self.device)
 
+        self.kp_inds = torch.tensor(self.facemodel['keypoints']-1).squeeze().long()
 
-int main() {
+        meanshape = nn.Parameter(torch.from_numpy(self.facemodel['meanshape'],).float(), requires_grad=False)
+        self.register_parameter('meanshape', meanshape)
 
-    if (backend_context_init() != 0) {
-        LOG_ERROR("Backend context init failed\n");
-    }
-    LOG_INFO("Initialized backend context\n");
+        idBase = nn.Parameter(torch.from_numpy(self.facemodel['idBase']).float(), requires_grad=False)
+        self.register_parameter('idBase', idBase)
 
-    test_activation_layer();
-}
-      #     name: # !/bin/bash
+        exBase = nn.Parameter(torch.from_numpy(self.facemodel['exBase']).float(), requires_grad=False)
+        self.register_parameter('exBase', exBase)
 
-export CC=gcc
-export CXX=g++
+        meantex = nn.Parameter(torch.from_numpy(self.facemodel['meantex']).float(), requires_grad=False)
+        self.register_parameter('meantex', meantex)
 
+        texBase = nn.Parameter(torch.from_numpy(self.facemodel['texBase']).float(), requires_grad=False)
+        self.register_parameter('texBase', texBase)
 
-ROOT_PWD=$(pwd)
+        tri = nn.Parameter(torch.from_numpy(self.facemodel['tri']).float(), requires_grad=False)
+        self.register_parameter('tri', tri)
 
-# Go to temporary folder
-mkdir -p tmp && cd tmp
-
-# Clone oneDNN source code
-git clone https://github.com/oneapi-src/oneDNN.git
-cd oneDNN
-
-# Library is tested at this commit, but feel free to use different version
-git checkout 9ef80d1732d054b7f12f0475d7181b37ffeba662
-
-# Create build directory
-mkdir -p build && cd build
-
-# Configure CMake and generate makefiles
-cmake .. -DCMAKE_INSTALL_PREFIX=${ROOT_PWD}/lib/onednn
-
-# Build the library with half of the available cores to not overload the system.
-make -j $((($(nproc) + 1) / 2 ))
-
-
-# Install the library and headers
-cmake --build . --target install
-
-# Remove temporary folder
-cd ${ROOT_PWD}
-rm -rf tmp
+        point_buf = nn.Parameter(torch.from_numpy(self.facemodel['point_buf']).float(), requires_grad=False)
+        self.register_parameter('point_buf', point_buf)
+
+    def get_renderer(self, device):
+        R, T = look_at_view_transform(10, 0, 0)
+        cameras = FoVPerspectiveCameras(device=device, R=R, T=T, znear=0.01, zfar=50,
+                                        fov=2*np.arctan(self.img_size//2/self.focal)*180./np.pi)
+
+        lights = PointLights(device=device, location=[[0.0, 0.0, 1e5]], ambient_color=[[1, 1, 1]],
+                             specular_color=[[0., 0., 0.]], diffuse_color=[[0., 0., 0.]])
+
+        raster_settings = RasterizationSettings(
+            image_size=self.img_size,
+            blur_radius=0.0,
+            faces_per_pixel=1,
+        )
+        blend_params = blending.BlendParams(background_color=[0, 0, 0])
+
+        renderer = MeshRenderer(
+            rasterizer=MeshRasterizer(
+                cameras=cameras,
+                raster_settings=raster_settings
+            ),
+            shader=SoftPhongShader(
+                device=device,
+                cameras=cameras,
+                lights=lights,
+                blend_params=blend_params
+            )
+        )
+        return renderer
+
+    def Split_coeff(self, coeff):
+        id_coeff = coeff[:, :80]  # identity(shape) coeff of dim 80
+        ex_coeff = coeff[:, 80:144]  # expression coeff of dim 64
+        tex_coeff = coeff[:, 144:224]  # texture(albedo) coeff of dim 80
+        angles = coeff[:, 224:227]  # ruler angles(x,y,z) for rotation of dim 3
+        gamma = coeff[:, 227:254]  # lighting coeff for 3 channel SH function of dim 27
+        translation = coeff[:, 254:]  # translation coeff of dim 3
+
+        return id_coeff, ex_coeff, tex_coeff, angles, gamma, translation
+
+    def Shape_formation(self, id_coeff, ex_coeff):
+        n_b = id_coeff.size(0)
+
+        face_shape = torch.einsum('ij,aj->ai', self.idBase, id_coeff) + \
+                     torch.einsum('ij,aj->ai', self.exBase, ex_coeff) + self.meanshape
+
+        face_shape = face_shape.view(n_b, -1, 3)
+        face_shape = face_shape - self.meanshape.view(1, -1, 3).mean(dim=1, keepdim=True)
+
+        return face_shape
+
+    def Texture_formation(self, tex_coeff):
+        n_b = tex_coeff.size(0)
+        face_texture = torch.einsum('ij,aj->ai', self.texBase, tex_coeff) + self.meantex
+
+        face_texture = face_texture.view(n_b, -1, 3)
+        return face_texture
+
+    def Compute_norm(self, face_shape):
+
+        face_id = self.tri.long() - 1
+        point_id = self.point_buf.long() - 1 
+        shape = face_shape
+        v1 = shape[:, face_id[:, 0], :]
+        v2 = shape[:, face_id[:, 1], :]
+        v3 = shape[:, face_id[:, 2], :]
+        e1 = v1 - v2
+        e2 = v2 - v3
+        face_norm = e1.cross(e2)
+        empty = torch.zeros((face_norm.size(0), 1, 3), dtype=face_norm.dtype, device=face_norm.device)
+        face_norm = torch.cat((face_norm, empty), 1) 
+        v_norm = face_norm[:, point_id, :].sum(2)  
+        v_norm = v_norm / v_norm.norm(dim=2).unsqueeze(2)
+
+        return v_norm
+
+    def Projection_block(self, face_shape):
+        half_image_width = self.img_size // 2
+        batchsize = face_shape.shape[0]
+        camera_pos = torch.tensor([0.0,0.0,10.0], device=face_shape.device).reshape(1, 1, 3)
+        # tensor.reshape(constant([0.0,0.0,10.0]),[1,1,3])
+        p_matrix = np.array([self.focal, 0.0, half_image_width, \
+                            0.0, self.focal, half_image_width, \
+                            0.0, 0.0, 1.0], dtype=np.float32)
+
+        p_matrix = np.tile(p_matrix.reshape(1, 3, 3), [batchsize, 1, 1])
+        reverse_z = np.tile(np.reshape(np.array([1.0,0,0,0,1,0,0,0,-1.0], dtype=np.float32),[1,3,3]),
+                            [batchsize,1,1])
+
+        p_matrix = torch.tensor(p_matrix, device=face_shape.device)
+        reverse_z = torch.tensor(reverse_z, device=face_shape.device)
+        face_shape = torch.matmul(face_shape,reverse_z) + camera_pos
+        aug_projection = torch.matmul(face_shape,p_matrix.permute((0,2,1)))
+
+        face_projection = aug_projection[:,:,:2]/ \
+                        torch.reshape(aug_projection[:,:,2],[batchsize,-1,1])
+        return face_projection
+
+    @staticmethod
+    def Compute_rotation_matrix(angles):
+        n_b = angles.size(0)
+        sinx = torch.sin(angles[:, 0])
+        siny = torch.sin(angles[:, 1])
+        sinz = torch.sin(angles[:, 2])
+        cosx = torch.cos(angles[:, 0])
+        cosy = torch.cos(angles[:, 1])
+        cosz = torch.cos(angles[:, 2])
+
+        rotXYZ = torch.eye(3).view(1, 3, 3).repeat(n_b * 3, 1, 1).view(3, n_b, 3, 3)
+
+        if angles.is_cuda: rotXYZ = rotXYZ.cuda()
+
+        rotXYZ[0, :, 1, 1] = cosx
+        rotXYZ[0, :, 1, 2] = -sinx
+        rotXYZ[0, :, 2, 1] = sinx
+        rotXYZ[0, :, 2, 2] = cosx
+        rotXYZ[1, :, 0, 0] = cosy
+        rotXYZ[1, :, 0, 2] = siny
+        rotXYZ[1, :, 2, 0] = -siny
+        rotXYZ[1, :, 2, 2] = cosy
+        rotXYZ[2, :, 0, 0] = cosz
+        rotXYZ[2, :, 0, 1] = -sinz
+        rotXYZ[2, :, 1, 0] = sinz
+        rotXYZ[2, :, 1, 1] = cosz
+
+        rotation = rotXYZ[2].bmm(rotXYZ[1]).bmm(rotXYZ[0])
+
+        return rotation.permute(0, 2, 1)
+
+    @staticmethod
+    def Rigid_transform_block(face_shape, rotation, translation):
+        face_shape_r = torch.matmul(face_shape, rotation)
+        face_shape_t = face_shape_r + translation.view(-1, 1, 3)
+
+        return face_shape_t
+
+    @staticmethod
+    def Illumination_layer(face_texture, norm, gamma):
+
+        n_b, num_vertex, _ = face_texture.size()
+        n_v_full = n_b * num_vertex
+        gamma = gamma.view(-1, 3, 9).clone()
+        gamma[:, :, 0] += 0.8
+
+        gamma = gamma.permute(0, 2, 1)
+
+        a0 = np.pi
+        a1 = 2 * np.pi / np.sqrt(3.0)
+        a2 = 2 * np.pi / np.sqrt(8.0)
+        c0 = 1 / np.sqrt(4 * np.pi)
+        c1 = np.sqrt(3.0) / np.sqrt(4 * np.pi)
+        c2 = 3 * np.sqrt(5.0) / np.sqrt(12 * np.pi)
+        d0 = 0.5/ np.sqrt(3.0)
+
+        Y0 = torch.ones(n_v_full).to(gamma.device).float() * a0 * c0
+        norm = norm.view(-1, 3)
+        nx, ny, nz = norm[:, 0], norm[:, 1], norm[:, 2]
+        arrH = []
+
+        arrH.append(Y0)
+        arrH.append(-a1 * c1 * ny)
+        arrH.append(a1 * c1 * nz)
+        arrH.append(-a1 * c1 * nx)
+        arrH.append(a2 * c2 * nx * ny)
+        arrH.append(-a2 * c2 * ny * nz)
+        arrH.append(a2 * c2 * d0 * (3 * nz.pow(2) - 1))
+        arrH.append(-a2 * c2 * nx * nz)
+        arrH.append(a2 * c2 * 0.5 * (nx.pow(2) - ny.pow(2)))
+
+        H = torch.stack(arrH, 1)
+        Y = H.view(n_b, num_vertex, 9)
+        lighting = Y.bmm(gamma)
+
+        face_color = face_texture * lighting
+        return face_color
+
+    def get_lms(self, face_shape, kp_inds):
+        lms = face_shape[:, kp_inds, :]
+        return lms
+
+    def forward(self, coeff):
+
+        batch_num = coeff.shape[0]
+
+        id_coeff, ex_coeff, tex_coeff, angles, gamma, translation = self.Split_coeff(coeff)
+
+        face_shape = self.Shape_formation(id_coeff, ex_coeff)
+        face_texture = self.Texture_formation(tex_coeff)
+        face_norm = self.Compute_norm(face_shape)
+        rotation = self.Compute_rotation_matrix(angles)
+        face_norm_r = face_norm.bmm(rotation)
+        face_shape_t = self.Rigid_transform_block(face_shape, rotation, translation)
+        face_color = self.Illumination_layer(face_texture, face_norm_r, gamma)
+        face_lms_t = self.get_lms(face_shape_t, self.kp_inds)
+        lms = self.Projection_block(face_lms_t)
+        lms = torch.stack([lms[:, :, 0], self.img_size-lms[:, :, 1]], dim=2)
+
+
+        face_color = TexturesVertex(face_color)
+
+        tri = self.tri - 1
+        mesh = Meshes(face_shape_t, tri.repeat(batch_num, 1, 1), face_color)
+        rendered_img = self.renderer(mesh)
+        rendered_img = torch.clamp(rendered_img, 0, 255)
+
+        return rendered_img, lms, face_texture, mesh
+      #   with: import argparse
+import os
+import torch
+
+
+class BaseOptions():
+    def __init__(self):
+        self.parser = argparse.ArgumentParser()
+        self.initialized = False
+
+    def initialize(self):
+        self.parser.add_argument('--tar_size', type=int, default=256,
+                                 help='size for rendering window. We use a square window.')
+        self.parser.add_argument('--padding_ratio', type=float, default=0.3,
+                                 help='enlarge the face detection bbox by a margin.')
+        self.parser.add_argument('--recon_model', type=str, default='bfm09',
+                                 help='choose a 3dmm model, default: bfm09')
+        self.parser.add_argument('--first_rf_iters', type=int, default=1000,
+                                 help='iteration number of rigid fitting for the first frame in video fitting.')
+        self.parser.add_argument('--first_nrf_iters', type=int, default=500,
+                                 help='iteration number of non-rigid fitting for the first frame in video fitting.')
+        self.parser.add_argument('--rest_rf_iters', type=int, default=50,
+                                 help='iteration number of rigid fitting for the remaining frames in video fitting.')
+        self.parser.add_argument('--rest_nrf_iters', type=int, default=30,
+                                 help='iteration number of non-rigid fitting for the remaining frames in video fitting.')
+        self.parser.add_argument('--rf_lr', type=float, default=1e-2,
+                                 help='learning rate for rigid fitting')
+        self.parser.add_argument('--nrf_lr', type=float, default=1e-2,
+                                 help='learning rate for non-rigid fitting')
+        self.parser.add_argument('--lm_loss_w', type=float, default=100,
+                                 help='weight for landmark loss')
+        self.parser.add_argument('--rgb_loss_w', type=float, default=1.6,
+                                 help='weight for rgb loss')
+        self.parser.add_argument('--id_reg_w', type=float, default=1e-3,
+                                 help='weight for id coefficient regularizer')
+        self.parser.add_argument('--exp_reg_w', type=float, default=0.8e-3,
+                                 help='weight for expression coefficient regularizer')
+        self.parser.add_argument('--tex_reg_w', type=float, default=1.7e-6,
+                                 help='weight for texture coefficient regularizer')
+        self.parser.add_argument('--rot_reg_w', type=float, default=1,
+                                 help='weight for rotation regularizer')
+        self.parser.add_argument('--trans_reg_w', type=float, default=1,
+                                 help='weight for translation regularizer')
+
+        self.parser.add_argument('--tex_w', type=float, default=1,
+                                 help='weight for texture reflectance loss.')
+        self.parser.add_argument('--cache_folder', type=str, default='fitting_cache',
+                                 help='path for the cache folder')
+        self.parser.add_argument('--nframes_shape', type=int, default=16,
+                                 help='number of frames used to estimate shape coefficient in video fitting')
+        self.parser.add_argument('--res_folder', type=str, required=True,
+                                 help='output path for the image')
+
+        self.initialized = True
+
+    def parse(self):
+        if not self.initialized:
+            self.initialize()
+        self.opt = self.parser.parse_args()
+
+        args = vars(self.opt)
+
+        print('------------ Options -------------')
+        for k, v in sorted(args.items()):
+            print('%s: %s' % (str(k), str(v)))
+        print('-------------- End ----------------')
+
+        return self.opt
+
+
+class ImageFittingOptions(BaseOptions):
+    def initialize(self):
+        BaseOptions.initialize(self)
+        self.parser.add_argument('--img_path', type=str, required=True,
+                                 help='path for the image')
+        self.parser.add_argument('--gpu', type=int, default=0,
+                                 help='gpu device')
+
+
+class VideoFittingOptions(BaseOptions):
+    def initialize(self):
+        BaseOptions.initialize(self)
+        self.parser.add_argument('--v_path', type=str, required=True,
+                                 help='path for the video')
+        self.parser.add_argument('--ngpus', type=int, default=1,
+                                 help='gpu device')
+        self.parser.add_argument('--nworkers', type=int, default=1,
+                                 help='number of workers')
+      #     name: import pickle
+import numpy as np
+import os
+import torch
+
+
+def pad_bbox(bbox, img_wh, padding_ratio=0.2):
+    x1, y1, x2, y2 = bbox
+    width = x2 - x1
+    height = y2 - y1
+    size_bb = int(max(width, height) * (1+padding_ratio))
+    center_x, center_y = (x1 + x2) // 2, (y1 + y2) // 2
+    x1 = max(int(center_x - size_bb // 2), 0)
+    y1 = max(int(center_y - size_bb // 2), 0)
+    size_bb = min(img_wh[0] - x1, size_bb)
+    size_bb = min(img_wh[1] - y1, size_bb)
+
+    return [x1, y1, x1+size_bb, y1+size_bb]
+
+
+def mymkdirs(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+
+def get_lm_weights(device):
+    w = torch.ones(68).to(device)
+    w[28:31] = 10
+    w[48:68] = 10
+    norm_w = w / w.sum()
+    return norm_w
+
+
+def save_obj(path, v, f, c):
+    with open(path, 'w') as file:
+        for i in range(len(v)):
+            file.write('v %f %f %f %f %f %f\n' %
+                       (v[i, 0], v[i, 1], v[i, 2], c[i, 0], c[i, 1], c[i, 2]))
+
+        file.write('\n')
+
+        for i in range(len(f)):
+            file.write('f %d %d %d\n' % (f[i, 0], f[i, 1], f[i, 2]))
+
+    file.close()
       #     path: import requests
 from email.utils import parseaddr
 
