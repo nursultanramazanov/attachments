@@ -1,1208 +1,114 @@
 name: Rust
 
-on: <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
-<html>
-<head>
-        <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
-        <title>DuneNvme test system Release Notes</title>
-        <meta name="generator" content="LibreOffice 6.3.6.2 (Linux)"/>
-        <meta name="created" content="00:00:00"/>
-        <meta name="changedby" content="Terry Barnaby"/>
-        <meta name="changed" content="2020-07-18T07:19:54.309394236"/>
-        <meta name="created" content="00:00:00">
-        <style type="text/css">
-                h3.cjk { font-family: "Noto Sans CJK SC" }
-                h3.ctl { font-family: "Lohit Devanagari" }
-        </style>
-</head>
-<body lang="en-GB" dir="ltr"><h1 align="center">DuneNvme test system
-Release Notes</h1>
-<h3 class="western">Release 1.0.1: <font face="Liberation Serif, serif"><font size="4" style="font-size: 14pt"><b>2020-0</b></font></font><font face="Liberation Serif, serif"><font size="4" style="font-size: 14pt"><b>7</b></font></font><font face="Liberation Serif, serif"><font size="4" style="font-size: 14pt"><b>-1</b></font></font><font face="Liberation Serif, serif"><font size="4" style="font-size: 14pt"><b>8</b></font></font></h3>
-<p>Minor bugfix release to aid debugging.</p>
-<ol>
-        <li><p>The bfpga_driver’s Makefile now finds the correct PCI
-        device when loading the bfpga Linux driver.</p>
-        <li><p>The bfpga driver’s udev file, bfpga.rules, now has the
-        correct device name.</p>
-        <li><p>Fix to the test code for correct bfpga device name string.</p>
-        <li><p>Added NVMe PCIe phy_status and link_status signals to the
-        NvmeStorageUnit’s status register (bits 30 and 31).</p>
-</ol>
-<h3 class="western">Release 1.0.0: <font face="Liberation Serif, serif"><font size="4" style="font-size: 14pt"><b>2020-06-16</b></font></font></h3>
-<p>First release of Dune NvmeStorage system. This includes builds for
-the AB17-M2FMC and Opsero OP47 NVMe boards.</p>
-<p>NvmeStorage Utilisation:</p>
-<table width="580" cellpadding="0" cellspacing="0" style="page-break-inside: avoid">
-        <col width="78"/>
+on: import cv2
+import numpy as np
+from tqdm import tqdm
 
-        <col width="79"/>
+# Define the available resolutions
+resolutions = [
+    (320, 240),
+    (640, 480),
+    (1280, 720),
+    (1920, 1080),
+    (750, 1334),   # iPhone 6/7/8
+    (1080, 1920),  # iPhone 6/7/8 Plus
+    (1125, 2436),  # iPhone X/XS/11 Pro
+    (1242, 2688),  # iPhone XS Max/11 Pro Max
+    (1440, 2560),  # Google Pixel 2 XL
+    (1440, 3040),  # Samsung Galaxy S10/S20
+    (1440, 3200),  # Sony Xperia 1 II
+    (1600, 2560),  # Google Pixel 4 XL
+    (2160, 3840)   # Samsung Galaxy S21 Ultra
+]
 
-        <col width="75"/>
+# Print the available resolutions
+print("Available resolutions:")
+for i, res in enumerate(resolutions):
+    if i == 4:
+        print("\nFor smartphones:")
+    print(f"{i+1}. {res[0]}x{res[1]}")
+print()
 
-        <col width="37"/>
+# Ask the user to select or enter a resolution
+res_choice = input("Enter the number of your choice or enter a custom resolution (e.g. 1920x1080): ")
+if "x" in res_choice:
+    resolution = tuple(map(int, res_choice.split("x")))
+else:
+    res_choice = int(res_choice)
+    resolution = resolutions[res_choice-1]
 
-        <col width="40"/>
+# Define the video codec and frame rate
+codec = cv2.VideoWriter_fourcc(*"mp4v")
+fps = 60
 
-        <col width="64"/>
+# Create the video writer object
+filename = f"static_{resolution[0]}x{resolution[1]}.mp4"
+out = cv2.VideoWriter(filename, codec, fps, resolution)
 
-        <col width="64"/>
+# Generate and write each frame of the video
+for i in tqdm(range(fps * 10)):
+    frame = np.random.randint(0, 255, (resolution[1], resolution[0], 3), dtype=np.uint8)
+    out.write(frame)
 
-        <col width="49"/>
+# Release the video writer object
+out.release()
 
-        <col width="95"/>
+print(f"Static video saved to {filename}")
+  push: import numpy as np
+from PIL import Image
+from tqdm import tqdm
+import imageio
 
-        <tr valign="top">
-                <th width="78" style="border: none; padding: 0cm"><p>Total LUTs</p>
-                </th>
-                <th width="79" style="border: none; padding: 0cm"><p>Logic LUTs</p>
-                </th>
-                <th width="75" style="border: none; padding: 0cm"><p>LUTRAMs</p>
-                </th>
-                <th width="37" style="border: none; padding: 0cm"><p>SRLs</p>
-                </th>
-                <th width="40" style="border: none; padding: 0cm"><p>FFs</p>
-                </th>
-                <th width="64" style="border: none; padding: 0cm"><p>RAMB36</p>
-                </th>
-                <th width="64" style="border: none; padding: 0cm"><p>RAMB18</p>
-                </th>
-                <th width="49" style="border: none; padding: 0cm"><p>URAM</p>
-                </th>
-                <th width="95" style="border: none; padding: 0cm"><p>DSP48 Blocks</p>
-                </th>
-        </tr>
-        <tr valign="top">
-                <td width="78" style="border: none; padding: 0cm" sdval="10625" sdnum="2057;"><p>
-                        10625</p>
-                </td>
-                <td width="79" style="border: none; padding: 0cm" sdval="8729" sdnum="2057;"><p>
-                        8729</p>
-                </td>
-                <td width="75" style="border: none; padding: 0cm" sdval="1888" sdnum="2057;"><p>
-                        1888</p>
-                </td>
-                <td width="37" style="border: none; padding: 0cm" sdval="8" sdnum="2057;"><p>
-                        8</p>
-                </td>
-                <td width="40" style="border: none; padding: 0cm" sdval="13773" sdnum="2057;"><p>
-                        13773</p>
-                </td>
-                <td width="64" style="border: none; padding: 0cm" sdval="24" sdnum="2057;"><p>
-                        24</p>
-                </td>
-                <td width="64" style="border: none; padding: 0cm" sdval="26" sdnum="2057;"><p>
-                        26</p>
-                </td>
-                <td width="49" style="border: none; padding: 0cm" sdval="0" sdnum="2057;"><p>
-                        0</p>
-                </td>
-                <td width="95" style="border: none; padding: 0cm" sdval="0" sdnum="2057;"><p>
-                        0</p>
-                </td>
-        </tr>
-</table>
-<p><br/>
-<br/>
+# Set up variables
+resolution = input("Enter the resolution (e.g. 1920x1080): ")
+fps = int(input("Enter the frames per second (e.g. 60): "))
+duration = int(input("Enter the duration in seconds (e.g. 10): "))
 
-</p>
-</body>
-</html>
-  push: 
+# Split resolution into width and height
+width, height = map(int, resolution.split("x"))
 
-/* Includes ------------------------------------------------------------------*/
-#include "stm8s_conf.h"
-#include "stm8s.h"
+# Generate static frames
+frames = []
+for i in tqdm(range(int(fps * duration)), desc="Generating frames"):
+    frame = np.random.randint(0, 256, (height, width, 3), dtype=np.uint8)
+    frames.append(Image.fromarray(frame))
 
-
-/* Private functions ---------------------------------------------------------*/
-#define I2C_ADR 0x70 //i2c slave adress
-#define I2C_SPEED 400000 //speed i2c
-#define ClkFreqMHz 16
-#define DeadTime   0xFF  //deadtime for transistor close
-#define igniteWait  3     // frequenfy*wait delay
-
-void Delay(uint32_t t) {
-  if (t==0){t=1;}
-    while(--t)
-    {
-    if (GPIO_ReadInputPin(GPIOD,GPIO_PIN_3))
-    {
-      enableInterrupts();
-    }
-    }
-}
-
-
-uint16_t i;
-uint16_t ICValue1 =0, ICValue2 =0,freq;
-
-void SendLed (uint16_t num);
-
-void main(void)
-{
-  CLK_SYSCLKConfig(CLK_PRESCALER_CPUDIV1);      //16MH
-  CLK_SYSCLKConfig(CLK_PRESCALER_HSIDIV1);      //16MH
-  CLK_PeripheralClockConfig(CLK_PERIPHERAL_TIMER2, ENABLE);
-
-
-  //--------------GPIO---------------
-
-  GPIO_Init(GPIOD,GPIO_PIN_2|GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6,GPIO_MODE_OUT_PP_HIGH_SLOW );
-  GPIO_Init(GPIOA,GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3,GPIO_MODE_OUT_PP_HIGH_SLOW);
-  GPIO_Init(GPIOC,GPIO_PIN_4|GPIO_PIN_3|GPIO_PIN_6|GPIO_PIN_7,GPIO_MODE_OUT_PP_HIGH_SLOW);
-  GPIO_Init(GPIOD,GPIO_PIN_3,GPIO_MODE_IN_PU_IT );
-  EXTI_SetExtIntSensitivity(EXTI_PORT_GPIOD, EXTI_SENSITIVITY_FALL_ONLY);
-  enableInterrupts();
-  //--------------------------------
-
-   // ------------ TIM2 -------------------
-  TIM2_DeInit();
-  TIM2_TimeBaseInit(TIM2_PRESCALER_4096 ,50000); 
-  TIM2_Cmd(ENABLE);
-    // -------------------------------------
-
-
-
-  uint8_t mod=0,gotov=0;
-  uint16_t buf[10];
-  uint32_t b;
-  /* Infinite loop */
-  while (1)
-  {
-    //--------------LED-------------------
-   //i++; 
-   //i=(i>9999)?0:i;
-    Delay(20);
-    mod++;
-    if ((freq!=buf[3])){
-      mod=0;
-    for(i = 0;i< 3;i++)
-    {
-      buf[i]=buf[i+1];
-    } 
-    buf[3]=freq;
-    b=0;
-    for(i = 0;i<4;i++)
-    {
-      b= buf[i]+b;
-    } 
-    b=(b==0)?937500:b;
-    i=937500/b;
-    }
-    GPIO_WriteHigh(GPIOC, GPIO_PIN_4);
-    i=(i>10000)?9999:i;
-   if (i>999)
-   {
-      SendLed((i/1000)%10);
-      GPIO_WriteLow(GPIOC, GPIO_PIN_7);
-      Delay(40);
-      GPIO_WriteHigh(GPIOC, GPIO_PIN_7);
-   }
-   if (i>99)
-   {
-      SendLed((i/100)%10);
-      GPIO_WriteLow(GPIOC, GPIO_PIN_6);
-      Delay(40);
-      GPIO_WriteHigh(GPIOC, GPIO_PIN_6);
-   }
-   if (i>9)
-   {
-
-      SendLed((i/10)%10);
-      GPIO_WriteLow(GPIOC, GPIO_PIN_3);
-      Delay(40);
-      GPIO_WriteHigh(GPIOC, GPIO_PIN_3);
-   }
-    SendLed(i%10);
-    GPIO_WriteLow(GPIOC, GPIO_PIN_4);
-
-   //-----------------------------
-
-
-
-  }
-
-}
-
-
-INTERRUPT_HANDLER(EXTI_PORTD_IRQHandler, 6)
-{
-   if (!GPIO_ReadInputPin(GPIOD,GPIO_PIN_3))
-  {
-    ICValue1=  TIM2_GetCounter();
-    if (ICValue1>ICValue2){
-      freq=ICValue1-ICValue2;
-      ICValue2=ICValue1;
-    } 
-    if (ICValue1<ICValue2){
-    freq=ICValue1+50000-ICValue2;
-    ICValue2=ICValue1;     
-    }
-    disableInterrupts();
-  }
-}
-
- INTERRUPT_HANDLER(TIM2_CAP_COM_IRQHandler, 14)
- {
-   if (TIM2_GetITStatus(TIM2_IT_CC2)==SET){
-    TIM2_ClearITPendingBit(TIM2_IT_CC2);
-    TIM2_ClearFlag(TIM2_FLAG_CC2);
-   }
- }
-
-void SendLed (uint16_t num)
-{
-
-  GPIO_WriteLow(GPIOA, GPIO_PIN_3|GPIO_PIN_1|GPIO_PIN_2);
-  GPIO_WriteLow(GPIOD,  GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_2|GPIO_PIN_3);
-
-  switch (num){ 
-      case 0:
-        GPIO_WriteHigh(GPIOA, GPIO_PIN_3);
-        GPIO_WriteHigh(GPIOA, GPIO_PIN_1|GPIO_PIN_2);
-        GPIO_WriteHigh(GPIOD, GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_2);
-    break;
-      case 1:
-        GPIO_WriteHigh(GPIOA, GPIO_PIN_2);
-        GPIO_WriteHigh(GPIOD, GPIO_PIN_4);
-    break;
-      case 2:
-        GPIO_WriteHigh(GPIOA, GPIO_PIN_3);
-        GPIO_WriteHigh(GPIOA, GPIO_PIN_2);
-        GPIO_WriteHigh(GPIOD,  GPIO_PIN_2|GPIO_PIN_5|GPIO_PIN_6);
-    break;
-      case 3:
-        GPIO_WriteHigh(GPIOA, GPIO_PIN_3);
-        GPIO_WriteHigh(GPIOA, GPIO_PIN_2);
-        GPIO_WriteHigh(GPIOD,  GPIO_PIN_4|GPIO_PIN_2|GPIO_PIN_6);
-    break;
-      case 4:
-        GPIO_WriteHigh(GPIOA, GPIO_PIN_1|GPIO_PIN_2);
-        GPIO_WriteHigh(GPIOD,  GPIO_PIN_4|GPIO_PIN_6);
-    break;
-      case 5:
-        GPIO_WriteHigh(GPIOA, GPIO_PIN_3);
-        GPIO_WriteHigh(GPIOA, GPIO_PIN_1);
-        GPIO_WriteHigh(GPIOD,  GPIO_PIN_4|GPIO_PIN_6|GPIO_PIN_2);
-    break;
-      case 6:
-        GPIO_WriteHigh(GPIOA, GPIO_PIN_3);
-        GPIO_WriteHigh(GPIOA, GPIO_PIN_1);
-        GPIO_WriteHigh(GPIOD,  GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_2);
-    break;
-      case 7:
-        GPIO_WriteHigh(GPIOA, GPIO_PIN_3);
-        GPIO_WriteHigh(GPIOA, GPIO_PIN_2);
-        GPIO_WriteHigh(GPIOD,  GPIO_PIN_4);
-    break;
-      case 8:
-        GPIO_WriteHigh(GPIOA, GPIO_PIN_3);
-        GPIO_WriteHigh(GPIOA, GPIO_PIN_1|GPIO_PIN_2);
-        GPIO_WriteHigh(GPIOD,  GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_2);
-    break;
-      case 9:
-        GPIO_WriteHigh(GPIOA, GPIO_PIN_3);
-        GPIO_WriteHigh(GPIOA, GPIO_PIN_1|GPIO_PIN_2);
-        GPIO_WriteHigh(GPIOD,  GPIO_PIN_4|GPIO_PIN_6|GPIO_PIN_2);
-    break;
-
-
-  }
-
-}
-
-
-
-
-
-#ifdef USE_FULL_ASSERT
-
-
-void assert_failed(u8* file, u32 line)
-{ 
-
-  while (1)
-  {
-  }
-}
-#endif
-
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+# Save frames as GIF
+filename = f"static_{resolution}.gif"
+imageio.mimsave(filename, frames, fps=fps)
+print(f"Static saved as {filename}")
     branches: [ "main" ]
-  pull_request: /** 
-  @page exampletemplate Project Example Template 
+  pull_request: import cv2
+import numpy as np
+from tqdm import tqdm
 
-  @verbatim 
-  ******************** (C) COPYRIGHT 2014 STMicroelectronics ******************* 
-  * @file    readme.txt  
-  * @author  MCD Application Team 
-  * @version V2.3.0 
-  * @date    16-June-2017 
-  * @brief   This sub-directory contains all the user-modifiable files  
-  *          needed to create a new project linked with the STM8S/A   
-  *          Standard Peripheral Library. 
-  ****************************************************************************** 
-  * 
-  * Licensed under MCD-ST Liberty SW License Agreement V2, (the "License"); 
-  * You may not use this file except in compliance with the License. 
-  * You may obtain a copy of the License at: 
-  * 
-  *        http://www.st.com/software_license_agreement_liberty_v2 
-  * 
-  * Unless required by applicable law or agreed to in writing, software  
-  * distributed under the License is distributed on an "AS IS" BASIS,  
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
-  * See the License for the specific language governing permissions and 
-  * limitations under the License. 
-  * 
-  ****************************************************************************** 
-   @endverbatim 
+# Set the width and height of the video
+width = 1920
+height = 1080
 
-@par Project Example Template Description  
+# Set the frame rate of the video
+fps = 60
 
-This example is used as a template that can be used as reference to build any new  
-firmware development for all STM8S and STM8A product devices using the STM8S/A  
-Standard Peripherals Library. 
+# Create a VideoWriter object to write the output video
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+out = cv2.VideoWriter('static.mp4', fourcc, fps, (width, height))
 
+# Generate frames of static and write them to the output video
+for i in tqdm(range(1800)):
+    # Create a random matrix of values between 0 and 255
+    static = np.random.randint(0, 256, (height, width, 3), dtype=np.uint8)
 
-@par Directory contents  
+    # Apply a Gaussian blur to the matrix to simulate the blurring effect
+    static = cv2.GaussianBlur(static, (3, 3), 0)
 
-This folder contains standard template projects for EWSTM8, STVD with Cosmic,  
-STVD with raisonance and RIDE toolchains that compile the needed STM8S/A Standard 
-Peripheral's drivers plus all the user-modifiable files that are necessary to  
-create a new project.  
+    # Write the frame to the output video
+    out.write(static)
 
-  - Project/Template/stm8s_conf.h    Library Configuration file 
-
-  - Project/Template/stm8s_it.c:     Source file containing the interrupt handlers (the  
-                                     function bodies are empty in this template). 
-
-  - Project/Template/stm8s_it.h      Header file including all interrupt handlers prototypes. 
-
-  - Project/Template/main.c          Main program 
-
- @note 
-  - High-Density STM8A devices are the STM8AF52xx STM8AF6269/8x/Ax, 
-    STM8AF51xx, and STM8AF6169/7x/8x/9x/Ax microcontrollers where the Flash memory 
-    density ranges between 32 to 128 Kbytes 
-  - Medium-Density STM8A devices are the STM8AF622x/4x, STM8AF6266/68, 
-    STM8AF612x/4x, and STM8AF6166/68 microcontrollers where the Flash memory  
-    density ranges between 8 to 32 Kbytes 
-  - High-Density STM8S devices are the STM8S207xx, STM8S007 and STM8S208xx microcontrollers 
-    where the Flash memory density ranges between 32 to 128 Kbytes. 
-  - Medium-Density STM8S devices are the STM8S105x and STM8S005 microcontrollers 
-    where the Flash memory density ranges between 16 to 32-Kbytes. 
-  - Low-Density STM8S devices are the STM8S103xx, STM8S003, STM8S001 and STM8S903xx microcontrollers 
-    where the Flash density is 8 Kbytes. 
-
- * <h3><center>&copy; COPYRIGHT STMicroelectronics</center></h3> 
- */ 
+# Release the VideoWriter object
+out.release()
     branches: [ "main" ]
 
-env: /**
-  ******************************************************************************
-  * @file    stm8s_conf.h
-  * @author  MCD Application Team
-  * @version V2.3.0
-  * @date    16-June-2017
-  * @brief   This file is used to configure the Library.
-   ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; COPYRIGHT 2014 STMicroelectronics</center></h2>
-  *
-  * Licensed under MCD-ST Liberty SW License Agreement V2, (the "License");
-  * You may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at:
-  *
-  *        http://www.st.com/software_license_agreement_liberty_v2
-  *
-  * Unless required by applicable law or agreed to in writing, software 
-  * distributed under the License is distributed on an "AS IS" BASIS, 
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  *
-  ******************************************************************************
-  */ 
-
-/* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __STM8S_CONF_H
-#define __STM8S_CONF_H
-
-/* Includes ------------------------------------------------------------------*/
-#include "stm8s.h"
-
-/* Uncomment the line below to enable peripheral header file inclusion */
-#if defined(STM8S105) || defined(STM8S005) || defined(STM8S103) || defined(STM8S003) ||\
-    defined(STM8S001) || defined(STM8S903) || defined (STM8AF626x) || defined (STM8AF622x)
-#include "stm8s_adc1.h" 
-#endif /* (STM8S105) ||(STM8S103) || (STM8S001) || (STM8S903) || (STM8AF626x) || (STM8AF622x) */
-#if defined(STM8S208) || defined(STM8S207) || defined(STM8S007) || defined (STM8AF52Ax) ||\
-    defined (STM8AF62Ax)
- #include "stm8s_adc2.h"
-#endif /* (STM8S208) || (STM8S207) || (STM8AF62Ax) || (STM8AF52Ax) */
-#include "stm8s_awu.h"
-#include "stm8s_beep.h"
-#if defined (STM8S208) || defined (STM8AF52Ax)
- #include "stm8s_can.h"
-#endif /* (STM8S208) || (STM8AF52Ax) */
-#include "stm8s_clk.h"
-#include "stm8s_exti.h"
-#include "stm8s_flash.h"
-#include "stm8s_gpio.h"
-#include "stm8s_i2c.h"
-#include "stm8s_itc.h"
-#include "stm8s_iwdg.h"
-#include "stm8s_rst.h"
-#include "stm8s_spi.h"
-#include "stm8s_tim1.h"
-#if !defined(STM8S903) || !defined(STM8AF622x)
- #include "stm8s_tim2.h"
-#endif /* (STM8S903) || (STM8AF622x) */
-#if defined(STM8S208) || defined(STM8S207) || defined(STM8S007) ||defined(STM8S105) ||\
-    defined(STM8S005) ||  defined (STM8AF52Ax) || defined (STM8AF62Ax) || defined (STM8AF626x)
- #include "stm8s_tim3.h"
-#endif /* (STM8S208) ||defined(STM8S207) || defined(STM8S007) ||defined(STM8S105) */ 
-#if !defined(STM8S903) || !defined(STM8AF622x)
- #include "stm8s_tim4.h"
-#endif /* (STM8S903) || (STM8AF622x) */
-#if defined(STM8S903) || defined(STM8AF622x)
- #include "stm8s_tim5.h"
- #include "stm8s_tim6.h"
-#endif  /* (STM8S903) || (STM8AF622x) */
-#if defined(STM8S208) ||defined(STM8S207) || defined(STM8S007) ||defined(STM8S103) ||\
-    defined(STM8S003) ||defined(STM8S001) || defined(STM8S903) || defined (STM8AF52Ax) || defined (STM8AF62Ax)
- #include "stm8s_uart1.h"
-#endif /* (STM8S208) || (STM8S207) || (STM8S103) || (STM8S001) || (STM8S903) || (STM8AF52Ax) || (STM8AF62Ax) */
-#if defined(STM8S105) || defined(STM8S005) ||  defined (STM8AF626x)
- #include "stm8s_uart2.h"
-#endif /* (STM8S105) || (STM8AF626x) */
-#if defined(STM8S208) ||defined(STM8S207) || defined(STM8S007) || defined (STM8AF52Ax) ||\
-    defined (STM8AF62Ax)
- #include "stm8s_uart3.h"
-#endif /* STM8S208 || STM8S207 || STM8AF52Ax || STM8AF62Ax */
-#if defined(STM8AF622x)
- #include "stm8s_uart4.h"
-#endif /* (STM8AF622x) */      
-#include "stm8s_wwdg.h"
-
-/* Exported types ------------------------------------------------------------*/
-/* Exported constants --------------------------------------------------------*/
-/* Uncomment the line below to expanse the "assert_param" macro in the
-   Standard Peripheral Library drivers code */
-#define USE_FULL_ASSERT    (1) 
-
-/* Exported macro ------------------------------------------------------------*/
-#ifdef  USE_FULL_ASSERT
-
-/**
-  * @brief  The assert_param macro is used for function's parameters check.
-  * @param expr: If expr is false, it calls assert_failed function
-  *   which reports the name of the source file and the source
-  *   line number of the call that failed.
-  *   If expr is true, it returns no value.
-  * @retval : None
-  */
-#define assert_param(expr) ((expr) ? (void)0 : assert_failed((uint8_t *)__FILE__, __LINE__))
-/* Exported functions ------------------------------------------------------- */
-void assert_failed(uint8_t* file, uint32_t line);
-#else
-#define assert_param(expr) ((void)0)
-#endif /* USE_FULL_ASSERT */
-
-#endif /* __STM8S_CONF_H */
-
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
-  CARGO_TERM_COLOR: /**
-  ******************************************************************************
-  * @file    stm8s_it.c
-  * @author  MCD Application Team
-  * @version V2.3.0
-  * @date    16-June-2017
-  * @brief   Main Interrupt Service Routines.
-  *          This file provides template for all peripherals interrupt service 
-  *          routine.
-   ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; COPYRIGHT 2014 STMicroelectronics</center></h2>
-  *
-  * Licensed under MCD-ST Liberty SW License Agreement V2, (the "License");
-  * You may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at:
-  *
-  *        http://www.st.com/software_license_agreement_liberty_v2
-  *
-  * Unless required by applicable law or agreed to in writing, software 
-  * distributed under the License is distributed on an "AS IS" BASIS, 
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  *
-  ******************************************************************************
-  */ 
-
-/* Includes ------------------------------------------------------------------*/
-#include "stm8s_it.h"
-
-/** @addtogroup Template_Project
-  * @{
-  */
-
-/* Private typedef -----------------------------------------------------------*/
-/* Private define ------------------------------------------------------------*/
-/* Private macro -------------------------------------------------------------*/
-/* Private variables ---------------------------------------------------------*/
-/* Private function prototypes -----------------------------------------------*/
-/* Private functions ---------------------------------------------------------*/
-/* Public functions ----------------------------------------------------------*/
-
-#ifdef _COSMIC_
-/**
-  * @brief Dummy Interrupt routine
-  * @par Parameters:
-  * None
-  * @retval
-  * None
-*/
-INTERRUPT_HANDLER(NonHandledInterrupt, 25)
-{
-  /* In order to detect unexpected events during development,
-     it is recommended to set a breakpoint on the following instruction.
-  */
-}
-#endif /*_COSMIC_*/
-
-/**
-  * @brief TRAP Interrupt routine
-  * @param  None
-  * @retval None
-  */
-INTERRUPT_HANDLER_TRAP(TRAP_IRQHandler)
-{
-  /* In order to detect unexpected events during development,
-     it is recommended to set a breakpoint on the following instruction.
-  */
-}
-
-/**
-  * @brief Top Level Interrupt routine.
-  * @param  None
-  * @retval None
-  */
-INTERRUPT_HANDLER(TLI_IRQHandler, 0)
-
-{
-  /* In order to detect unexpected events during development,
-     it is recommended to set a breakpoint on the following instruction.
-  */
-}
-
-/**
-  * @brief Auto Wake Up Interrupt routine.
-  * @param  None
-  * @retval None
-  */
-INTERRUPT_HANDLER(AWU_IRQHandler, 1)
-{
-  /* In order to detect unexpected events during development,
-     it is recommended to set a breakpoint on the following instruction.
-  */
-}
-
-/**
-  * @brief Clock Controller Interrupt routine.
-  * @param  None
-  * @retval None
-  */
-INTERRUPT_HANDLER(CLK_IRQHandler, 2)
-{
-  /* In order to detect unexpected events during development,
-     it is recommended to set a breakpoint on the following instruction.
-  */
-}
-
-/**
-  * @brief External Interrupt PORTA Interrupt routine.
-  * @param  None
-  * @retval None
-  */
-INTERRUPT_HANDLER(EXTI_PORTA_IRQHandler, 3)
-{
-  /* In order to detect unexpected events during development,
-     it is recommended to set a breakpoint on the following instruction.
-  */
-}
-
-/**
-  * @brief External Interrupt PORTB Interrupt routine.
-  * @param  None
-  * @retval None
-  */
-INTERRUPT_HANDLER(EXTI_PORTB_IRQHandler, 4)
-{
-  /* In order to detect unexpected events during development,
-     it is recommended to set a breakpoint on the following instruction.
-  */
-}
-
-/**
-  * @brief External Interrupt PORTC Interrupt routine.
-  * @param  None
-  * @retval None
-  */
-INTERRUPT_HANDLER(EXTI_PORTC_IRQHandler, 5)
-{
-  if (GPIO_ReadInputPin(GPIOC,GPIO_PIN_6))
-  {
-    //Breizinheim();
-  }
-}
-
-/**
-  * @brief External Interrupt PORTD Interrupt routine.
-  * @param  None
-  * @retval None
-  */
-
-
-/**
-  * @brief External Interrupt PORTE Interrupt routine.
-  * @param  None
-  * @retval None
-  */
-INTERRUPT_HANDLER(EXTI_PORTE_IRQHandler, 7)
-{
-  /* In order to detect unexpected events during development,
-     it is recommended to set a breakpoint on the following instruction.
-  */
-}
-
-#if defined (STM8S903) || defined (STM8AF622x) 
-/**
-  * @brief External Interrupt PORTF Interrupt routine.
-  * @param  None
-  * @retval None
-  */
- INTERRUPT_HANDLER(EXTI_PORTF_IRQHandler, 8)
- {
-  /* In order to detect unexpected events during development,
-     it is recommended to set a breakpoint on the following instruction.
-  */
- }
-#endif /* (STM8S903) || (STM8AF622x) */
-
-#if defined (STM8S208) || defined (STM8AF52Ax)
-/**
-  * @brief CAN RX Interrupt routine.
-  * @param  None
-  * @retval None
-  */
- INTERRUPT_HANDLER(CAN_RX_IRQHandler, 8)
- {
-  /* In order to detect unexpected events during development,
-     it is recommended to set a breakpoint on the following instruction.
-  */
- }
-
-/**
-  * @brief CAN TX Interrupt routine.
-  * @param  None
-  * @retval None
-  */
- INTERRUPT_HANDLER(CAN_TX_IRQHandler, 9)
- {
-  /* In order to detect unexpected events during development,
-     it is recommended to set a breakpoint on the following instruction.
-  */
- }
-#endif /* (STM8S208) || (STM8AF52Ax) */
-
-/**
-  * @brief SPI Interrupt routine.
-  * @param  None
-  * @retval None
-  */
-INTERRUPT_HANDLER(SPI_IRQHandler, 10)
-{
-  /* In order to detect unexpected events during development,
-     it is recommended to set a breakpoint on the following instruction.
-  */
-}
-
-/**
-  * @brief Timer1 Update/Overflow/Trigger/Break Interrupt routine.
-  * @param  None
-  * @retval None
-  */
-INTERRUPT_HANDLER(TIM1_UPD_OVF_TRG_BRK_IRQHandler, 11)
-{
-
-  /* In order to detect unexpected events during development,
-     it is recommended to set a breakpoint on the following instruction.
-  */
-}
-
-/**
-  * @brief Timer1 Capture/Compare Interrupt routine.
-  * @param  None
-  * @retval None
-  */
-INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
-{
-  /* In order to detect unexpected events during development,
-     it is recommended to set a breakpoint on the following instruction.
-  */
-}
-
-#if defined (STM8S903) || defined (STM8AF622x)
-/**
-  * @brief Timer5 Update/Overflow/Break/Trigger Interrupt routine.
-  * @param  None
-  * @retval None
-  */
- INTERRUPT_HANDLER(TIM5_UPD_OVF_BRK_TRG_IRQHandler, 13)
- {
-  /* In order to detect unexpected events during development,
-     it is recommended to set a breakpoint on the following instruction.
-  */
- }
-
-/**
-  * @brief Timer5 Capture/Compare Interrupt routine.
-  * @param  None
-  * @retval None
-  */
- INTERRUPT_HANDLER(TIM5_CAP_COM_IRQHandler, 14)
- {
-  /* In order to detect unexpected events during development,
-     it is recommended to set a breakpoint on the following instruction.
-  */
- }
-
-#else /* (STM8S208) || (STM8S207) || (STM8S105) || (STM8S103) || (STM8AF62Ax) || (STM8AF52Ax) || (STM8AF626x) */
-/**
-  * @brief Timer2 Update/Overflow/Break Interrupt routine.
-  * @param  None
-  * @retval None
-  */
- INTERRUPT_HANDLER(TIM2_UPD_OVF_BRK_IRQHandler, 13)
- {
-
-
-
-
- }
-
-/**
-  * @brief Timer2 Capture/Compare Interrupt routine.
-  * @param  None
-  * @retval None
-  */
-
-#endif /* (STM8S903) || (STM8AF622x) */
-
-#if defined (STM8S208) || defined(STM8S207) || defined(STM8S007) || defined(STM8S105) || \
-    defined(STM8S005) ||  defined (STM8AF62Ax) || defined (STM8AF52Ax) || defined (STM8AF626x)
-/**
-  * @brief Timer3 Update/Overflow/Break Interrupt routine.
-  * @param  None
-  * @retval None
-  */
- INTERRUPT_HANDLER(TIM3_UPD_OVF_BRK_IRQHandler, 15)
- {
-  /* In order to detect unexpected events during development,
-     it is recommended to set a breakpoint on the following instruction.
-  */
- }
-
-/**
-  * @brief Timer3 Capture/Compare Interrupt routine.
-  * @param  None
-  * @retval None
-  */
- INTERRUPT_HANDLER(TIM3_CAP_COM_IRQHandler, 16)
- {
-  /* In order to detect unexpected events during development,
-     it is recommended to set a breakpoint on the following instruction.
-  */
- }
-#endif /* (STM8S208) || (STM8S207) || (STM8S105) || (STM8AF62Ax) || (STM8AF52Ax) || (STM8AF626x) */
-
-#if defined (STM8S208) || defined(STM8S207) || defined(STM8S007) || defined(STM8S103) || \
-    defined (STM8S003) || defined(STM8S001) || defined (STM8AF62Ax) || defined (STM8AF52Ax) || defined (STM8S903)
-/**
-  * @brief UART1 TX Interrupt routine.
-  * @param  None
-  * @retval None
-  */
- INTERRUPT_HANDLER(UART1_TX_IRQHandler, 17)
- {
-    /* In order to detect unexpected events during development,
-       it is recommended to set a breakpoint on the following instruction.
-    */
- }
-
-/**
-  * @brief UART1 RX Interrupt routine.
-  * @param  None
-  * @retval None
-  */
- INTERRUPT_HANDLER(UART1_RX_IRQHandler, 18)
- {
-    /* In order to detect unexpected events during development,
-       it is recommended to set a breakpoint on the following instruction.
-    */
- }
-#endif /* (STM8S208) || (STM8S207) || (STM8S103) || (STM8S001) || (STM8S903) || (STM8AF62Ax) || (STM8AF52Ax) */
-
-#if defined(STM8AF622x)
-/**
-  * @brief UART4 TX Interrupt routine.
-  * @param  None
-  * @retval None
-  */
- INTERRUPT_HANDLER(UART4_TX_IRQHandler, 17)
- {
-    /* In order to detect unexpected events during development,
-       it is recommended to set a breakpoint on the following instruction.
-    */
- }
-
-/**
-  * @brief UART4 RX Interrupt routine.
-  * @param  None
-  * @retval None
-  */
- INTERRUPT_HANDLER(UART4_RX_IRQHandler, 18)
- {
-    /* In order to detect unexpected events during development,
-       it is recommended to set a breakpoint on the following instruction.
-    */
- }
-#endif /* (STM8AF622x) */
-
-/**
-  * @brief I2C Interrupt routine.
-  * @param  None
-  * @retval None
-  */
-INTERRUPT_HANDLER(I2C_IRQHandler, 19)
-{
-  /* In order to detect unexpected events during development,
-     it is recommended to set a breakpoint on the following instruction.
-  */
-}
-
-#if defined(STM8S105) || defined(STM8S005) ||  defined (STM8AF626x)
-/**
-  * @brief UART2 TX interrupt routine.
-  * @param  None
-  * @retval None
-  */
- INTERRUPT_HANDLER(UART2_TX_IRQHandler, 20)
- {
-    /* In order to detect unexpected events during development,
-       it is recommended to set a breakpoint on the following instruction.
-    */
- }
-
-/**
-  * @brief UART2 RX interrupt routine.
-  * @param  None
-  * @retval None
-  */
- INTERRUPT_HANDLER(UART2_RX_IRQHandler, 21)
- {
-    /* In order to detect unexpected events during development,
-       it is recommended to set a breakpoint on the following instruction.
-    */
- }
-#endif /* (STM8S105) || (STM8AF626x) */
-
-#if defined(STM8S207) || defined(STM8S007) || defined(STM8S208) || defined (STM8AF52Ax) || defined (STM8AF62Ax)
-/**
-  * @brief UART3 TX interrupt routine.
-  * @param  None
-  * @retval None
-  */
- INTERRUPT_HANDLER(UART3_TX_IRQHandler, 20)
- {
-    /* In order to detect unexpected events during development,
-       it is recommended to set a breakpoint on the following instruction.
-    */
- }
-
-/**
-  * @brief UART3 RX interrupt routine.
-  * @param  None
-  * @retval None
-  */
- INTERRUPT_HANDLER(UART3_RX_IRQHandler, 21)
- {
-    /* In order to detect unexpected events during development,
-       it is recommended to set a breakpoint on the following instruction.
-    */
- }
-#endif /* (STM8S208) || (STM8S207) || (STM8AF52Ax) || (STM8AF62Ax) */
-
-#if defined(STM8S207) || defined(STM8S007) || defined(STM8S208) || defined (STM8AF52Ax) || defined (STM8AF62Ax)
-/**
-  * @brief ADC2 interrupt routine.
-  * @param  None
-  * @retval None
-  */
- INTERRUPT_HANDLER(ADC2_IRQHandler, 22)
- {
-    /* In order to detect unexpected events during development,
-       it is recommended to set a breakpoint on the following instruction.
-    */
- }
-#else /* STM8S105 or STM8S103 or STM8S903 or STM8AF626x or STM8AF622x */
-/**
-  * @brief ADC1 interrupt routine.
-  * @par Parameters:
-  * None
-  * @retval 
-  * None
-  */
- INTERRUPT_HANDLER(ADC1_IRQHandler, 22)
- {
-    /* In order to detect unexpected events during development,
-       it is recommended to set a breakpoint on the following instruction.
-    */
- }
-#endif /* (STM8S208) || (STM8S207) || (STM8AF52Ax) || (STM8AF62Ax) */
-
-#if defined (STM8S903) || defined (STM8AF622x)
-/**
-  * @brief Timer6 Update/Overflow/Trigger Interrupt routine.
-  * @param  None
-  * @retval None
-  */
-INTERRUPT_HANDLER(TIM6_UPD_OVF_TRG_IRQHandler, 23)
- {
-  /* In order to detect unexpected events during development,
-     it is recommended to set a breakpoint on the following instruction.
-  */
- }
-#else /* STM8S208 or STM8S207 or STM8S105 or STM8S103 or STM8AF52Ax or STM8AF62Ax or STM8AF626x */
-/**
-  * @brief Timer4 Update/Overflow Interrupt routine.
-  * @param  None
-  * @retval None
-  */
- INTERRUPT_HANDLER(TIM4_UPD_OVF_IRQHandler, 23)
- {
-
-  /* In order to detect unexpected events during development,
-     it is recommended to set a breakpoint on the following instruction.
-  */
- }
-#endif /* (STM8S903) || (STM8AF622x)*/
-
-/**
-  * @brief Eeprom EEC Interrupt routine.
-  * @param  None
-  * @retval None
-  */
-INTERRUPT_HANDLER(EEPROM_EEC_IRQHandler, 24)
-{
-  /* In order to detect unexpected events during development,
-     it is recommended to set a breakpoint on the following instruction.
-  */
-}
-
-/**
-  * @}
-  */
-
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
-
-jobs: /**
-  ******************************************************************************
-  * @file    stm8s_it.h
-  * @author  MCD Application Team
-  * @version V2.3.0
-  * @date    16-June-2017
-  * @brief   This file contains the headers of the interrupt handlers
-   ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; COPYRIGHT 2014 STMicroelectronics</center></h2>
-  *
-  * Licensed under MCD-ST Liberty SW License Agreement V2, (the "License");
-  * You may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at:
-  *
-  *        http://www.st.com/software_license_agreement_liberty_v2
-  *
-  * Unless required by applicable law or agreed to in writing, software 
-  * distributed under the License is distributed on an "AS IS" BASIS, 
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  *
-  ******************************************************************************
-  */ 
-
-/* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __STM8S_IT_H
-#define __STM8S_IT_H
-
-/* Includes ------------------------------------------------------------------*/
-#include "stm8s.h"
-
-/* Exported types ------------------------------------------------------------*/
-/* Exported constants --------------------------------------------------------*/
-/* Exported macro ------------------------------------------------------------*/
-/* Exported functions ------------------------------------------------------- */
-#ifdef _COSMIC_
- void _stext(void); /* RESET startup routine */
- INTERRUPT void NonHandledInterrupt(void);
-#endif /* _COSMIC_ */
-
-#ifndef _RAISONANCE_
- INTERRUPT void TRAP_IRQHandler(void); /* TRAP */
- INTERRUPT void TLI_IRQHandler(void); /* TLI */
- INTERRUPT void AWU_IRQHandler(void); /* AWU */
- INTERRUPT void CLK_IRQHandler(void); /* CLOCK */
- INTERRUPT void EXTI_PORTA_IRQHandler(void); /* EXTI PORTA */
- INTERRUPT void EXTI_PORTB_IRQHandler(void); /* EXTI PORTB */
- INTERRUPT void EXTI_PORTC_IRQHandler(void); /* EXTI PORTC */
- INTERRUPT void EXTI_PORTD_IRQHandler(void); /* EXTI PORTD */
- INTERRUPT void EXTI_PORTE_IRQHandler(void); /* EXTI PORTE */
-
-#if defined(STM8S903) || defined(STM8AF622x)
- INTERRUPT void EXTI_PORTF_IRQHandler(void); /* EXTI PORTF */
-#endif /* (STM8S903) || (STM8AF622x) */
-
-#if defined (STM8S208) || defined (STM8AF52Ax)
- INTERRUPT void CAN_RX_IRQHandler(void); /* CAN RX */
- INTERRUPT void CAN_TX_IRQHandler(void); /* CAN TX/ER/SC */
-#endif /* (STM8S208) || (STM8AF52Ax) */
-
- INTERRUPT void SPI_IRQHandler(void); /* SPI */
- INTERRUPT void TIM1_CAP_COM_IRQHandler(void); /* TIM1 CAP/COM */
- INTERRUPT void TIM1_UPD_OVF_TRG_BRK_IRQHandler(void); /* TIM1 UPD/OVF/TRG/BRK */
-
-#if defined(STM8S903) || defined(STM8AF622x)
- INTERRUPT void TIM5_UPD_OVF_BRK_TRG_IRQHandler(void); /* TIM5 UPD/OVF/BRK/TRG */
- INTERRUPT void TIM5_CAP_COM_IRQHandler(void); /* TIM5 CAP/COM */
-#else /* (STM8S208) || (STM8S207) || (STM8S105) || (STM8S103) || (STM8AF52Ax) || (STM8AF62Ax) || (STM8A626x) */
- INTERRUPT void TIM2_UPD_OVF_BRK_IRQHandler(void); /* TIM2 UPD/OVF/BRK */
- INTERRUPT void TIM2_CAP_COM_IRQHandler(void); /* TIM2 CAP/COM */
-#endif /* (STM8S903) || (STM8AF622x) */
-
-#if defined (STM8S208) || defined(STM8S207) || defined(STM8S007) || defined(STM8S105) || \
-    defined(STM8S005) ||  defined (STM8AF52Ax) || defined (STM8AF62Ax) || defined (STM8AF626x)
- INTERRUPT void TIM3_UPD_OVF_BRK_IRQHandler(void); /* TIM3 UPD/OVF/BRK */
- INTERRUPT void TIM3_CAP_COM_IRQHandler(void); /* TIM3 CAP/COM */
-#endif /* (STM8S208) || (STM8S207) || (STM8S105) || (STM8AF52Ax) || (STM8AF62Ax) || (STM8A626x) */
-
-#if defined (STM8S208) || defined(STM8S207) || defined(STM8S007) || defined(STM8S103) || \
-    defined (STM8S001) || defined(STM8S003) ||  defined (STM8AF52Ax) || defined (STM8AF62Ax) || defined (STM8S903)
- INTERRUPT void UART1_TX_IRQHandler(void); /* UART1 TX */
- INTERRUPT void UART1_RX_IRQHandler(void); /* UART1 RX */
-#endif /* (STM8S208) || (STM8S207) || (STM8S903) || (STM8S103) || (STM8S001) || (STM8AF52Ax) || (STM8AF62Ax) */
-
-#if defined (STM8AF622x)
- INTERRUPT void UART4_TX_IRQHandler(void); /* UART4 TX */
- INTERRUPT void UART4_RX_IRQHandler(void); /* UART4 RX */
-#endif /* (STM8AF622x) */
-
- INTERRUPT void I2C_IRQHandler(void); /* I2C */
-
-#if defined(STM8S105) || defined(STM8S005) ||  defined (STM8AF626x)
- INTERRUPT void UART2_RX_IRQHandler(void); /* UART2 RX */
- INTERRUPT void UART2_TX_IRQHandler(void); /* UART2 TX */
-#endif /* (STM8S105) || (STM8AF626x) */
-
-#if defined(STM8S207) || defined(STM8S007) || defined(STM8S208) || defined (STM8AF52Ax) || defined (STM8AF62Ax)
- INTERRUPT void UART3_RX_IRQHandler(void); /* UART3 RX */
- INTERRUPT void UART3_TX_IRQHandler(void); /* UART3 TX */
-#endif /* (STM8S207) || (STM8S208) || (STM8AF62Ax) || (STM8AF52Ax) */
-
-#if defined(STM8S207) || defined(STM8S007) || defined(STM8S208) || defined (STM8AF52Ax) || defined (STM8AF62Ax)
- INTERRUPT void ADC2_IRQHandler(void); /* ADC2 */
-#else /* (STM8S105) || (STM8S103) || (STM8S903) || (STM8AF622x) */
- INTERRUPT void ADC1_IRQHandler(void); /* ADC1 */
-#endif /* (STM8S207) || (STM8S208) || (STM8AF62Ax) || (STM8AF52Ax) */
-
-#if defined(STM8S903) || defined(STM8AF622x)
- INTERRUPT void TIM6_UPD_OVF_TRG_IRQHandler(void); /* TIM6 UPD/OVF/TRG */
-#else /* (STM8S208) || (STM8S207) || (STM8S105) || (STM8S103) || (STM8AF62Ax) || (STM8AF52Ax) || (STM8AF626x) */
- INTERRUPT void TIM4_UPD_OVF_IRQHandler(void); /* TIM4 UPD/OVF */
-#endif /* (STM8S903) || (STM8AF622x) */
- INTERRUPT void EEPROM_EEC_IRQHandler(void); /* EEPROM ECC CORRECTION */
-#endif /* _RAISONANCE_ */
-
-#endif /* __STM8S_IT_H */
-
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
-  build: ################################################################################
-#        Makefile to build Dune NvmeStorage documents
-#                Beam Ltd,        2020-02-18
-################################################################################
-#
-include ../Config.mk
-
-DateNow = $(shell date -I)
-
-.PHONY:        config release
-
-all:        config docs
-
-config: .configured
-
-.configured: ../Config.mk
-        sed -i "s/PROJECT_NUMBER.*/PROJECT_NUMBER\t\t= ${VERSION}/g" fpga_doxygen.dox
-        sed -i "s/PROJECT_NUMBER.*/PROJECT_NUMBER\t\t= ${VERSION}/g" host_doxygen.dox
-        sed -i "s/\\\version.*/\\\version ${VERSION}/g" fpga_overview.dox
-        sed -i "s/\\\date.*/\\\date ${DateNow}/g" fpga_overview.dox
-        sed -i "s/\\\version.*/\\\version ${VERSION}/g" host_overview.dox
-        sed -i "s/\\\date.*/\\\date ${DateNow}/g" host_overview.dox
-        touch .configured
-
-install:
-        @if [ "${DOCDIR}" != "" ]; then \
-                mkdir -p ${DOCDIR}/host ${DOCDIR}/fpga; \
-                cp -a ../doc/host/html ${DOCDIR}/host; \
-                cp -a ../doc/fpga/html ${DOCDIR}/fpga; \
-                cp -a ../doc/*.pdf ${DOCDIR}; \
-                cp -a ../doc/*.html ${DOCDIR}; \
-        fi;
-
-clean:
-
-distclean: clean
-        rm -fr ../doc/host ../doc/fpga
-        rm -f .configured
-
-release:
-
-docs:
-        doxygen host_doxygen.dox
-        doxygen fpga_doxygen.dox
-        soffice --headless --convert-to pdf --outdir ../doc Readme.odt
-        soffice --headless --convert-to pdf --outdir ../doc DuneNvmeStorageManual.odt
-        soffice --headless --convert-to pdf --outdir ../doc DuneNvmeStorageDesign.odt
-        soffice --headless --convert-to pdf --outdir ../doc DuneNvmeStorageProject.odt
-        soffice --headless --convert-to pdf --outdir ../doc DuneNvmeStorageTestSoftware.odt
-        cp DuneNvme-releasenotes.html ../doc
-
-docspdf: docs
-        (cd ../doc/host/latex; make)
-        cp ../doc/host/latex/refman.pdf ../doc/${PROJECT}_host.pdf
-        (cd ../doc/fpga/latex; make)
-        cp ../doc/fpga/latex/refman.pdf ../doc/${PROJECT}_fpga.pdf
-
-    runs-on: /* Beam doxygen CSS overrides for WebSys */
+env: /* Beam doxygen CSS overrides for WebSys */
 ul {
         overflow: visible;        /* Reverted this: Fixed: list item bullets overlap floating elements*/
 }
@@ -1210,8 +116,7 @@ ul {
 a:hover {
         text-decoration: none;
 }
-
-    steps: # Doxyfile 1.8.15
+  CARGO_TERM_COLOR: # Doxyfile 1.8.15
 
 PROJECT_NAME           = "DuneNvme"
 PROJECT_NUMBER                = 1.0.0
@@ -1608,12 +513,13 @@ DOT_TRANSPARENT        = NO
 DOT_MULTI_TARGETS      = NO
 GENERATE_LEGEND        = YES
 DOT_CLEANUP            = YES
-    - uses: /*******************************************************************************
+
+jobs: /*******************************************************************************
  *        fpga_overview.doc        Main overview page for code
  *******************************************************************************
  */
 /**
-\
+\author Dr Terry Barnaby
 \version 1.0.0
 \date 2020-06-16
 
@@ -1659,7 +565,7 @@ The DuneNvme FPGA bit file for the test example can be built using the Xilinx Vi
 </ol>
 
 */
-    - name: # Doxyfile 1.8.15
+  build: # Doxyfile 1.8.15
 
 PROJECT_NAME           = "DuneNvme"
 PROJECT_NUMBER                = 1.0.0
@@ -2056,12 +962,13 @@ DOT_TRANSPARENT        = NO
 DOT_MULTI_TARGETS      = NO
 GENERATE_LEGEND        = YES
 DOT_CLEANUP            = YES
-      run: /*******************************************************************************
+
+    runs-on: /*******************************************************************************
  *        host_overview.doc        Main overview page for code
  *******************************************************************************
  */
 /**
-\author Dr Terry Barnaby
+\
 \version 1.0.0
 \date 2020-06-16
 
@@ -2120,5 +1027,10 @@ See the <a href="../../DuneNvmeStorageManual.pdf">DuneNvmeStorageManual</a> for 
 </ol>
 
 */
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build
+      run: cargo build --verbose
     - name: Run tests
       run: cargo test --verbose
