@@ -259,26 +259,160 @@ Window Geometry:
     branches: [ "main" ]
 
 env: S'beer\x00\x00\x00\x00\x00\x00\x00bowl\x00\x00\x00\x00\x00\x00\x00create\x00\x00\x00\x00\x00disk_part\x00\x00hammer\x00\x00\x00\x00\x00plastic_cupsoda_can\x00\x00\x00'
-    CARGO_TERM_COLOR: ../disk/bitesize
+    CARGO_TERM_COLOR: html, body {
+    height: 100%;
+}
+.wrapper-1 {
+    min-height: 100%;
+    margin-bottom: -80px;
+}
+.wrapper-2 {
+    padding-bottom: 80px;
+}
+.footer {
+    text-align: center;
+    padding: 15px 0;
+}
+.navbar-inverse .navbar-nav>li>a,
+.navbar-inverse .navbar-brand,
+.navbar-static-top .btn-link {
+    color: #ddd;
+}
+.navbar-static-top .btn-link:hover {
+    text-decoration: none;
+}
+.navbar.navbar-inverse.navbar-static-top {
+    margin-bottom: 0;
+}
+.navbar-static-top .btn-link {
+    margin-top: 8px;
+}
+@media (min-width: 992px) {
+    .file-description {
+        width: 66%;
+    }
+}
+@media (min-width: 767px) and (max-width: 991px) {
+    .file-description {
+        width: 90%;
+    }
+}
+@media (max-width: 768px) {
+    .file-description {
+        width: 100%;
+    }
+}
 
-jobs: ../fs/cachestat
-  build: ../execsnoop
+jobs: .container-center {
+    max-width: 500px;
+    margin: 50px auto;
+}
+  build: .file-description {
+    margin: 30px auto;
+    float: none;
+}
+.file-description img {
+    margin: 5px auto;
+}
+#jp_container_1, .comment-form {
+    margin: auto;
+}
+.added {
+    font-size: 12px;
+    font-weight: bold;
+}
+.reply {
+    float: right;
+}
+.level-1 {
+    margin-left: 0px;
+}
+.level-2 {
+    margin-left: 30px;
+}
+.level-3 {
+    margin-left: 60px;
+}
+#commentForm input[type="submit"] {
+    float: right;
+}
+#commentForm input[type="text"] {
+    width: 240px;
+}
+#reply {
+    float: right;
+} 
+#commentForm .text-danger {
+    margin-bottom: 0;
+}
 
-    runs-on: ../kernel/funccount
+    runs-on: .content {
+    margin-top: 50px;
+    float: none;
+}
+.icon-type {
+    margin: 0 10px;
+}
+.my-pager {
+    float: none;
+}
+.table-responsive.panel {
+    margin-bottom: 10px;
+}
 
-    steps: ../kernel/funcgraph
-    - uses: ../kernel/funcslower
-    - name: ../kernel/functrace
-      run: ../iolatency
-    - name: ../iosnoop
-      run: ../killsnoop
-# yaml-language-server: $schema=https://aka.ms/configuration-dsc-schema/0.2
-# Reference: https://github.com/microsoft/vscode/wiki/How-to-Contribute
-properties: ../kernel/kprobe
-  resources: ../opensnoop
-    - resource: ../misc/perf-stat-hist
-      directives: ../tools/reset-ftrace
-        description: ../syscount
-        allowPrerelease: ../net/tcpretrans
-      settings: ../system/tpoint
-        id: ../user/uprobe
+    steps: .form-horizontal {
+    max-width: 600px;
+    margin: 50px auto;
+}
+    - uses: .center-container {
+    max-width: 50%;
+    margin: 40px auto 20px;
+}
+@media (max-width: 768px) {
+    .center-container {
+        max-width: 100%;
+    }
+}
+h1 {
+    text-align: center;
+}
+    - name: #uploadForm {
+    max-width: 800px;
+    margin: 100px auto 0px;
+    text-align: center;
+}
+#uploadForm .form-group {
+    margin: 5px auto 15px;
+}
+#uploadForm .text-danger {
+    font-weight: bold;
+}
+#uploadForm .progress {
+    width: 400px;
+    margin: auto;
+    display: none;
+}
+.box label {
+    font-size: 16px;
+    color: #333;
+    border: 1px dashed #999;
+    margin-bottom: 20px;
+}
+.box .help-block {
+    padding: 30px;
+}
+.box label:hover, input[type="file"]:focus + label {
+    color: #555;
+}
+.box label .glyphicon.glyphicon-upload {
+    padding-right: 0.6rem;
+    font-size: 1.5rem;
+}
+@media (max-width: 768px) {
+    #uploadForm {
+        margin: 0 auto;
+    }
+}
+      run: cargo build --verbose
+    - name: Run tests
+      run: cargo test --verbose
