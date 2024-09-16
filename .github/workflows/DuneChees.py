@@ -1023,183 +1023,86 @@ $this->breadcrumbs=array(
 
 {{ this.renderPartial('_form', {'model':model}) }}
 {% endblock content %}
-          sarif_file: #!/bin/bash
+          sarif_file: //
+//  ActivityObserver.h
+//  Clock Signal
+//
+//  Created by on 07/05/2018.
+//  Copyright 2018. All rights reserved.
+//
 
-# Copyright (c) Helio Chissini de Castro, 2023. Part of the SW360 Frontend Project.
+#pragma once
 
-# This program and the accompanying materials are made
-# available under the terms of the Eclipse Public License 2.0
-# which is available at https://www.eclipse.org/legal/epl-2.0/
+#include <cstdint>
+#include <string>
 
-# SPDX-License-Identifier: EPL-2.0
-# License-Filename: LICENSE
+namespace Activity {
 
-if [ -n "$http_proxy" ]; then
-    npm config set proxy "${http_proxy}"
-    npm config set https-proxy "$http_proxy"
-elif [ -n "$HTTP_PROXY" ]; then
-    npm config set proxy "$HTTP_PROXY"
-    npm config set https-proxy "$HTTP_PROXY"
-fi
+/*!
+        Provides a purely virtual base class for anybody that wants to receive notifications of
+        'activity': any feedback from an emulated system which a user could perceive other than
+        through the machine's native audio and video outputs.
 
-      # Upload SARIF file as an Artifact to download and view
-      # - name: #!/bin/bash
+        So: status LEDs, drive activity, etc. A receiver may choose to make appropriate noises
+        and/or to show or unshow status indicators.
+*/
+class Observer {
+        public:
+                virtual ~Observer() = default;
 
-# Copyright (c) Helio Chissini de Castro, 2023. Part of the SW360 Frontend Project.
+                /// Provides hints as to the sort of information presented on an LED.
+                enum LEDPresentation: uint8_t {
+                        /// This LED informs the user of some sort of persistent state, e.g. scroll lock.
+                        /// If this flag is absent then the LED describes an ephemeral state, such as media access.
+                        Persistent = (1 << 0),
+                };
 
-# This program and the accompanying materials are made
-# available under the terms of the Eclipse Public License 2.0
-# which is available at https://www.eclipse.org/legal/epl-2.0/
+                /// Announces to the receiver that there is an LED of name @c name.
+                virtual void register_led([[maybe_unused]] const std::string &name, [[maybe_unused]] uint8_t presentation = 0) {}
 
-# SPDX-License-Identifier: EPL-2.0
-# License-Filename: LICENSE
+                /// Announces to the receiver that there is a drive of name @c name.
+                ///
+                /// If a drive has the same name as an LED, that LED goes with this drive.
+                virtual void register_drive([[maybe_unused]] const std::string &name) {}
 
-set -e
+                /// Informs the receiver of the new state of the LED with name @c name.
+                virtual void set_led_status([[maybe_unused]] const std::string &name, [[maybe_unused]] bool lit) {}
 
-# Add directory as safe
-git config --global --add safe.directory /workspaces/sw360-frontend
+                enum class DriveEvent {
+                        StepNormal,
+                        StepBelowZero,
+                        StepBeyondMaximum
+                };
 
-# Install npm packages to development
-npm install
-      #   uses: # Copyright (c) Helio Chissini de Castro, 2023. Part of the SW360 Frontend Project.
+                /// Informs the receiver that the named event just occurred for the drive with name @c name.
+                virtual void announce_drive_event([[maybe_unused]] const std::string &name, [[maybe_unused]] DriveEvent event) {}
 
-# This program and the accompanying materials are made
-# available under the terms of the Eclipse Public License 2.0
-# which is available at https://www.eclipse.org/legal/epl-2.0/
+                /// Informs the receiver of the motor-on status of the drive with name @c name.
+                virtual void set_drive_motor_status([[maybe_unused]] const std::string &name, [[maybe_unused]] bool is_on) {}
+};
 
-# SPDX-License-Identifier: EPL-2.0
-# License-Filename: LICENSE
-
-ARG VARIANT=20-bullseye-slim
-FROM node:${VARIANT}
-
-ARG USERNAME=devel
-ARG HOMEDIR=/home/devel
-ENV HOME=$HOMEDIR
-
-# Install base utilities
-RUN DEBIAN_FRONTEND=noninteractive apt update -qq \
-    && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
-    git \
-    sudo \
-    && rm -rf /var/lib/apt/lists/*
-
-# Run with non privileged user
-RUN useradd \
-    --shell /bin/bash \
-    --home-dir $HOMEDIR \
-    --create-home $USERNAME
-
-# sudo support
-RUN echo "$USERNAME ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/$USERNAME \
-    && chmod 0440 /etc/sudoers.d/$USERNAME
-
-USER ${USERNAME}
-WORKDIR $HOMEDIR
-
-COPY scripts/nodejs.sh /usr/local/bin/set_npm_proxy
-RUN  sudo chmod +x /usr/local/bin/set_npm_proxy
-
-# Expose port 3000
-EXPOSE 3000
-      #   with: // Copyright (c) Helio Chissini de Castro, 2023. Part of the SW360 Frontend Project.
-
-// This program and the accompanying materials are made
-// available under the terms of the Eclipse Public License 2.0
-// which is available at https://www.eclipse.org/legal/epl-2.0/
-
-// SPDX-License-Identifier: EPL-2.0
-// License-Filename: LICENSE
-
-{
-    "name": "SW360 Frontend",
-    "build": {
-        "dockerfile": "Dockerfile",
-        "args": {
-            "VARIANT": "20-bullseye-slim"
-        }
-    },
-    // Configure tool-specific properties.
-    "customizations": {
-        // Configure properties specific to VS Code.
-        "vscode": {
-            // Set *default* container specific settings.json values on container create.
-            "settings": {
-                "html.format.templating": true,
-                "emmet.includeLanguages": {
-                    "javascript": "javascriptreact"
-                },
-                "[javascript]": {
-                    "editor.defaultFormatter": "esbenp.prettier-vscode"
-                },
-                "[scss]": {
-                    "editor.defaultFormatter": "esbenp.prettier-vscode"
-                },
-                "[json]": {
-                    "editor.defaultFormatter": "esbenp.prettier-vscode"
-                },
-                "[jsonc]": {
-                    "editor.defaultFormatter": "esbenp.prettier-vscode"
-                },
-                "editor.formatOnSave": true,
-                "eslint.alwaysShowStatus": true,
-                "indentRainbow.colorOnWhiteSpaceOnly": true
-            },
-            // Add the IDs of extensions you want installed when the container is created.
-            "extensions": [
-                "aaron-bond.better-comments",
-                "davidanson.vscode-markdownlint",
-                "dbaeumer.vscode-eslint",
-                "esbenp.prettier-vscode",
-                "formulahendry.auto-close-tag",
-                "formulahendry.auto-rename-tag",
-                "naumovs.color-highlight",
-                "oderwat.indent-rainbow",
-                "shardulm94.trailing-spaces",
-                "VisualStudioExptTeam.vscodeintellicode",
-                "ms-azuretools.vscode-docker",
-                "github.vscode-github-actions"
-            ]
-        }
-    },
-    // Use 'forwardPorts' to make a list of ports inside the container available locally.
-    "forwardPorts": [3000, 9229],
-    // Use 'postCreateCommand' to run commands after the container is created.
-    "postCreateCommand": ".devcontainer/scripts/postCreateCommand.sh",
-    // Set `remoteUser` to `root` to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
-    "remoteUser": "devel"
 }
-      #     name: FILE(GLOB SR_DEPENDENCIES duneanaobj/StandardRecord/*.h)
+}
+      #     name: //
+//  ActivitySource.h
+//  Clock Signal
+//
+//  Created by  on 07/05/2018.
+//  Copyright 2018 . All rights reserved.
+//
 
-add_custom_command(# Rebuild if anything in StandardRecord/ changes
-                   DEPENDS ${SR_DEPENDENCIES}
-                   OUTPUT FlatRecord.cxx FlatRecord.h FwdDeclare.h
-                   COMMAND gen_srproxy --flat -i duneanaobj/StandardRecord/StandardRecord.h -o FlatRecord --target caf::StandardRecord --include-path ${PROJECT_SOURCE_DIR}:$ENV{ROOT_INC} --output-path duneanaobj/StandardRecord/Flat/ --prolog ${CMAKE_CURRENT_SOURCE_DIR}/Prolog.h --extra-cflags ' -D_Float16=short -fsized-deallocation'
-  )
+#pragma once
 
-include_directories($ENV{SRPROXY_INC})
+#include "Observer.hpp"
 
-if(DEFINED CETMODULES_CURRENT_PROJECT_NAME)
-    cet_make_library(LIBRARY_NAME duneanaobj_StandardRecordFlat
-                     SOURCE       FlatRecord.cxx
-                     LIBRARIES    ${ROOT_BASIC_LIB_LIST} ROOT::TreePlayer
-                     )
+namespace Activity {
 
-    if (DEFINED ENV{MRB_BUILDDIR} AND NOT "$ENV{MRB_BUILDDIR}" STREQUAL "")
-        set(builddir $ENV{MRB_BUILDDIR}/duneanaobj)
-    else()
-        set(builddir ${CMAKE_BINARY_DIR})
-    endif()
-    install_headers(EXTRAS ${builddir}/duneanaobj/StandardRecord/Flat/FlatRecord.h ${builddir}/duneanaobj/StandardRecord/Flat/FwdDeclare.h)
-else()
-    add_library(duneanaobj_StandardRecordFlat
-                FlatRecord.cxx)
-    target_link_libraries(duneanaobj_StandardRecordFlat ${ROOT_BASIC_LIB_LIST} ROOT::TreePlayer)
+class Source {
+        public:
+                virtual void set_activity_observer(Observer *observer) = 0;
+};
 
-    install(FILES ${CMAKE_BINARY_DIR}/duneanaobj/StandardRecord/Flat/FlatRecord.h ${CMAKE_BINARY_DIR}/duneanaobj/StandardRecord/Flat/FwdDeclare.h
-            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/duneanaobj)
-
-endif()
+}
       #     path: fixed acidity,volatile acidity,citric acid,residual sugar,chlorides,free sulfur dioxide,total sulfur dioxide,density,pH,sulphates,alcohol,quality
 7.4,0.7,0.0,1.9,0.076,11.0,34.0,0.9978,3.51,0.56,9.4,5
 7.8,0.88,0.0,2.6,0.098,25.0,67.0,0.9968,3.2,0.68,9.8,5
