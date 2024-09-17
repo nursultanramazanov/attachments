@@ -1,5 +1,4 @@
 transformers == 4.20.1
-torch >= 1.12
 numpy
 scipy
 tqdm
@@ -7,3 +6,10 @@ docopt
 PyYAML
 requests
 rich
+black
+build
+flake8
+pytest
+pytest-clarity
+pytest-cov
+twine
