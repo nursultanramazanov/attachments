@@ -3,3 +3,7 @@ torch >= 1.12
 numpy
 scipy
 tqdm
+docopt
+PyYAML
+requests
+rich
