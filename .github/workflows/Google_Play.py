@@ -1,9 +1,8 @@
 name: Rust
 
-on: SDL.framework
-  push: #!/usr/bin/python
+on: #!/usr/bin/python
 #
-# Copyright 
+# Copyright 2014 
 #
 # Licensed under the Apache License, Version 2.0 (the 'License");
 # you may not use this file except in compliance with the License.
@@ -92,18 +91,17 @@ def main():
 
 if __name__ == '__main__':
   main()
-    branches: [ "main" ]
-  pull_request: #!/bin/bash -x
+  push: #!/bin/bash -x
 
 if [ $# -ne 2 ]; then
-	echo 'MakeQtTravisTarball.sh QtDirectory BuildType'
-	exit 1
+        echo 'MakeQtTravisTarball.sh QtDirectory BuildType'
+        exit 1
 fi
 
 QT_DIRECTORY=$1
 if [ ! -d ${QT_DIRECTORY} ]; then
-	echo 'Specify directory for Qt Directory to copy from.'
-	exit 1
+        echo 'Specify directory for Qt Directory to copy from.'
+        exit 1
 fi
 
 QT_FULL_VERSION=5.11.0
@@ -120,8 +118,7 @@ cp -r ${QT_DIRECTORY}/${QT_FULL_VERSION}/${QT_BUILD_TYPE} Qt${QT_BASE_VERSION}-$
 rm -rf Qt${QT_BASE_VERSION}-${QT_BUILD_TYPE}/${QT_FULL_VERSION}/${QT_BUILD_TYPE}/doc
 tar -jcvf Qt${QT_FULL_VERSION}-${QT_BUILD_TYPE}-min.tar.bz2 Qt${QT_BASE_VERSION}-${QT_BUILD_TYPE}/
     branches: [ "main" ]
-
-env: #!/bin/bash -x
+  pull_request: #!/bin/bash -x
 
 #set +e
 
@@ -219,168 +216,11 @@ chmod a+x ./AppImageAssistant
 
 cp ${TMPDIR}/$APP".AppImage" ${OUTPUT_DIR}/$APP".AppImage"
 
-  CARGO_TERM_COLOR: The driver.msi file is pulled from https://firmware.ardupilot.org/Tools/MissionPlanner/driver.msi
+    branches: [ "main" ]
 
-jobs: {
-  "gitSiteUrl": "https://www.github.com/crabnebula-dev/cargo-packager",
-  "timeout": 3600000,
-  "pkgManagers": {
-    "rust": {
-      "version": true,
-      "getPublishedVersion": {
-        "use": "fetch:check",
-        "options": {
-          "url": "https://crates.io/api/v1/crates/${ pkg.pkg }/${ pkg.pkgFile.version }"
-        }
-      },
-      "postversion": [
-        {
-          "command": "cargo generate-lockfile",
-          "dryRunCommand": true,
-          "runFromRoot": true,
-          "pipe": true
-        }
-      ],
-      "prepublish": [
-        {
-          "command": "cargo generate-lockfile",
-          "dryRunCommand": true,
-          "runFromRoot": true,
-          "pipe": true
-        }
-      ],
-      "publish": [
-        {
-          "command": "echo '<details>\n<summary><em><h4>Cargo Publish</h4></em></summary>\n\n```'",
-          "dryRunCommand": true,
-          "pipe": true
-        },
-        {
-          "command": "cargo publish",
-          "dryRunCommand": "cargo publish --dry-run",
-          "pipe": true
-        },
-        {
-          "command": "echo '```\n\n</details>\n'",
-          "dryRunCommand": true,
-          "pipe": true
-        }
-      ],
-      "postpublish": [
-        "git tag ${ pkg.pkg }-v${ pkgFile.versionMajor } -f",
-        "git tag ${ pkg.pkg }-v${ pkgFile.versionMajor }.${ pkgFile.versionMinor } -f",
-        "git push --tags -f"
-      ]
-    },
-    "javascript": {
-      "version": true,
-      "getPublishedVersion": {
-        "use": "fetch:check",
-        "options": {
-          "url": "https://registry.npmjs.com/${ pkg.pkg }/${ pkg.pkgFile.version }"
-        }
-      },
-      "prepublish": [
-        {
-          "command": "pnpm install",
-          "dryRunCommand": true
-        },
-        {
-          "command": "echo '<details>\n<summary><em><h4>PNPM Audit</h4></em></summary>\n\n```'",
-          "dryRunCommand": true,
-          "pipe": true
-        },
-        {
-          "command": "pnpm audit",
-          "dryRunCommand": true,
-          "runFromRoot": true,
-          "pipe": true
-        },
-        {
-          "command": "echo '```\n\n</details>\n'",
-          "dryRunCommand": true,
-          "pipe": true
-        },
-        {
-          "command": "npm pack",
-          "dryRunCommand": true
-        }
-      ],
-      "publish": [
-        "sleep 15s",
-        {
-          "command": "echo '<details>\n<summary><em><h4>PNPM Publish</h4></em></summary>\n\n```'",
-          "dryRunCommand": true,
-          "pipe": true
-        },
-        {
-          "command": "pnpm publish --access public",
-          "dryRunCommand": "npm publish --dry-run --access public",
-          "pipe": true
-        },
-        {
-          "command": "echo '```\n\n</details>\n'",
-          "dryRunCommand": true,
-          "pipe": true
-        }
-      ],
-      "postpublish": [
-        "git tag ${ pkg.pkg }-v${ pkgFile.versionMajor } -f",
-        "git tag ${ pkg.pkg }-v${ pkgFile.versionMajor }.${ pkgFile.versionMinor } -f",
-        "git push --tags -f"
-      ]
-    }
-  },
-  "packages": {
-    "cargo-packager-utils": {
-      "path": "./crates/utils",
-      "manager": "rust"
-    },
-    "cargo-packager": {
-      "path": "./crates/packager",
-      "manager": "rust",
-      "dependencies": ["cargo-packager-utils"]
-    },
-    "@crabnebula/packager": {
-      "path": "./bindings/packager/nodejs",
-      "manager": "javascript",
-      "dependencies": ["cargo-packager", "cargo-packager-utils"],
-      "prepublish": [],
-      "publish": [],
-      "postpublish": []
-    },
-    "cargo-packager-updater": {
-      "path": "./crates/updater",
-      "dependencies": ["cargo-packager-utils"],
-      "manager": "rust"
-    },
-    "@crabnebula/updater": {
-      "path": "./bindings/updater/nodejs",
-      "manager": "javascript",
-      "dependencies": ["cargo-packager-updater", "cargo-packager-utils"],
-      "prepublish": [],
-      "publish": [],
-      "postpublish": []
-    },
-    "cargo-packager-resource-resolver": {
-      "path": "./crates/resource-resolver",
-      "dependencies": ["cargo-packager-utils"],
-      "manager": "rust"
-    },
-    "@crabnebula/packager-resource-resolver": {
-      "path": "./bindings/resource-resolver/nodejs",
-      "manager": "javascript",
-      "dependencies": [
-        "cargo-packager-resource-resolver",
-        "cargo-packager-utils"
-      ],
-      "prepublish": [],
-      "publish": [],
-      "postpublish": []
-    }
-  }
-}
-  build: import fileinput
+env: [env]
+__DEVTOOLS_LOCAL_DEVELOPMENT = "true" # disable gRPC CORS checking & point to the right URL for local development
+  CARGO_TERM_COLOR: import fileinput
 import sys
 import os
 import glob
@@ -396,7 +236,7 @@ def get_actual_filename(name):
         #File not found
         return None
     return res[0]
-    
+
 filelist = [get_actual_filename(x.rstrip()) for x in fileinput.input(['-'])]
 prefix_len = len(os.path.commonprefix(filelist))
 
@@ -409,8 +249,79 @@ SRCSRV: source files ---------------------------------------""" % os.environ['AP
 for line in filelist:
     if line is not None:
         print('%s*%s' % (line, line[prefix_len:].replace('\\','/')))
-        
+
 print("SRCSRV: end ------------------------------------------------")
+
+jobs: try { var browser = chrome } catch { }
+
+browser.runtime.onMessage.addListener(
+    function (request, sender, sendResponse) {
+
+        if (request.message == "passe") {
+
+            let [found, source] = getSource()
+            console.log("Source:", source)
+            let url = document.URL
+            sendResponse({ found, source, url })
+
+            return true
+        }
+    }
+)
+const getSource = () => {
+
+    let source = ""
+    const clear = (s) => {
+        return s.split('?')[0].split('#')[0]
+    }
+    try {
+        let innerHTML = document.body.innerHTML
+        source = clear(innerHTML.split("player.vimeo.com/video/")[1].split('"')[0])
+    } catch {
+        try {
+            for (let i of document.getElementsByTagName("iframe")) {
+                let s = clear(i.src)
+                if (s.split('/').slice(0, -1).join('/').length == 9) {
+                    source = s.slice(-1)[0]
+                }
+            }
+        } catch { }
+        if (!source) {
+            console.log("Not found error")
+            return [false, ""]
+        }
+    }
+
+    if (source.length != 9) { //May need enhancement
+        console.log("Wrong size, no error")
+        return [false, ""]
+    }
+    console.log('fine')
+    return [true, source]
+}
+
+build: <html>
+    <head>
+        <title>Vimeo Details</title>
+    </head>
+    <body>
+        <script src="./popup.js"></script>
+        <h3 id="title">Nothin</h3>
+        <div id="results">
+            <p id="id_"></p>
+            <p id="owner_name"></p>
+            <p id="owner_account_type"></p>
+            <button id="owner_url"></button>
+
+            <p id="privacy"></p>
+
+            <ul id=videos>
+
+            </ul>
+
+        </div>
+    </body>
+</html>
 
     runs-on: Add-Type -TypeDefinition @'
     using System;
@@ -427,7 +338,196 @@ print("SRCSRV: end ------------------------------------------------")
 
 Get-ChildItem ".\symbols" -recurse | ForEach-Object {[NativeMethods]::MoveFile($_.FullName,[io.path]::combine((Split-Path $_.FullName -Parent),$_.Name.ToLower()))}
 
-    steps: #!/bin/sh
+    steps: /*
+author:t0pl
+
+When popup gets clicked
+    popup wakes content script up
+        content script retreives ID
+        content script sends it back to popup
+    popup fetches data
+popup gets dressed up
+
+TODO
+    Handle errors
+*/
+try { var browser = chrome } catch { }
+
+var headers = {
+    'Accept': '*/*',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'DNT': '1',
+    'Referer': '',
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36'
+}
+browser.tabs.query({ active: true, currentWindow: true }, (tab) => {
+
+    browser.tabs.sendMessage(tab[0].id, { message: "passe" }, res => {
+        if (!res.found) {
+            console.log("Nothin here")
+            return
+        }
+        console.log("Received from content.js", res, res.source)
+
+        /*Fetch data from vimeo*/
+        const url = `https://player.vimeo.com/video/${res.source}`
+        window.url = res.url
+        window.source = res.source
+        set_referer_in_headers()
+
+        set_listener()
+        fetch(url)
+            .then(check_status_code)
+            .then(res => {
+
+                //Locate JSON
+                let output = {}
+                const cleared_JSON = vimeo_JSON(res)
+                console.log(cleared_JSON)
+
+                //Store interesting data
+                const all_videos = get_videos(cleared_JSON)
+                const title = cleared_JSON.video.title
+                const owner = cleared_JSON.video.owner
+                const privacy = cleared_JSON.video.privacy
+                const source = window.source
+
+                output = { all_videos, title, owner, privacy, source }
+
+                /*Display data*/
+                get_dressed(output)
+            })
+            .catch(err => {
+                console.error(`${err} :: ${url}`)
+            })
+            .finally(() => {
+                remove_listener()
+            })
+        return true
+    })
+})
+
+const get_dressed = (output) => {
+
+    //Title
+    document.getElementById("title").textContent = output.title
+    //Source
+    document.getElementById("id_").textContent = output.source
+    //Videos
+    let ol_tag = document.getElementById('videos')
+    for (let i = 0; i < output.all_videos.length; i++) {
+
+        let li = document.createElement('li')
+
+        //Each video has a button with its quality on it
+        let btn_open_video = document.createElement('button')
+        btn_open_video.textContent = output.all_videos[i].quality
+
+        //and leads to matching url
+        btn_open_video.onclick = () => {
+            browser.tabs.create({ active: true, url: output.all_videos[i].url }, tab => {
+
+            })
+        }
+
+        //Add url as plain text next to button
+        li.textContent += output.all_videos[i].url
+        li.appendChild(btn_open_video)
+        ol_tag.appendChild(li)
+    }
+
+    //Owner
+    document.getElementById("owner_name").textContent = output.owner.name
+    document.getElementById("owner_account_type").textContent = output.owner.account_type
+    let owner_url = document.getElementById("owner_url")
+    owner_url.textContent = output.owner.url
+    owner_url.onclick = () => {
+        browser.tabs.create({ active: true, url: output.owner.url }, tab => {
+
+        })
+    }
+
+    //Privacy
+    document.getElementById("privacy").textContent = output.privacy
+}
+
+const check_status_code = response => {
+
+    if (!response.ok) (console.warn(`${url} returned wrong status code: ${response.status}`));
+    return response.text();
+
+}
+
+/* Parsing */
+const vimeo_JSON = part => {
+
+    //Locate JSON in response and Convert from Vimeo WebPage
+    let located_json = part.split('"};')[0].split('= {"')[1];
+    let cleared_json = JSON.parse(`{"${located_json}"}`);
+
+    return cleared_json;
+}
+
+const get_videos = cleared_JSON => {
+    let videos = [];
+
+    for (var _ = 0; _ < cleared_JSON.request.files.progressive.length; _++) {
+        let top = cleared_JSON.request.files.progressive[_]
+
+        let new_vid = { quality: top.quality, url: top.url }
+
+        videos.push(new_vid);
+    }
+    return videos;
+}
+
+/* Header stuff */
+const set_referer_in_headers = () => {
+    window.headers['Referer'] = window.url;
+}
+
+const set_listener = () => {
+    browser.webRequest.onBeforeSendHeaders.addListener(
+        onBeforeSendHeaders_callback, { urls: ["https://player.vimeo.com/*"] }, OnBeforeRequestOptions()
+    );
+}
+
+const remove_listener = () => {
+    browser.webRequest.onBeforeSendHeaders.removeListener(onBeforeSendHeaders_callback);
+}
+
+const modify_headers = (header_array, _name, _value) => { // Credits: https://stackoverflow.com/a/11602753
+    var did_set = false;
+    for (var i in header_array) {
+        var header = header_array[i];
+        var name = header.name;
+        if (name == _name) {
+            header.value = _value;
+            did_set = true;
+        }
+    }
+    if (!did_set) header_array.push({ name: _name, value: _value })
+}
+
+const onBeforeSendHeaders_callback = (details) => {
+    //Fired to modify request headers
+    Object.keys(window.headers).forEach(function (key) {
+        modify_headers(details.requestHeaders, key, window.headers[key]);
+    });
+
+    return { requestHeaders: details.requestHeaders };
+}
+
+const isFirefox = () => {
+    return browser.webRequest.getSecurityInfo !== undefined
+}
+
+const OnBeforeRequestOptions = () => {
+    //Options differ in Chrome/Firefox
+    return isFirefox() ? ['blocking', 'requestHeaders'] : ['blocking', 'requestHeaders', 'extraHeaders']
+}
+    - uses: #!/bin/sh
 HERE="$(dirname "$(readlink -f "${0}")")"
 export LD_LIBRARY_PATH="${HERE}/usr/lib/x86_64-linux-gnu":"${HERE}/Qt/libs":$LD_LIBRARY_PATH
 export QML2_IMPORT_PATH="${HERE}/Qt/qml"
@@ -437,7 +537,7 @@ export QT_PLUGIN_PATH="${HERE}/Qt/plugins"
 mkdir -p ~/.icons && cp ${HERE}/qgroundcontrol.png ~/.icons
 
 "${HERE}/QGroundControl" "$@"
-    - uses: [Desktop Entry]
+    - name: [Desktop Entry]
 Type=Application
 Name=QGroundControl
 GenericName=Ground Control Station
@@ -446,7 +546,7 @@ Icon=qgroundcontrol
 Exec=qgroundcontrol-start.sh
 Terminal=false
 Categories=Utility;
-    - name: !include "MUI2.nsh"
+      run: !include "MUI2.nsh"
 !include LogicLib.nsh
 !include Win\COM.nsh
 !include Win\Propkey.nsh
@@ -519,8 +619,7 @@ check64BitUninstall:
   StrCmp $R0 "" doInstall
 
 doUninstall:
-  DetailPrint "Uninstalling previous version..."
-  ExecWait "$R0 /S -LEAVE_DATA=1 _?=$INSTDIR"
+  DetailPrint "Uninstalling previous version..."  ExecWait "$R0 /S -LEAVE_DATA=1 _?=$INSTDIR"
   IntCmp $0 0 doInstall
 
   MessageBox MB_OK|MB_ICONEXCLAMATION \
@@ -564,7 +663,7 @@ driversInstalled:
 driversOutOfDate:
   DetailPrint "UAV Drivers out of date."
   goto installDrivers
-  
+
 driversNotInstalled:
   DetailPrint "UAV Drivers not installed."
   ; Delete abandoned possibly out of date version key
@@ -609,7 +708,7 @@ Section "create Start Menu Shortcuts"
   !insertmacro DemoteShortCut "$SMPROGRAMS\$StartMenuFolder\${APPNAME} (GPU Safe Mode).lnk"
 SectionEnd
 
-      run: #! /bin/bash
+    - name: #! /bin/bash
 
 tmpdir=`mktemp -d`
 long_version=`git describe --always --tags`
@@ -634,5 +733,36 @@ debuild --prepend-path=/usr/lib/ccache -uc -us -sa -B -i -I -j4
 
 # upload to launchpad
 #dput -f ppa:qgroundcontrol/ppa ${tmpdir}/qgroundcontrol_${version}_source.changes
-    - name: Run tests
-      run: cargo test --verbose
+      run: {
+    "author": "t0pl",
+    "manifest_version": 2,
+    "description": "Shorthand to get details about Vimeo video on some webpage",
+    "name": "Vimeo details",
+    "version": "1.1",
+    "permissions": [
+        "activeTab",
+        "tabs",
+        "webRequest",
+        "webRequestBlocking",
+        "<all_urls>"
+    ],
+    "browser_action": {
+        "default_popup": "./src/popup.html"
+    },
+    "icons": {
+        "16": "./images/icon16.png",
+        "48": "./images/icon48.png",
+        "128": "./images/icon128.png"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "http://*/*",
+                "https://*/*"
+            ],
+            "js": [
+                "./src/content.js"
+            ]
+        }
+    ]
+}
