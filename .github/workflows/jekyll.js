@@ -2215,25 +2215,892 @@ mkdir -p ~/.icons && \cp -f ${HERE}/qgroundcontrol.png ~/.icons
 
 "${HERE}/CustomQGC" "$@"
   # Build job
-  build: 
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@8575951200e472d5f2d95c625da0c7bec8217c42 # v1.161.0
-        with:
-          ruby-version: '3.1' # Not needed with a .ruby-version file
-          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
-          cache-version: 0 # Increment this number if you need to re-download cached gems
-      - name: Setup Pages
-        id: pages
-        uses: actions/configure-pages@v5
-      - name: Build with Jekyll
+  build: import QtQuick 2.0
+import QtQuick.Controls 2.4
+import QtGraphicalEffects 1.0
+
+
+Item {
+    id: _root
+
+    property color mainColor: "#000000"
+    property color contentColor: "#FFFFFF"
+    property alias fontPointSize: zoomStatusTextItem.font.pointSize
+    property real  zoomLevel: NaN
+    property alias zoomLevelVisible: zoomStatusItem.visible
+    property bool  showZoomPrecision: true
+    property bool  onlyContinousZoom: false
+
+    signal zoomIn()
+    signal zoomOut()
+    signal continuousZoomStart(var zoomIn)
+    signal continuousZoomStop()
+
+    //
+    // Beware the buttons were switched
+    //
+    //
+
+    height: zoomStatusTextItem.height * 2
+    width: (zoomLevelVisible ? (zoomStatusItem.width - zoomInButton.width/2) : 0) + zoomInButton.width + zoomOutButton.width
+
+    Rectangle {
+        id: zoomStatusItem
+
+        color: mainColor
+        opacity: 0.5
+        radius: height/2
+
+        anchors.left: _root.left
+        anchors.verticalCenter: _root.verticalCenter
+
+        width: height * 2
+        height: _root.height * 0.8
+    }
+
+    Item {
+        visible: zoomStatusItem.visible
+
+        anchors.left: zoomStatusItem.left
+        anchors.top: zoomStatusItem.top
+        anchors.right: zoomStatusItem.horizontalCenter
+        anchors.bottom: zoomStatusItem.bottom
+
+        z: zoomStatusItem.z + 1
+
+        Text {
+            id: zoomStatusTextItem
+
+            anchors.centerIn: parent
+            opacity: 2
+
+            color: _root.contentColor
+
+            text: isNaN(zoomLevel) ? "-" : "x" + _root.zoomLevel.toFixed(_root.showZoomPrecision ? 1 : 0)
+        }
+    }
+
+    Button {
+        id: zoomInButton
+        flat: true
+
+        anchors.left: zoomLevelVisible ? zoomStatusItem.horizontalCenter : _root.left
+        anchors.top: _root.top
+        width: height
+        height: _root.height
+
+        property bool holding: false
+
+        onPressed: {
+            if(onlyContinousZoom) {
+                holding = true
+            }
+            else {
+                _root.zoomOut()
+            }
+        }
+
+        onPressAndHold: {
+            holding = true
+        }
+
+        onReleased: {
+            holding = false
+        }
+
+        background: Rectangle {
+            anchors.fill: zoomInButton
+            radius: zoomInButton.width/10
+
+            color: _root.mainColor
+        }
+
+        contentItem: Item {
+            anchors.fill: zoomInButton
+            Rectangle {
+                id: zoomInMinusRectangle
+                anchors.centerIn: parent
+
+                width: zoomInButton.width * 0.4
+                height: zoomInButton.height * 0.05
+
+                color: _root.contentColor
+            }
+        }
+    }
+
+    Item {
+        id: buttonSeparator
+
+        anchors.left: zoomInButton.right
+        anchors.verticalCenter: zoomInButton.verticalCenter
+        width: zoomInButton.width * 0.05
+        height: zoomInButton.height * 0.8
+
+        Rectangle {
+            radius: width * 0.2
+            anchors.centerIn: parent
+
+            width: zoomInButton.width * 0.01
+            height: parent.height * 0.8
+
+            color: _root.contentColor
+        }
+    }
+
+    Button {
+        id: zoomOutButton
+        flat: true
+
+        anchors.left: buttonSeparator.right
+        anchors.top: zoomInButton.top
+        width: height
+        height: zoomInButton.height
+
+        property bool holding: false
+
+        onPressed: {
+            if(onlyContinousZoom) {
+                holding = true
+            }
+            else {
+                _root.zoomIn()
+            }
+        }
+
+        onPressAndHold: {
+            holding = true
+        }
+
+        onReleased: {
+            holding = false
+        }
+
+        background: Rectangle {
+            anchors.fill: zoomOutButton
+            radius: zoomOutButton.width/10
+
+            color: _root.mainColor
+        }
+
+        contentItem: Item {
+            anchors.fill: zoomOutButton
+            Rectangle {
+                id: zoomOutMinusRectangle
+                anchors.centerIn: parent
+
+                width: zoomInMinusRectangle.width
+                height: zoomInMinusRectangle.height
+
+                color: _root.contentColor
+            }
+            Rectangle {
+                anchors.centerIn: parent
+
+                width: zoomOutMinusRectangle.height
+                height: zoomOutMinusRectangle.width
+
+                color: _root.contentColor
+            }
+        }
+    }
+
+    // Zoom buttons background
+    Rectangle {
+        color: _root.mainColor
+        z: -1
+
+        anchors.left: zoomInButton.horizontalCenter
+        anchors.right: zoomOutButton.horizontalCenter
+        anchors.top: zoomInButton.top
+        anchors.bottom: zoomOutButton.bottom
+    }
+
+    onStateChanged: {
+        if(state == "ZoomingIn") {
+            _root.continuousZoomStart(true)
+        }
+        else if(state == "ZoomingOut") {
+            _root.continuousZoomStart(false)
+        }
+        else {
+            _root.continuousZoomStop()
+        }
+    }
+
+    state: "None"
+    states: [
+        State {
+            name: "None"
+            when: zoomInButton.holding === false && zoomOutButton.holding === false
+        },
+        State {
+            name: "ZoomingIn"
+            when: zoomOutButton.holding === true
+        },
+        State {
+            name: "ZoomingOut"
+            when: zoomInButton.holding === true
+        }
+    ]
+}
+    runs-on: module Custom.Camera
+
+ZoomControl 1.0 ZoomControl.qml
+    steps: /****************************************************************************
+ *
+ * (c) 2009-2019 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
+ *
+ * QGroundControl is licensed according to the terms in the file
+ * COPYING.md in the root of the source code directory.
+ *
+ * @file
+ *   @author Gus Grubba <gus@auterion.com>
+ */
+
+import QtQuick 2.11
+
+Item {
+    id: root
+    property real   rollAngle :     0
+    property real   pitchAngle:     0
+    property color  skyColor1:      Qt.hsla(0.6, 1.0, 0.25)
+    property color  skyColor2:      Qt.hsla(0.6, 0.5, 0.55)
+    property color  groundColor1:   Qt.hsla(0.25,  0.5, 0.45)
+    property color  groundColor2:   Qt.hsla(0.25, 0.75, 0.25)
+
+    clip:           true
+    anchors.fill:   parent
+
+    property real angularScale: pitchAngle * root.height / 45
+
+    Item {
+        id:     artificialHorizon
+        width:  root.width  * 4
+        height: root.height * 8
+        anchors.centerIn: parent
+        Rectangle {
+            id:             sky
+            anchors.fill:   parent
+            smooth:         true
+            antialiasing:   true
+            gradient: Gradient {
+                GradientStop { position: 0.25; color: root.skyColor1 }
+                GradientStop { position: 0.5;  color: root.skyColor2 }
+            }
+        }
+        Rectangle {
+            id:             ground
+            height:         sky.height / 2
+            anchors {
+                left:       sky.left;
+                right:      sky.right;
+                bottom:     sky.bottom
+            }
+            smooth:         true
+            antialiasing:   true
+            gradient: Gradient {
+                GradientStop { position: 0.0;  color: root.groundColor1 }
+                GradientStop { position: 0.25; color: root.groundColor2 }
+            }
+        }
+        transform: [
+            Translate {
+                y:  angularScale
+            },
+            Rotation {
+                origin.x: artificialHorizon.width  / 2
+                origin.y: artificialHorizon.height / 2
+                angle:    -rollAngle
+            }]
+    }
+}
+      - name: /****************************************************************************
+ *
+ * (c) 2009-2019 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
+ *
+ * QGroundControl is licensed according to the terms in the file
+ * COPYING.md in the root of the source code directory.
+ *
+ * @file
+ *   @author Gus Grubba <gus@auterion.com>
+ */
+
+import QtQuick              2.11
+import QtGraphicalEffects   1.0
+
+import QGroundControl               1.0
+import QGroundControl.Controls      1.0
+import QGroundControl.ScreenTools   1.0
+import QGroundControl.Palette       1.0
+import QGroundControl.FlightMap     1.0
+
+Item {
+    id: root
+
+    property bool showPitch:    true
+    property var  vehicle:      null
+    property real size
+    property bool showHeading:  false
+
+    property real _rollAngle:   vehicle ? vehicle.roll.rawValue  : 0
+    property real _pitchAngle:  vehicle ? vehicle.pitch.rawValue : 0
+
+    width:  size
+    height: size
+
+    Item {
+        id:             instrument
+        anchors.fill:   parent
+        visible:        false
+
+        //----------------------------------------------------
+        //-- Artificial Horizon
+        CustomArtificialHorizon {
+            rollAngle:          _rollAngle
+            pitchAngle:         _pitchAngle
+            skyColor1:          "#0a2e50"
+            skyColor2:          "#2f85d4"
+            groundColor1:       "#897459"
+            groundColor2:       "#4b3820"
+            anchors.fill:       parent
+        }
+        //----------------------------------------------------
+        //-- Instrument Dial
+        Image {
+            id:                 instrumentDial
+            source:             "/custom/img/attitude_dial.svg"
+            mipmap:             true
+            fillMode:           Image.PreserveAspectFit
+            anchors.fill:       parent
+            sourceSize.height:  parent.height
+            transform: Rotation {
+                origin.x:       root.width  / 2
+                origin.y:       root.height / 2
+                angle:          -_rollAngle
+            }
+        }
+        //----------------------------------------------------
+        //-- Pointer
+        Image {
+            id:                 pointer
+            height:             size * 0.0625
+            width:              height
+            source:             "/custom/img/attitude_pointer.svg"
+            antialiasing:       true
+            fillMode:           Image.PreserveAspectFit
+            sourceSize.height:  height
+            anchors.top:        parent.top
+            anchors.horizontalCenter: parent.horizontalCenter
+        }
+        //----------------------------------------------------
+        //-- Pitch
+        QGCPitchIndicator {
+            id:                 pitchWidget
+            visible:            root.showPitch
+            size:               root.size * 0.5
+            anchors.verticalCenter: parent.verticalCenter
+            pitchAngle:         _pitchAngle
+            rollAngle:          _rollAngle
+            color:              Qt.rgba(0,0,0,0)
+        }
+        //----------------------------------------------------
+        //-- Cross Hair
+        Image {
+            id:                 crossHair
+            anchors.centerIn:   parent
+            source:             "/custom/img/attitude_crosshair.svg"
+            mipmap:             true
+            width:              size * 0.75
+            sourceSize.width:   width
+            fillMode:           Image.PreserveAspectFit
+        }
+    }
+
+    Rectangle {
+        id:             mask
+        anchors.fill:   instrument
+        radius:         width / 2
+        color:          "black"
+        visible:        false
+    }
+
+    OpacityMask {
+        anchors.fill:   instrument
+        source:         instrument
+        maskSource:     mask
+    }
+
+    Rectangle {
+        id:             borderRect
+        anchors.fill:   parent
+        radius:         width / 2
+        color:          Qt.rgba(0,0,0,0)
+        border.color:   "#000"
+        border.width:   1
+    }
+
+    QGCLabel {
+        anchors.bottomMargin:       Math.round(ScreenTools.defaultFontPixelHeight * 0.5)
+        anchors.bottom:             parent.bottom
+        anchors.horizontalCenter:   parent.horizontalCenter
+        text:                       _headingString3
+        color:                      "white"
+        visible:                    showHeading
+        font.pointSize:             ScreenTools.smallFontPointSize
+        property string _headingString: vehicle ? vehicle.heading.rawValue.toFixed(0) : "OFF"
+        property string _headingString2: _headingString.length  === 1 ? "0" + _headingString  : _headingString
+        property string _headingString3: _headingString2.length === 2 ? "0" + _headingString2 : _headingString2
+    }
+}
+        uses: /****************************************************************************
+ *
+ * (c) 2009-2019 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
+ *
+ * QGroundControl is licensed according to the terms in the file
+ * COPYING.md in the root of the source code directory.
+ *
+ * @file
+ *   @author Gus Grubba <gus@auterion.com>
+ */
+
+import QtQuick                      2.11
+import QtQuick.Controls             2.4
+
+import QGroundControl               1.0
+import QGroundControl.Controls      1.0
+import QGroundControl.Palette       1.0
+import QGroundControl.ScreenTools   1.0
+import QtGraphicalEffects           1.0
+
+Button {
+    id:                             _rootButton
+    width:                          parent.height * 1.25
+    height:                         parent.height
+    flat:                           true
+    contentItem: Item {
+        id:                         _content
+        anchors.fill:               _rootButton
+        Row {
+            id:                     _edge
+            spacing:                ScreenTools.defaultFontPixelWidth * 0.25
+            anchors.left:           parent.left
+            anchors.leftMargin:     ScreenTools.defaultFontPixelWidth
+            anchors.verticalCenter: parent.verticalCenter
+            Repeater {
+                model: [1,2,3]
+                Rectangle {
+                    height:         ScreenTools.defaultFontPixelHeight
+                    width:          ScreenTools.defaultFontPixelWidth * 0.25
+                    color:          qgcPal.text
+                    opacity:        0.75
+                }
+            }
+        }
+        Image {
+            id:                     _icon
+            height:                 _rootButton.height * 0.75
+            width:                  height
+            smooth:                 true
+            mipmap:                 true
+            antialiasing:           true
+            fillMode:               Image.PreserveAspectFit
+            source:                 qgcPal.globalTheme === QGCPalette.Light ? "/res/QGCLogoBlack" : "/res/QGCLogoWhite"
+            sourceSize.height:      height
+            anchors.left:           _edge.right
+            anchors.leftMargin:     ScreenTools.defaultFontPixelWidth
+            anchors.verticalCenter: parent.verticalCenter
+        }
+    }
+    background: Item {
+        anchors.fill: parent
+    }
+}
+      - name: /****************************************************************************
+ *
+ * (c) 2009-2019 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
+ *
+ * QGroundControl is licensed according to the terms in the file
+ * COPYING.md in the root of the source code directory.
+ *
+ * @file
+ *   @author Gus Grubba <gus@auterion.com>
+ */
+
+import QtQuick 2.3
+
+import QGroundControl.Palette       1.0
+import QGroundControl.ScreenTools   1.0
+import QGroundControl.Controls      1.0
+
+Rectangle {
+    id:     _root
+    height: Math.round(ScreenTools.defaultFontPixelHeight * 2)
+    width:  ScreenTools.defaultFontPixelWidth  * 10
+    color:  qgcPal.button
+    border.color: qgcPal.windowShade
+    border.width: 0
+
+    property bool checked: true
+
+    signal  clicked
+
+    QGCPalette { id: qgcPal; colorGroupEnabled: true }
+
+    Rectangle {
+        width:      parent.width  * 0.5
+        height:     parent.height
+        color:      checked ? qgcPal.button : qgcPal.buttonHighlight
+        border.color: qgcPal.text
+        border.width: 0
+        anchors.left: parent.left
+        anchors.verticalCenter: parent.verticalCenter
+        QGCLabel {
+            text: qsTr("Off")
+            anchors.centerIn: parent
+            color:      qgcPal.text
+        }
+    }
+    Rectangle {
+        width:      parent.width  * 0.5
+        height:     parent.height
+        color:      checked ? qgcPal.buttonHighlight : qgcPal.button
+        border.color: qgcPal.text
+        border.width: 0
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        QGCLabel {
+            text:       qsTr("On")
+            color:      qgcPal.buttonHighlightText
+            anchors.centerIn: parent
+        }
+    }
+    MouseArea {
+        anchors.fill:   parent
+        onClicked: {
+            checked = !checked
+            _root.clicked()
+        }
+    }
+}
+        uses: /****************************************************************************
+ *
+ * (c) 2009-2019 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
+ *
+ * QGroundControl is licensed according to the terms in the file
+ * COPYING.md in the root of the source code directory.
+ *
+ * @file
+ *   @author Gus Grubba <gus@auterion.com>
+ */
+
+import QtQuick                      2.11
+import QtQuick.Controls             2.4
+
+import QGroundControl               1.0
+import QGroundControl.Controls      1.0
+import QGroundControl.Palette       1.0
+import QGroundControl.ScreenTools   1.0
+
+Button {
+    id:                         control
+    autoExclusive:              true
+    checkable:                  true
+
+    property string iconSource:     ""
+    property real   iconRatio:      0.5
+    property real   buttonRadius:   ScreenTools.defaultFontPixelWidth * 0.5
+
+    background: Rectangle {
+        width:                  control.width
+        height:                 width
+        anchors.centerIn:       parent
+        color:                  (mouseArea.pressed || control.checked) ? qgcPal.buttonHighlight : (qgcPal.globalTheme === QGCPalette.Light ? Qt.rgba(1,1,1,0.5) : Qt.rgba(0,0,0,0.5))
+        radius:                 control.buttonRadius
+    }
+    contentItem: Item {
+        anchors.fill:           control
+        QGCColoredImage {
+            source:             iconSource
+            color:              (mouseArea.pressed || control.checked) ? qgcPal.buttonHighlightText : qgcPal.buttonText
+            width:              control.width * iconRatio
+            height:             width
+            anchors.centerIn:   parent
+            sourceSize.height:  height
+        }
+    }
+    MouseArea {
+        id:                     mouseArea
+        anchors.fill:           parent
+        onClicked: {
+            if(checkable)
+                checked = true
+            control.clicked()
+        }
+    }
+} # v1.161.0
+        with: /****************************************************************************
+ *
+ * (c) 2009-2019 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
+ *
+ * QGroundControl is licensed according to the terms in the file
+ * COPYING.md in the root of the source code directory.
+ *
+ * @file
+ *   @author Gus Grubba <gus@auterion.com>
+ */
+
+import QtQuick                              2.11
+import QtQuick.Controls                     1.4
+
+import QGroundControl                       1.0
+import QGroundControl.Controls              1.0
+import QGroundControl.ScreenTools           1.0
+import QGroundControl.Palette               1.0
+
+Item {
+    width:  size
+    height: size
+
+    property real size:     50
+    property real percent:  0
+
+    QGCPalette { id: qgcPal }
+
+    function getIcon() {
+        if (percent < 20)
+            return "/custom/img/menu_signal_0.svg"
+        if (percent < 40)
+            return "/custom/img/menu_signal_25.svg"
+        if (percent < 60)
+            return "/custom/img/menu_signal_50.svg"
+        if (percent < 90)
+            return "/custom/img/menu_signal_75.svg"
+        return "/custom/img/menu_signal_100.svg"
+    }
+
+    QGCColoredImage {
+        source:             getIcon()
+        fillMode:           Image.PreserveAspectFit
+        anchors.fill:       parent
+        sourceSize.height:  size
+        color:              qgcPal.text
+    }
+}
+          ruby-version: /****************************************************************************
+ *
+ * (c) 2009-2019 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
+ *
+ * QGroundControl is licensed according to the terms in the file
+ * COPYING.md in the root of the source code directory.
+ *
+ * @file
+ *   @author Gus Grubba <gus@auterion.com>
+ */
+
+import QtQuick                      2.11
+import QtQuick.Controls             2.4
+
+import QGroundControl.Controls      1.0
+import QGroundControl.Palette       1.0
+import QGroundControl.ScreenTools   1.0
+
+Button {
+    id:                             button
+    autoExclusive:                  true
+
+    background: Rectangle {
+        anchors.fill:               parent
+        color:                      qgcPal.buttonHighlight
+        visible:                    (mouseArea.pressed || button.checked)
+    }
+
+    contentItem: Row {
+        spacing:                    ScreenTools.defaultFontPixelWidth
+        anchors.left:               button.left
+        anchors.leftMargin:         ScreenTools.defaultFontPixelWidth
+        anchors.verticalCenter:     button.verticalCenter
+        Item {
+            height:                 ScreenTools.defaultFontPixelHeight * 3
+            width:                  1
+        }
+        QGCColoredImage {
+            id:                     _icon
+            height:                 ScreenTools.defaultFontPixelHeight
+            width:                  height
+            sourceSize.height:      parent.height
+            fillMode:               Image.PreserveAspectFit
+            color:                  qgcPal.buttonText
+            source:                 button.icon.source
+            anchors.verticalCenter: parent.verticalCenter
+        }
+        Label {
+            id:                     _label
+            visible:                text !== ""
+            text:                   button.text
+            color:                  qgcPal.buttonText
+            anchors.verticalCenter: parent.verticalCenter
+        }
+    }
+    // Process hover events
+    MouseArea {
+        id:                         mouseArea
+        anchors.fill:               parent
+        onClicked:                  button.clicked()
+    }
+}
+          bundler-cache: /****************************************************************************
+ *
+ * (c) 2009-2019 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
+ *
+ * QGroundControl is licensed according to the terms in the file
+ * COPYING.md in the root of the source code directory.
+ *
+ * @file
+ *   @author Gus Grubba <gus@auterion.com>
+ */
+
+import QtQuick                      2.11
+import QtQuick.Controls             2.4
+
+import QGroundControl.Controls      1.0
+import QGroundControl.Palette       1.0
+import QGroundControl.ScreenTools   1.0
+
+Button {
+    id:                             button
+    height:                         _infoCol.height * 1.25
+    autoExclusive:                  true
+
+    property var vehicle:           null
+
+    function getBatteryColor() {
+        if(vehicle) {
+            if(vehicle.battery.percentRemaining.value > 75) {
+                return qgcPal.colorGreen
+            }
+            if(vehicle.battery.percentRemaining.value > 50) {
+                return qgcPal.colorOrange
+            }
+            if(vehicle.battery.percentRemaining.value > 0.1) {
+                return qgcPal.colorRed
+            }
+        }
+        return qgcPal.colorGrey
+    }
+
+    function getBatteryPercentage() {
+        if(vehicle) {
+            return vehicle.battery.percentRemaining.value / 100.0
+        }
+        return 1
+    }
+
+    background: Rectangle {
+        anchors.fill:               parent
+        color:                      button.checked ? qgcPal.buttonHighlight : qgcPal.button
+        radius:                     ScreenTools.defaultFontPixelWidth * 0.5
+    }
+
+    contentItem: Row {
+        spacing:                    ScreenTools.defaultFontPixelWidth
+        anchors.margins:            ScreenTools.defaultFontPixelWidth
+        anchors.verticalCenter:     button.verticalCenter
+//        QGCColoredImage {
+//            id:                     _icon
+//            height:                 ScreenTools.defaultFontPixelHeight * 1.5
+//            width:                  height
+//            sourceSize.height:      parent.height
+//            fillMode:               Image.PreserveAspectFit
+//            color:                  button.checked ? qgcPal.buttonHighlightText : qgcPal.buttonText
+//            source:                 "/qmlimages/PaperPlane.svg"
+//            anchors.verticalCenter: parent.verticalCenter
+//        }
+        Column {
+            id:                     _infoCol
+            spacing:                ScreenTools.defaultFontPixelHeight * 0.25
+            QGCLabel {
+                text:               qsTr("Vehicle ") + (vehicle ? vehicle.id : qsTr("None"))
+                font.family:        ScreenTools.demiboldFontFamily
+                color:              button.checked ? qgcPal.buttonHighlightText : qgcPal.buttonText
+            }
+            Row {
+                spacing:            ScreenTools.defaultFontPixelWidth
+                QGCLabel {
+                    text:           vehicle ? vehicle.flightMode : qsTr("None")
+                    color:          button.checked ? qgcPal.buttonHighlightText : qgcPal.buttonText
+                }
+                Rectangle {
+                    height:         ScreenTools.defaultFontPixelHeight * 0.5
+                    width:          ScreenTools.defaultFontPixelWidth  * 3
+                    color:          Qt.rgba(0,0,0,0)
+                    anchors.verticalCenter: parent.verticalCenter
+                    Rectangle {
+                        height:     parent.height
+                        width:      parent.width * getBatteryPercentage()
+                        color:      getBatteryColor()
+                        anchors.right: parent.right
+                    }
+                }
+            }
+        }
+    }
+
+}
+          cache-version: Module Custom.Widgets
+
+CustomArtificialHorizon 1.0     CustomArtificialHorizon.qml
+CustomAttitudeWidget    1.0     CustomAttitudeWidget.qml
+CustomIconButton        1.0     CustomIconButton.qml
+CustomOnOffSwitch       1.0     CustomOnOffSwitch.qml
+CustomQuickButton       1.0     CustomQuickButton.qml
+CustomSignalStrength    1.0     CustomSignalStrength.qml
+CustomToolBarButton     1.0     CustomToolBarButton.qml
+CustomVehicleButton     1.0     CustomVehicleButton.qml
+      - name: 3.0 (quilt)
+        id: tar-ignore = ".git/*"
+        uses: 9
+      - name: Source: qgroundcontrol
+Section: electronics
+Priority: optional
+Maintainer: ramazanovnursultan.ca>
+Build-Depends: debhelper (>= 9), qt55tools, qt55base, qt55declarative, qt55serialport, qt55svg, qt55webkit, qt55quickcontrols, qt55xmlpatterns, qt55x11extras, qt55websockets, qt55sensors, qt55script, qt55quick1, qt55qbs, qt55multimedia, qt55location, qt55imageformats, qt55graphicaleffects, qt55creator, qt55connectivity, espeak, libespeak-dev, libudev-dev, libsdl1.2-dev
+Standards-Version: 3.9.5
+Homepage: https://github.com/mavlink/qgroundcontrol
+Vcs-Git: git://github.com/mavlink/qgroundcontrol.git
+
+Package: qgroundcontrol
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, espeak, libsdl1.2debian
+Description: Open Source Micro Air Vehicle Ground Control Station
         # Outputs to the './_site' directory by default
-        run: bundle exec jekyll build --baseurl "${{ steps.pages.outputs.base_path }}"
-        env:
-          JEKYLL_ENV: production
-      - name: Upload artifact
+        run: bundle exec jekyll build --baseurl " Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: qgroundcontrol
+Source: https://github.com/mavlink/qgroundcontrol
+
+Files: *
+Copyright: QGroundControl Developers https://github.com/mavlink/qgroundcontrol/graphs/contributors
+License: GPL-3+ "
+        env:   ?package(qgroundcontrol):needs="x11" \
+      section="Applications/Electronics" \
+      title="QGroundControl" \
+      command="/usr/bin/qgroundcontrol"
+          JEKYLL_ENV: qgroundcontrol.desktop usr/share/applications
+release/qgroundcontrol usr/bin
+resources/ usr/share/qgroundcontrol
+resources/icons/qgroundcontrol.png usr/share/pixmaps
+      - name: #!/usr/bin/make -f
+# -*- makefile -*-
+export QT_SELECT := qt5
+
+# Uncomment this to turn on verbose mode.
+export DH_VERBOSE=1
+
+%:
+        dh $@ 
+
+override_dh_auto_configure:
+        /opt/qt55/bin/qmake -r qgroundcontrol.pro CONFIG+=installer CONFIG+=WarningsAsErrorsOn
         # Automatically uploads an artifact from the './_site' directory by default
-        uses: actions/upload-pages-artifact@v3
+        uses: version=3
+https://github.com/mavlink/qgroundcontrol/tags .*/archive/[a-z](\d\S*)\.tar\.gz
