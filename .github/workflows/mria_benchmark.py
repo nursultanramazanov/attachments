@@ -773,6 +773,6 @@ Usage:
     instance.log_out()
 
 """
-      run: helium>=3.0.0
+      run: cargo build --verbose
     - name: Run tests
       run: cargo test --verbose
