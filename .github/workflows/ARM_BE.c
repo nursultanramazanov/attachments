@@ -3791,18 +3791,242 @@ rm -rf tmp
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
       run: >
-        cmake -B ${{ steps.strings.outputs.build-output-dir }}
-        -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
-        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
-        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-        -S ${{ github.workspace }}
+        cmake -B ${{ /* Stick footer to the page bottom */
+html, body {
+    height: 100%;
+}
+.wrapper-outer {
+    min-height: 100%;
+    margin-bottom: -60px;
+}
+.wrapper-inner {
+    padding-bottom: 60px;
+}
+.footer-static-bottom {
+    height: 60px;
+    background-color: #f8f8f8;
+    border-top: 1px solid #e7e7e7;
+}
 
-    - name: Build
+.logout-button {
+    margin-top: 8px;
+}
+.logout-button:hover {
+    text-decoration: none;
+}
+.copyright {
+    padding-top: 20px;
+} }}
+        -DCMAKE_CXX_COMPILER=${{ .login-page-content {
+    margin-top: 80px;
+}
+.login-error {
+    margin-top: 10px;
+} }}
+        -DCMAKE_C_COMPILER=${{ .main-page-content {
+    margin-top: 100px;
+}
+.register-button {
+    margin-top: 12px;
+}
+.message-not-found {
+    padding: 10px;
+}
+.text-crud {
+    font-size: 1.3em;
+    margin: 0 5px;
+} }}
+        -DCMAKE_BUILD_TYPE=${{ .text-upload-button {
+    margin: 10px 0 20px;
+}
+.text-upload-title, .text-upload-input {
+    margin: 10px 0;
+} }}
+        -S ${{ .register-page-content {
+    margin-top: 80px;
+} }}
+
+    - name: @media (min-width: 992px) {
+    .test-content {
+        width: 50%;
+    }
+}
+@media (min-width: 768px) and (max-width: 992px) {
+    .test-content {
+        width: 60%;
+    }
+}
+@media (max-width: 768px) {
+    .test-content {
+        width: 80%;
+    }
+}
+
+@media (max-width: 992px) {
+    #userAnswer {
+        margin-bottom: 20px;
+    }
+    .confirm-container {
+        width: 100%;
+    }
+}
+
+.test-content {
+    margin: 40px auto;
+}
+.test-progress {
+    width: 0;
+}
+.answer-form {
+    margin-bottom: 20px;
+}
+.right-answer, .result {
+    display: none;
+}
       # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
-      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+      run: cmake --build ${{ @media (min-width: 992px) {
+    .dictionary-content {
+        width: 50%;
+    }
+}
+@media (min-width: 768px) and (max-width: 992px) {
+    .dictionary-content {
+        width: 60%;
+    }
+}
+@media (max-width: 768px) {
+    .dictionary-content {
+        width: 80%;
+    }
+}
+.message-not-found {
+    padding: 10px;
+}
+.dictionary-content {
+    margin: 20px auto;
+} }} --config ${{ @media (min-width: 992px) {
+    .text-content {
+        width: 80%;
+    }
+}
+@media (max-width: 992px) {
+    .text-content {
+        width: 90%;
+    }
+}
+
+.text-content {
+    margin: auto;
+}
+.article {
+    margin-bottom: 30px;
+}
+.content {
+    padding-bottom: 40px;
+}
+
+.dictionary {
+    padding-bottom: 60px;
+} }}
 
     - name: Test
-      working-directory: ${{ steps.strings.outputs.build-output-dir }}
+      working-directory: ${{ $(function () {
+    var submit = $("#saveButton");
+    submit.prop("disabled", true);
+    $(".dictionary-table").on("click", ".delete-button", function () {
+        submit.prop("disabled", false);
+        $(this).parents("tr").hide();
+        var input = $("#removeFields");
+        var data = input.val();
+        data = JSON.parse(data);
+        var word = $(this).parents("tr").children("td:first").text();
+        if (data === undefined) {
+            data = [];
+        }
+        data.push(word);
+        input.val(JSON.stringify(data));
+    });
+}); }}
       # Execute tests defined by the CMake configuration. Note that --build-config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: ctest --build-config ${{ matrix.build_type }}
+      run: ctest --build-config ${{ /* config */
+var WORD_COUNT = 10; // words per one test, const
+var rightAnswerCount = 0;
+var attempts = 0;
+
+var wordCount = WORD_COUNT;
+var allKeys = Object.keys(dict);
+if (allKeys.length < WORD_COUNT) {
+    wordCount = allKeys.length;
+}
+
+var testWords = getTestWords();
+
+var questEl = $("#question");
+var rightAnswer = $("#rightAnswer");
+var userAnswer = $("#userAnswer");
+var answerContainer = $(".right-answer");
+var testForm = $("#testForm");
+var resultContainer = $("#result");
+var progressBar = $("#progressBar");
+
+putToHtml(testWords);
+
+var confirmForm = $("#confirmForm");
+confirmForm.on("submit", confirmHandler);
+
+
+function getTestWords() {
+    var testWords = [];
+    var startKey = getRandomInt(0, allKeys.length - wordCount + 1);
+    var endKey = startKey + wordCount;
+
+    for (var i = startKey, j = 0, keyName; i < endKey; i++, j++) {
+        keyName = allKeys[i];
+        testWords[j] = [keyName, dict[keyName]];
+    }
+    return testWords;
+}
+
+function putToHtml(testWords) {
+    var wordPair = testWords.pop();
+    questEl.text(wordPair[1]);
+    rightAnswer.text(wordPair[0]);
+}
+
+function confirmHandler(e) {
+    e.preventDefault();
+    answerContainer.hide();
+    attempts++;
+    if (userAnswer.val() == rightAnswer.text()) {
+        rightAnswerCount++;
+        displayProgress();
+        if (testWords.length > 0) {
+            putToHtml(testWords);
+        } else {
+            showResults();
+        }
+    } else {
+        answerContainer.show();
+    }
+    userAnswer.val('');
+}
+
+function showResults() {
+    testForm.hide();
+    var text = "Результат: " + rightAnswerCount
+             + " правильных ответов из " + attempts + " попыток";
+    resultContainer.text(text);
+    resultContainer.show();
+}
+
+function displayProgress() {
+    var progress = Math.floor(100 * rightAnswerCount / wordCount);
+    progressBar.text(progress + "%");
+    progressBar.attr("aria-valuenow", progress);
+    progressBar.width(progress + "%");
+}
+
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min)) + min;
+} }}
