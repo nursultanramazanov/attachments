@@ -2,17 +2,29 @@
 # See: https://github.com/actions/starter-workflows/blob/main/ci/cmake-single-platform.yml
 name: CMake on multiple platforms
 
-on: idf_component_register(SRCS main.c db_esp32_control.c globals.h sdkconfig.h msp_ltm_serial.c
+on: [alias]
+build-man = "run --package xtask-build-man --"
+stale-label = "run --package xtask-stale-label --"
+bump-check = "run --package xtask-bump-check --"
+lint-docs = "run --package xtask-lint-docs --"
+
+[env]
+# HACK: Until this is stabilized, `snapbox`s polyfill could get confused
+# inside of the rust-lang/rust repo because it looks for the furthest-away `Cargo.toml`
+CARGO_RUSTC_CURRENT_DIR = { value = "", relative = true }
+  push: idf_component_register(SRCS main.c db_esp32_control.c globals.h sdkconfig.h msp_ltm_serial.c
         msp_ltm_serial.h db_protocol.h http_server.c http_server.h db_esp32_comm.c
         db_esp32_comm.h db_comm_protocol.h db_comm.c db_comm.h db_crc.c db_crc.h tcp_server.c tcp_server.h
         INCLUDE_DIRS ".")
-  push: #
+    branches: [ "main" ]
+  pull_request: #
 # "main" pseudo-component makefile.
 #
 # (Uses default behaviour of compiling all source files in directory, adding 'include' to include path.)
 
     branches: [ "main" ]
-  pull_request: /*
+
+jobs: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2018 
@@ -136,9 +148,7 @@ int gen_db_comm_err_resp(uint8_t *message_buffer, int id, char error_message[MAX
     cJSON_AddNumberToObject(root, DB_COMM_KEY_ID, id);
     return finalize_message(message_buffer, cJSON_Print(root));
 }
-    branches: [ "main" ]
-
-jobs: /*
+  build: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2018 
@@ -171,7 +181,7 @@ int gen_db_comm_err_resp(uint8_t *message_buffer, int id, char error_message[MAX
 int gen_db_comm_ping_resp(uint8_t *message_buffer, int id);
 
 #endif //DB_ESP32_DB_COMM_H
-  build: /*
+    runs-on: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2018 
@@ -233,7 +243,8 @@ int gen_db_comm_ping_resp(uint8_t *message_buffer, int id);
 #define DB_ESP32_FID 101
 
 #endif //DB_ESP32_DB_COMM_PROTOCOL_H
-    runs-on: /*
+
+    strategy: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2017 
@@ -293,8 +304,8 @@ uint8_t crc8_dvb_s2_table(uint8_t crc, unsigned char a)
 {
     return (uint8_t) (crc_dvb_s2_table[(crc ^ a)] & 0xff);
 }
-
-    strategy: /*
+      # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
+      fail-fast: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2017 
@@ -447,8 +458,14 @@ uint8_t crc8_dvb_s2_table(uint8_t crc, unsigned char a);
 #endif
 
 #endif      /* CRC_H */
-      # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
-      fail-fast: /*
+
+      # Set up a matrix to run the following 3 configurations:
+      # 1. <Windows, Release, latest MSVC compiler toolchain on the default runner image, default generator>
+      # 2. <Linux, Release, latest GCC compiler toolchain on the default runner image, default generator>
+      # 3. <Linux, Release, latest Clang compiler toolchain on the default runner image, default generator>
+      #
+      # To add more build types (Release, Debug, RelWithDebInfo, etc.) customize the build_type list.
+      matrix: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2018 
@@ -552,14 +569,7 @@ void communication_module_server(void *parameters) {
 void communication_module() {
     xTaskCreate(&communication_module_server, "comm_server", 8192, NULL, 5, NULL);
 }
-
-      # Set up a matrix to run the following 3 configurations:
-      # 1. <Windows, Release, latest MSVC compiler toolchain on the default runner image, default generator>
-      # 2. <Linux, Release, latest GCC compiler toolchain on the default runner image, default generator>
-      # 3. <Linux, Release, latest Clang compiler toolchain on the default runner image, default generator>
-      #
-      # To add more build types (Release, Debug, RelWithDebInfo, etc.) customize the build_type list.
-      matrix: /*
+        os: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2018 
@@ -584,7 +594,7 @@ void communication_module() {
 void communication_module();
 
 #endif //DB_ESP32_DB_ESP32_COMM_H
-        os: [ /*
+        build_type: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2018 
@@ -952,8 +962,8 @@ void control_module_tcp() {
 void control_module() {
     xEventGroupWaitBits(wifi_event_group, BIT2, false, true, portMAX_DELAY);
     xTaskCreate(&control_module_tcp, "control_tcp", 40960, NULL, 5, NULL);
-} ]
-        build_type: [ /*
+}
+        c_compiler: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2018 
@@ -977,8 +987,8 @@ void control_module() {
 
 void control_module();
 
-#endif //DB_ESP32_DB_ESP32_CONTROL_H ]
-        c_compiler: [ /*
+#endif //DB_ESP32_DB_ESP32_CONTROL_H
+        include: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2018 
@@ -1000,8 +1010,8 @@ void control_module();
 #ifndef DB_ESP32_DB_ESP32_SETTINGS_H
 #define DB_ESP32_DB_ESP32_SETTINGS_H
 
-#endif //DB_ESP32_DB_ESP32_SETTINGS_H ]
-        include: /*
+#endif //DB_ESP32_DB_ESP32_SETTINGS_H
+          - os: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2017 
@@ -1080,7 +1090,7 @@ void control_module();
 #define DB_SYS_HID_ESP32 1
 
 #endif // DB_PROTOCOL_H_INCLUDED
-          - os: /*
+            c_compiler: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2018 
@@ -1120,7 +1130,7 @@ extern uint8_t LTM_FRAME_NUM_BUFFER;    // Number of LTM frames per UDP packet (
 extern EventGroupHandle_t wifi_event_group;
 
 #endif //DB_ESP32_GLOBALS_H
-            c_compiler: /*
+            cpp_compiler: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2018 
@@ -1550,7 +1560,7 @@ void http_settings_server(void *parameter) {
 void start_tcp_server() {
     xTaskCreate(&http_settings_server, "http_settings_server", 10240, NULL, 5, NULL);
 }
-            cpp_compiler: /*
+          - os: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2018 
@@ -1576,7 +1586,7 @@ void start_tcp_server();
 void write_settings_to_nvs();
 
 #endif //DB_ESP32_HTTP_SERVER_H
-          - os: /*
+            c_compiler: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2018 
@@ -1757,10 +1767,10 @@ void app_main()
     start_tcp_server();
     communication_module();
 }
-            c_compiler: /*
+            cpp_compiler: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
- *   Copyright 2018 
+ *   Copyright 2018 Wolfgang Christl
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -1785,7 +1795,7 @@ void app_main()
  * This function is part of Cleanflight/iNAV.
  *
  * Optimized for crc performance in the DroneBridge project and ">" & "<" adjusted
- * LTM telemetry parsing added by Wolfgang Christl
+ * LTM telemetry parsing added by 
  *
  * Cleanflight is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -2035,7 +2045,7 @@ bool parse_msp_ltm_byte(msp_ltm_port_t *msp_ltm_port, uint8_t new_byte) {
     }
     return true;
 }
-            cpp_compiler: /*
+          - os: /*
  * This file contains code from Cleanflight & iNAV.
  *
  * Cleanflight is free software: you can redistribute it and/or modify
@@ -2175,7 +2185,7 @@ typedef struct mspPacket_s {
 bool parse_msp_ltm_byte(msp_ltm_port_t *msp_ltm_port, uint8_t new_byte);
 
 #endif //CONTROL_STATUS_MSP_SERIAL_H
-          - os: HTTP/1.1 200 OK
+            c_compiler: HTTP/1.1 200 OK
 Server: DroneBridgeESP32
 Content-type: text/html, text, plain
 
@@ -2294,10 +2304,10 @@ table.DroneBridge td:nth-child(even) {
 <input target= "_self" type="submit" value="Save">
 </form>
 <p class="foot">v0.1</p>
-<p class="foot">©  2018 - Apache 2.0 License</p>
+<p class="foot">© 2018 - Apache 2.0 License</p>
 </body>
 </html>
-            c_compiler: HTTP/1.1 200 OK
+            cpp_compiler: HTTP/1.1 200 OK
 Server: DroneBridgeESP32
 Content-type: text/html, text, plain
 
@@ -2323,7 +2333,7 @@ Content-type: text/html, text, plain
   <a class="mytext" href="/">Back to settings</a>
 </body>
 </html>
-            cpp_compiler: /*
+        exclude: /*
  *
  * Automatically generated file; DO NOT EDIT.
  * Espressif IoT Development Framework Configuration
@@ -2546,7 +2556,7 @@ Content-type: text/html, text, plain
 #define CONFIG_ESPTOOLPY_PORT "/dev/ttyUSB0"
 #define CONFIG_SPI_FLASH_WRITING_DANGEROUS_REGIONS_ABORTS 1
 #define CONFIG_BLUEDROID_PINNED_TO_CORE 0
-        exclude: <!DOCTYPE html>
+          - os: <!DOCTYPE html>
 <html>
 <head>
 <title>DB for ESP32 Settings</title>
@@ -2671,7 +2681,7 @@ table.DroneBridge td:nth-child(even) {
 <p class="foot">&copy; 2018 - Apache 2.0 License</p>
 </body>
 </html>
-          - os: /*
+            c_compiler: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2019 
@@ -2741,7 +2751,7 @@ void send_to_all_tcp_clients(const int tcp_clients[], uint8_t data[], uint data_
     }
 
 }
-            c_compiler: /*
+          - os: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2019 
@@ -2769,240 +2779,7 @@ int open_tcp_server(int port);
 void send_to_all_tcp_clients(const int tcp_clients[], uint8_t data[], uint data_length);
 
 #endif //DB_ESP32_TCP_SERVER_H
-          - os:
-#include "MoveCommand.h"
-
-static const std::string _name("move");
-static const std::string _description =
-    "Arguments: {column_index}{row_index}\n"
-    "Example: " +
-    _name + " e4\n"
-            "Description: Moves the selected piece to the specified square if legal.";
-
-MoveCommand::MoveCommand(Chess &chess)
-    : Command(chess, _name, _description)
-{
-}
-
-Result MoveCommand::apply(const std::vector<std::string> &params)
-{
-    if (params.size() != 1 || params[0].length() != 2)
-        return {true, false};
-
-    int row = params[0][1] - '1';
-    int column = params[0][0] - 'a';
-
-    Chess &chess = this->get_chess();
-    bool error = chess.move({row, column});
-    return {error, false};
-}
-            c_compiler: #pragma once
-
-#include "../Command.h"
-
-// Moves the selected piece to a new square.
-// Params:
-//      1. string of format {char}{int} representing a
-//          field of the chessboard.
-class MoveCommand : public Command
-{
-public:
-    MoveCommand(Chess &chess);
-
-    Result apply(const std::vector<std::string> &params) override;
-};
-          - os: #include "QuitCommand.h"
-
-static const std::string _name = "quit";
-static const std::string _description =
-    "Arguments: [None]\n"
-    "Description: Quits the game.";
-
-QuitCommand::QuitCommand(Chess &chess)
-    : Command(chess, _name, _description)
-{
-}
-
-Result QuitCommand::apply(const std::vector<std::string> &params)
-{
-    bool error = !params.empty();
-    bool quit = true;
-    return {error, quit};
-}
-            c_compiler: #pragma once
-
-#include "../Command.h"
-
-// Sends a quit signal to the session.
-// No params.
-class QuitCommand : public Command
-{
-public:
-    QuitCommand(Chess &chess);
-
-    Result apply(const std::vector<std::string> &params) override;
-};
-
-    steps: #include "SelectCommand.h"
-
-static const std::string _name("select");
-static const std::string _description =
-    "Arguments: {column_index}{row_index}\n"
-    "Example: " +
-    _name + " e2\n"
-            "Description: Selects the specified square.";
-
-SelectCommand::SelectCommand(Chess &chess)
-    : Command(chess, _name, _description)
-{
-}
-
-Result SelectCommand::apply(const std::vector<std::string> &params)
-{
-    if (params.size() != 1 || params[0].length() != 2)
-        return {true, false};
-
-    int row = params[0][1] - '1';
-    int column = params[0][0] - 'a';
-
-    Chess &chess = this->get_chess();
-    bool error = chess.select({row, column});
-    return {error, false};
-}
-
-    - uses: #pragma once
-
-#include "../Command.h"
-
-// Selects a square.
-// Params:
-//     1. row
-//     2. column
-class SelectCommand : public Command
-{
-public:
-    SelectCommand(Chess &chess);
-
-    Result apply(const std::vector<std::string> &params) override;
-};
-
-    - name: #include "Command.h"
-
-Command::Command(Chess &chess, std::string name, std::string description)
-    : chess(chess), name(name), description(description) {}
-
-const std::string &Command::get_name() const
-{
-    return this->name;
-}
-
-const std::string &Command::get_description() const
-{
-    return this->description;
-}
-
-Chess &Command::get_chess()
-{
-    return this->chess;
-}
-
-      # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
-      id: #pragma once
-
-#include <string>
-#include <vector>
-
-#include "Result.h"
-
-#include "../model/Chess.h"
-
-class Command
-{
-public:
-    Command(Chess &chess, std::string name, std::string description);
-    virtual ~Command() = default;
-
-    const std::string &get_name() const;
-    const std::string &get_description() const;
-
-    virtual Result apply(const std::vector<std::string> &params) = 0;
-
-protected:
-    Chess &get_chess();
-
-private:
-    Chess &chess;
-    std::string name;
-    std::string description;
-};
-      shell: #pragma once
-
-struct Result
-{
-    bool error;
-    bool quit;
-};
-
-      run: [alias]
-build-man = "run --package xtask-build-man --"
-stale-label = "run --package xtask-stale-label --"
-bump-check = "run --package xtask-bump-check --"
-lint-docs = "run --package xtask-lint-docs --"
-
-[env]
-# HACK: Until this is stabilized, `snapbox`s polyfill could get confused
-# inside of the rust-lang/rust repo because it looks for the furthest-away `Cargo.toml`
-CARGO_RUSTC_CURRENT_DIR = { value = "", relative = true }
-            - name: <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-        <key>CFBundleDevelopmentRegion</key>
-        <string>en</string>
-        <key>CFBundleExecutable</key>
-        <string>$(EXECUTABLE_NAME)</string>
-        <key>CFBundleIdentifier</key>
-        <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-        <key>CFBundleInfoDictionaryVersion</key>
-        <string>6.0</string>
-        <key>CFBundleName</key>
-        <string>$(PRODUCT_NAME)</string>
-        <key>CFBundlePackageType</key>
-        <string>FMWK</string>
-        <key>CFBundleShortVersionString</key>
-        <string>1.0</string>
-        <key>CFBundleSignature</key>
-        <string>????</string>
-        <key>CFBundleVersion</key>
-        <string>$(CURRENT_PROJECT_VERSION)</string>
-        <key>NSPrincipalClass</key>
-        <string></string>
-</dict>
-</plist>
-      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: >
-        cmake -B ${{ //
-//  M A R S H A L
-//
-//       ()
-//       /\
-//  ()--'  '--()
-//    `.    .'
-//     / .. \
-//    ()'  '()
-//
-//
-
-
-#import <Foundation/Foundation.h>
-
-//! Project version number for Marshal.
-FOUNDATION_EXPORT double MarshalVersionNumber;
-
-//! Project version string for Marshal.
-FOUNDATION_EXPORT const unsigned char MarshalVersionString[]; }}
--DCMAKE_CXX_COMPILER=${{ CC := gcc
+            c_compiler: CC := gcc
 ifeq ($(USE_GPU),1)
 CUCC := nvcc
 endif
@@ -3102,8 +2879,8 @@ endif
 OBJ := $(SRC:.c=.o)
 ifeq ($(USE_GPU),1)
 OBJ := $(OBJ:.cu=.o)
-endif }}
-        -DCMAKE_C_COMPILER=${{ include config/defines.mk
+endif
+          - os: include config/defines.mk
 
 
 # Link all object files into a source file
@@ -3140,8 +2917,54 @@ run:
         @$(TARGET)
 
 
-.PHONY: clean rebuild run }}
-        -DCMAKE_BUILD_TYPE=${{ /**
+.PHONY: clean rebuild run
+            c_compiler: <?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+        <key>CFBundleDevelopmentRegion</key>
+        <string>en</string>
+        <key>CFBundleExecutable</key>
+        <string>$(EXECUTABLE_NAME)</string>
+        <key>CFBundleIdentifier</key>
+        <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+        <key>CFBundleInfoDictionaryVersion</key>
+        <string>6.0</string>
+        <key>CFBundleName</key>
+        <string>$(PRODUCT_NAME)</string>
+        <key>CFBundlePackageType</key>
+        <string>FMWK</string>
+        <key>CFBundleShortVersionString</key>
+        <string>1.0</string>
+        <key>CFBundleSignature</key>
+        <string>????</string>
+        <key>CFBundleVersion</key>
+        <string>$(CURRENT_PROJECT_VERSION)</string>
+        <key>NSPrincipalClass</key>
+        <string></string>
+</dict>
+</plist>
+    steps: //
+//  M A R S H A L
+//
+//       ()
+//       /\
+//  ()--'  '--()
+//    `.    .'
+//     / .. \
+//    ()'  '()
+//
+//
+
+
+#import <Foundation/Foundation.h>
+
+//! Project version number for Marshal.
+FOUNDATION_EXPORT double MarshalVersionNumber;
+
+//! Project version string for Marshal.
+FOUNDATION_EXPORT const unsigned char MarshalVersionString[];
+    - uses: /**
  * @file lenet5_mnist.c
  * @brief Training a CNN on Fashion MNIST
  * 
@@ -3432,8 +3255,9 @@ int main()
     LossDeinit(&loss);
 
     return 0;
-} }}
-        -S ${{ /**
+}
+
+    - name: /**
  * @file lenet5_mnist.c
  * @brief Train LeNet-5 on the MNIST dataset
  * 
@@ -3588,9 +3412,9 @@ int main()
     LossDeinit(&loss);
 
     return 0;
-} }}
-
-    - name: /**
+}
+      # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
+      id: /**
  * @file logistic_regression.c
  * @brief Multi-class logistic regression with linear classifier
  * 
@@ -3703,8 +3527,7 @@ int main()
 
     return 0;
 }
-      # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
-      run: cmake --build ${{ /**
+      shell: /**
  * @file two_layer_mlp_mnist.c
  * @brief Train a two-layered MLP on the MNIST dataset
  * 
@@ -3832,7 +3655,9 @@ int main()
     LossDeinit(&loss);
 
     return 0;
-} }} --config ${{ #include "tensor.h"
+}
+      run: |
+        echo "build-output-dir=${{ #include "tensor.h"
 #include "tensor_impl.h"
 
 #include "context.h"
@@ -3927,7 +3752,7 @@ int main() {
     LOG_INFO("Initialized backend context\n");
 
     test_activation_layer();
-} }}
+} }}/build" >> "$GITHUB_OUTPUT"
 
     - name: # !/bin/bash
 
@@ -3963,363 +3788,21 @@ cmake --build . --target install
 # Remove temporary folder
 cd ${ROOT_PWD}
 rm -rf tmp
-      working-directory: ${{ extern crate clap;
-extern crate rand;
+      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+      run: >
+        cmake -B ${{ steps.strings.outputs.build-output-dir }}
+        -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
+        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -S ${{ github.workspace }}
 
-use std::collections::LinkedList;
-use std::time::{Duration, Instant};
-use std::cmp::{max, min};
+    - name: Build
+      # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
+      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
 
-use clap::Parser;
-use rand::Rng;
-
-mod term;
-use term::{Input, Terminal};
-
-#[derive(Parser, Debug)]
-struct Args {
-    #[clap(short = 'w', long = "width", help = "The width of the board (default is terminal width)")]
-    width: Option<usize>,
-    #[clap(short = 'h', long = "height", help = "The height of the board (default is terminal height)")]
-    height: Option<usize>,
-    #[clap(short = 'f', long = "frequency", help = "The amount of steps the snake makes per second")]
-    freq: Option<u64>,
-    #[clap(short = 's', long = "start_length", help = "The length the snake starts with")]
-    start_length: Option<usize>,
-    #[clap(short = 'r', long = "reward", help = "The length the snake gains from eating food")]
-    reward: Option<usize>,
-}
-
-// Display constants
-
-const EMPTY: u8 = ' ' as u8;
-const BORDER: u8 = '#' as u8;
-const FOOD: u8 = 'F' as u8;
-const HEAD: u8 = '@' as u8;
-const BODY: u8 = 'B' as u8;
-
-
-#[derive(Clone, Copy)]
-enum Direction {
-    Right, Up, Left, Down
-}
-
-impl Direction {
-    pub fn velocity(&self) -> (i32, i32) {
-        match *self {
-            Direction::Right => (0, 1),
-            Direction::Up => (-1, 0),
-            Direction::Left => (0, -1),
-            Direction::Down => (1, 0)
-        }
-    }
-}
-
-// height + space for border
-fn board_height(height: usize) -> usize {
-    height + 2
-}
-
-// width + space for border and \n\r
-fn board_width(width: usize) -> usize {
-    width + 4
-}
-
-// initialize the board and draw boarder and \n\r
-fn draw_border(board: &mut Vec<u8>, width: usize, height: usize) {
-    board.clear();
-    board.resize(board_height(height) * board_width(width), EMPTY);
-    for w in 0..width {
-        board[w + 1] = BORDER;
-        board[(board_height(height) - 1) * board_width(width) + w + 1] = BORDER;
-    }
-
-    for h in 0..board_height(height) {
-        board[h * board_width(width) + 0] = BORDER;
-        board[h * board_width(width) + width + 1] = BORDER;
-        board[h * board_width(width) + width + 2] = '\n' as u8;
-        board[h * board_width(width) + width + 3] = '\r' as u8;
-    }
-}
-
-fn draw_snake(board: &mut Vec<u8>, width: usize, snake: &LinkedList<(usize, usize)>) {
-    let mut it = snake.into_iter();
-    if let Some((h, w)) = it.next() {
-        board[h * board_width(width) + w] = HEAD;
-    } else {
-        panic!("Snake has no head!");
-    }
-    while let Some((h, w)) = it.next() {
-        board[h * board_width(width) + w] = BODY;
-    }
-}
-
-fn draw_food(terminal: &Terminal, board: &mut Vec<u8>, width: usize, food: &(usize, usize)) {
-    board[food.0 * board_width(width) + food.1] = FOOD;
-    terminal.write_cell(FOOD, food.1, food.0).unwrap();
-}
-
-// move snake in direction and update board. return ({crashed into wall or myself}, {eaten food})
-fn advance_snake(terminal: &Terminal, board: &mut Vec<u8>, width: usize, snake: &mut LinkedList<(usize, usize)>, direction: &Direction, target_length: &mut usize, reward: usize) -> (bool, bool) {
-    if let Some(&(old_h, old_w)) = snake.front() {
-        let new_head_h = (old_h as i32 + direction.velocity().0) as usize;
-        let new_head_w = (old_w as i32 + direction.velocity().1) as usize;
-
-        // advance
-        snake.push_front((new_head_h, new_head_w));
-
-        // check for collision
-        let out = match board[new_head_h * board_width(width) + new_head_w] {
-            FOOD => (true, false),
-            BORDER => (false, true),
-            BODY => (false, true),
-            EMPTY => (false, false),
-            _ => panic!("Impossible")
-        };
-
-        // write new head
-        terminal.write_cell(HEAD, new_head_w, new_head_h).unwrap();
-        terminal.write_cell(BODY, old_w, old_h).unwrap();
-        board[new_head_h * board_width(width) + new_head_w] = HEAD;
-        board[old_h * board_width(width) + old_w] = BODY;
-
-        if out.0 { // eaten food
-            *target_length += reward;
-        }
-
-        // remove tail if snake length is as big as target_length
-        if snake.len() > *target_length {
-            if let Some((h, w)) = snake.pop_back() {
-                terminal.write_cell(EMPTY, w, h).unwrap();
-                board[h * board_width(width) + w] = EMPTY;
-            }
-        }
-        out
-    } else {
-        panic!("Snake has no head!");
-    }
-}
-
-// find random free spot on the board in O(n) guaranteed
-fn random_free_spot(board: &Vec<u8>, width: usize) -> Option<(usize, usize)> {
-    let num_free = board.into_iter().filter(|c| -> bool {**c == EMPTY}).count();
-    if num_free == 0 {
-        return None;
-    }
-    let nth_free_i = rand::thread_rng().gen_range(0, num_free);
-    let mut free_cnt = 0;
-    for i in 0..board.len() {
-        if board[i] == EMPTY {
-            if free_cnt == nth_free_i {
-                return Some((i / board_width(width), i % board_width(width)))
-            } else {
-                free_cnt += 1;
-            }
-        }
-    }
-    None
-}
-
-fn quit(term: &Terminal) -> ! {
-    term.clean().unwrap();
-    std::process::exit(0);
-}
-
-fn main() {
-
-    let args = Args::parse();
-    let terminal = Terminal::new();
-
-    // default is terminal width / height
-    let default_width = || -> usize {terminal.get_size().unwrap().0 - 2};
-    let default_height = || -> usize {terminal.get_size().unwrap().1 - 3};
-
-    let width = args.width.unwrap_or_else(default_width);
-    let height = args.height.unwrap_or_else(default_height);
-
-    // default is chosen so it takes the snake 4 seconds across the board 
-    let freq = args.freq.unwrap_or(max(1, (min(width, height) / 4) as u64));
-    let start_length = args.start_length.unwrap_or(5);
-    let reward = args.reward.unwrap_or(5);
-
-    let mut board : Vec<u8> = std::vec::Vec::with_capacity(board_height(height) * board_width(width));
-    let mut target_length = 1 + start_length;
-    let mut snake: LinkedList<(usize, usize)> = LinkedList::new();
-    let mut direction = Direction::Right;
-    let mut food: (usize, usize);
-
-
-    terminal.setup().unwrap();
-
-    // only draw border once
-    draw_border(&mut board, width, height);
-
-    // draw snake and food the first time
-    snake.push_back((height / 2 + 1, width / 2 + 1));
-    draw_snake(&mut board, width, &snake);
-    food = match random_free_spot(&board, width) {
-        Some(food) => food,
-        None => quit(&terminal)
-    };
-
-    draw_food(&terminal, &mut board, width, &food);
-
-    terminal.display(board.as_slice()).unwrap();
-
-
-    let update_interval = Duration::from_micros((1000 * 1000) / freq);
-    let mut update_deadline = Instant::now() + update_interval;
-
-    let mut pause = false;
-
-    loop {
-        // user input
-        if let Ok(Some(key)) = terminal.user_input(&update_deadline) {
-            direction = match (key, direction) {
-                (Input::Right, Direction::Right) => Direction::Down,
-                (Input::Right, Direction::Down) => Direction::Left,
-                (Input::Right, Direction::Left) => Direction::Up,
-                (Input::Right, Direction::Up) => Direction::Right,
-                (Input::Left, Direction::Right) => Direction::Up,
-                (Input::Left, Direction::Up) => Direction::Left,
-                (Input::Left, Direction::Left) => Direction::Down,
-                (Input::Left, Direction::Down) => Direction::Right,
-                (Input::Exit, _) => quit(&terminal),
-                (Input::Pause, _) => {
-                    pause = !pause;
-                    continue;
-                }
-            };
-        }
-
-        if pause {
-            continue;
-        }
-
-        update_deadline = Instant::now() + update_interval;
-
-        // step: redraw snake and food if eaten
-        let (eaten, crashed) = advance_snake(&terminal, &mut board, width, &mut snake, &direction, &mut target_length, reward);
-        if eaten {
-            food = match random_free_spot(&board, width) {
-                Some(food) => food,
-                None => quit(&terminal)
-            };
-            draw_food(&terminal, &mut board, width, &food);
-        }
-        if crashed {
-            quit(&terminal);
-        }
-    }
-
-} }}
+    - name: Test
+      working-directory: ${{ steps.strings.outputs.build-output-dir }}
       # Execute tests defined by the CMake configuration. Note that --build-config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: ctest --build-config ${{ extern crate terminal;
-
-use std::io::Write;
-use terminal::{error, TerminalLock, Clear, Action, Value, Retrieved, Event, KeyCode, KeyEvent};
-
-use std::time::Instant;
-
-#[derive(PartialEq, Clone, Copy)]
-pub enum Input {
-    Left, Right, Exit, Pause
-}
-
-
-pub struct Terminal {
-    terminal: terminal::Terminal<std::io::Stdout>,
-}
-
-
-impl Terminal {
-
-    pub fn new() -> Terminal {
-        Terminal{
-            terminal: terminal::stdout()
-        }
-    }
-
-    fn lock(&self) -> error::Result<TerminalLock<std::io::Stdout>> {
-        self.terminal.lock_mut()
-    }
-
-    // enter new screen and hide cursor
-    pub fn setup(&self) -> error::Result<()> {
-        let mut lock = self.lock()?;
-        lock.batch(Action::EnterAlternateScreen)?;
-        lock.batch(Action::EnableRawMode)?;
-        lock.batch(Action::HideCursor)?;
-        lock.flush_batch()
-    }
-
-    // return terminal size in (width, height)
-    pub fn get_size(&self) -> error::Result<(usize, usize)> {
-        if let Ok(Retrieved::TerminalSize(w, h)) = self.lock()?.get(Value::TerminalSize) {
-            Ok((w as usize, h as usize))
-        } else {
-            Err(error::ErrorKind::ActionNotSupported(std::string::String::from("")))
-        }
-    }
-
-    // return entered keys until exit is entered or specified deadline is met
-    pub fn user_input(&self, until: &Instant) -> error::Result<Option<Input>> {
-        let lock = self.lock()?;
-
-        let mut num_left = 0;
-        let mut num_right = 0;
-
-        loop {
-            let now = Instant::now();
-            if let Ok(Retrieved::Event(Some(Event::Key(key)))) = lock.get(Value::Event(Some(*until - now))) {
-                match key {
-                    KeyEvent{code: KeyCode::Left, ..} => {
-                        num_left += 1;
-                    },
-                    KeyEvent{code: KeyCode::Right, ..} => {
-                        num_right += 1;
-                    },
-                    KeyEvent{code: KeyCode::Char('q'), ..} => {
-                        return Ok(Some(Input::Exit));
-                    },
-                    KeyEvent{code: KeyCode::Char('p'), ..} => {
-                        return Ok(Some(Input::Pause));
-                    }
-                    _ => continue
-                };
-            } else {
-                break;
-            }
-        }
-        return Ok(if num_left > num_right {Some(Input::Left)} else if num_left < num_right {Some(Input::Right)} else {None})
-    }
-
-    // write board to screen
-    pub fn display(&self, board: &[u8]) -> error::Result<()> {
-        let mut lock = self.lock()?;
-        lock.act(Action::ClearTerminal(Clear::All))?;
-        lock.act(Action::MoveCursorTo(0, 0))?;
-        lock.write(board)?;
-        lock.flush_batch()
-    }
-
-    // rewrite a single cell
-    pub fn write_cell(&self, symbol: u8, x: usize, h: usize) -> error::Result<()> {
-        let mut lock = self.lock()?;
-        lock.batch(Action::MoveCursorTo(x as u16, h as u16))?;
-        lock.write(&[symbol])?;
-        lock.flush_batch()
-    }
-
-    // show cursor again and return to old screen
-    pub fn clean(&self) -> error::Result<()> {
-        let mut lock = self.lock()?;
-        lock.batch(Action::MoveCursorTo(0, 0))?;
-        lock.batch(Action::ShowCursor)?;
-        lock.batch(Action::DisableRawMode)?;
-        lock.batch(Action::LeaveAlternateScreen)?;
-        lock.flush_batch()
-    }
-
-} }}
+      run: ctest --build-config ${{ matrix.build_type }}
