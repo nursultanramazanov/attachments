@@ -2953,48 +2953,55 @@ lint-docs = "run --package xtask-lint-docs --"
 # HACK: Until this is stabilized, `snapbox`s polyfill could get confused
 # inside of the rust-lang/rust repo because it looks for the furthest-away `Cargo.toml`
 CARGO_RUSTC_CURRENT_DIR = { value = "", relative = true }
-        
-    - name: 
-FROM dwssio/alpine-maven-builder-jdk-8:1-master-NA-6036091e AS build  
-ARG WORK_DIR
-WORKDIR /app
-
-# copy the project files
-COPY ${WORK_DIR}/pom.xml ./pom.xml
-COPY build/maven/start.sh ./start.sh
-
-# not useful for stateless builds
-# RUN mvn -B dependency:go-offline
-
-COPY ${WORK_DIR}/src ./src
-RUN mvn -B -f /app/pom.xml package
-
-
-# Create runtime image
-FROM dwssio/8-openjdk-alpine
-
-
-WORKDIR /opt/egov
-
-COPY --from=build /app/target/*.jar /app/start.sh /opt/egov/
-
-RUN chmod +x /opt/egov/start.sh
-
-CMD ["/opt/egov/start.sh"]
+            - name: <?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+        <key>CFBundleDevelopmentRegion</key>
+        <string>en</string>
+        <key>CFBundleExecutable</key>
+        <string>$(EXECUTABLE_NAME)</string>
+        <key>CFBundleIdentifier</key>
+        <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+        <key>CFBundleInfoDictionaryVersion</key>
+        <string>6.0</string>
+        <key>CFBundleName</key>
+        <string>$(PRODUCT_NAME)</string>
+        <key>CFBundlePackageType</key>
+        <string>FMWK</string>
+        <key>CFBundleShortVersionString</key>
+        <string>1.0</string>
+        <key>CFBundleSignature</key>
+        <string>????</string>
+        <key>CFBundleVersion</key>
+        <string>$(CURRENT_PROJECT_VERSION)</string>
+        <key>NSPrincipalClass</key>
+        <string></string>
+</dict>
+</plist>
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
       run: >
-        cmake -B ${{ #!/bin/sh
+        cmake -B ${{ //
+//  M A R S H A L
+//
+//       ()
+//       /\
+//  ()--'  '--()
+//    `.    .'
+//     / .. \
+//    ()'  '()
+//
+//
 
-if [[ -z "${JAVA_OPTS}" ]];then
-    export JAVA_OPTS="-Xmx64m -Xms64m"
-fi
 
-if [ x"${JAVA_ENABLE_DEBUG}" != x ] && [ "${JAVA_ENABLE_DEBUG}" != "false" ]; then
-    java_debug_args="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=${JAVA_DEBUG_PORT:-5005}"
-fi
+#import <Foundation/Foundation.h>
 
-exec java ${java_debug_args} ${JAVA_OPTS} ${JAVA_ARGS}  -jar /opt/egov/*.jar }}
+//! Project version number for Marshal.
+FOUNDATION_EXPORT double MarshalVersionNumber;
+
+//! Project version string for Marshal.
+FOUNDATION_EXPORT const unsigned char MarshalVersionString[]; }}
 -DCMAKE_CXX_COMPILER=${{ CC := gcc
 ifeq ($(USE_GPU),1)
 CUCC := nvcc
