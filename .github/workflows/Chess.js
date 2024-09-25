@@ -1070,121 +1070,185 @@ Window {
     </qresource>
 </RCC>
 
-    runs-on: 
-#include "MoveCommand.h"
-
-static const std::string _name("move");
-static const std::string _description =
-    "Arguments: {column_index}{row_index}\n"
-    "Example: " +
-    _name + " e4\n"
-            "Description: Moves the selected piece to the specified square if legal.";
-
-MoveCommand::MoveCommand(Chess &chess)
-    : Command(chess, _name, _description)
-{
+runs-on: .skipped-buttons {
+    padding: 16px 0;
+}
+h1 {
+    margin-bottom: 20px;
 }
 
-Result MoveCommand::apply(const std::vector<std::string> &params)
-{
-    if (params.size() != 1 || params[0].length() != 2)
-        return {true, false};
-
-    int row = params[0][1] - '1';
-    int column = params[0][0] - 'a';
-
-    Chess &chess = this->get_chess();
-    bool error = chess.move({row, column});
-    return {error, false};
+    steps: .test-title {
+    margin-bottom: 0;
+    margin-top: 14px;
+}
+.tag-name {
+    padding-right: 10px;
+    text-decoration: underline;
+}
+.show-all {
+    text-decoration: underline;
+}
+.top-tests {
+    margin-bottom: 16px;
+}
+.test-container {
+    position: relative;
+}
+.test-tags {
+    margin-bottom: 12px;
+}
+.start-test-btn {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+}
+.start-test-link {
+    margin-top: 22px;
+    margin-right: 5px;
+}
+.create-test-btn {
+    margin: 12px 0;
+}
+.nav-about {
+    padding-left: 30px;
+}
+.list-group-item {
+    padding: 0;
+}
+h1 {
+    margin-bottom: 20px;
+}
+    - uses: .test-container {
+    margin: 20px 0 30px;
+}
+.button-wrapper {
+    text-align: center;
+}
+    - name: .question-description-container {
+    padding-bottom: 16px;
+}
+.text-answer {
+    margin-bottom: 18px;
+}
+hr {
+    margin: 15px 0;
+}
+h1 {
+    margin-bottom: 20px;
+}
+.time-left {
+    font-size: smaller;
+    margin-top: 8px;
+}
+      run: .test-result-section h1 {
+    margin-bottom: 20px;
+}
+    - name: .body-wrapper {
+    margin-left: auto;
+    margin-right: auto;
+}
+@media (min-width: 1200px) {
+    .body-wrapper {
+        width: 75%;
+    }
+}
+@media (min-width: 768px) and (max-width: 1200px) {
+    .body-wrapper {
+        width: 80%;
+    }
+}
+@media (max-width: 768px) {
+    .body-wrapper {
+        width: 90%;
+    }
 }
 
-    steps: #pragma once
-
-#include "../Command.h"
-
-// Moves the selected piece to a new square.
-// Params:
-//      1. string of format {char}{int} representing a
-//          field of the chessboard.
-class MoveCommand : public Command
-{
-public:
-    MoveCommand(Chess &chess);
-
-    Result apply(const std::vector<std::string> &params) override;
-};
-    - uses: 
-#include "QuitCommand.h"
-
-static const std::string _name = "quit";
-static const std::string _description =
-    "Arguments: [None]\n"
-    "Description: Quits the game.";
-
-QuitCommand::QuitCommand(Chess &chess)
-    : Command(chess, _name, _description)
-{
+.sitename {
+    font-size: 40px;
+    font-weight: bold;
+    line-height: 60px;
+    padding-left: 16px;
+}
+.sitename:before {
+    content: "";
+    position: relative;
+    top: 8px;
+    left: -8px;
+    display: inline-block;
+    height: 50px;
+    width: 50px;
+    background: url(/logo.png);
+    background-size: cover;
 }
 
-Result QuitCommand::apply(const std::vector<std::string> &params)
-{
-    bool error = !params.empty();
-    bool quit = true;
-    return {error, quit};
-}
-    - name: #pragma once
-
-#include "../Command.h"
-
-// Sends a quit signal to the session.
-// No params.
-class QuitCommand : public Command
-{
-public:
-    QuitCommand(Chess &chess);
-
-    Result apply(const std::vector<std::string> &params) override;
-};
-      run: 
-#include "SelectCommand.h"
-
-static const std::string _name("select");
-static const std::string _description =
-    "Arguments: {column_index}{row_index}\n"
-    "Example: " +
-    _name + " e2\n"
-            "Description: Selects the specified square.";
-
-SelectCommand::SelectCommand(Chess &chess)
-    : Command(chess, _name, _description)
-{
+.auth-section {
+    line-height: 60px;
 }
 
-Result SelectCommand::apply(const std::vector<std::string> &params)
-{
-    if (params.size() != 1 || params[0].length() != 2)
-        return {true, false};
-
-    int row = params[0][1] - '1';
-    int column = params[0][0] - 'a';
-
-    Chess &chess = this->get_chess();
-    bool error = chess.select({row, column});
-    return {error, false};
+.header {
+    padding-top: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #000000;
 }
-    - name: #pragma once
 
-#include "../Command.h"
+.register-link, .login-link {
+    padding-left: 24px;
+}
+@media (max-width: 992px) {
+    .login-link, .register-link {
+        float: none!important;
+        padding-left: 0;
+        padding-right: 24px;
+        display: inline-block;
+    }
+    .auth-section {
+        line-height: 36px;
+    }
+}
+      run: <!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>{% block title %}TestHub &mdash; главная страница{% endblock %}</title>
 
-// Selects a square.
-// Params:
-//     1. row
-//     2. column
-class SelectCommand : public Command
-{
-public:
-    SelectCommand(Chess &chess);
+    {% block stylesheets %}
+      {% stylesheets
+        "%kernel.root_dir%/../vendor/twbs/bootstrap/dist/css/bootstrap.min.css"
+        "%kernel.root_dir%/Resources/css/common.css" %}
+        <link rel="stylesheet" href="{{ asset_url }}">
+      {% endstylesheets %}
+    {% endblock stylesheets %}
 
-    Result apply(const std::vector<std::string> &params) override;
-};
-      run: cargo test --verbose
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+  </head>
+
+  <body>
+
+    <div class="body-wrapper">
+      <header class="header clearfix">
+        <div class="sitename col-md-8 col-sm-12">TestHub</div>
+        {% block auth %}
+          <div class="auth-section col-md-4 col-sm-12">
+            <div class="login-link pull-right">
+              <a href="#">Вход с паролем</a>
+            </div>
+            <div class="register-link pull-right">
+              <a href="#">Регистрация</a>
+            </div>
+          </div>
+        {% endblock auth %}
+      </header>
+      {% block body %}{% endblock body %}
+    </div>
+
+    {% block javascripts %}
+      {% javascripts
+        "%kernel.root_dir%/../vendor/components/jquery/jquery.min.js"
+        "%kernel.root_dir%/../vendor/twbs/bootstrap/dist/js/bootstrap.min.js" %}
+        <script src="{{ asset_url }}"></script>
+      {% endjavascripts %}
+    {% endblock javascripts %}
+  </body>
+
+</html>
