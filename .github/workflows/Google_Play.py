@@ -219,8 +219,556 @@ cp ${TMPDIR}/$APP".AppImage" ${OUTPUT_DIR}/$APP".AppImage"
     branches: [ "main" ]
 
 env: [env]
-__DEVTOOLS_LOCAL_DEVELOPMENT = "true" # disable gRPC CORS checking & point to the right URL for local development
-  CARGO_TERM_COLOR: import fileinput
+__TAURI_WORKSPACE__ = "true"
+CARGO_TERM_COLOR: 
+ {
+  "gitSiteUrl": "https://www.github.com/tauri-apps/tauri/",
+  "changeTags": {
+    "feat": "New Features",
+    "enhance": "Enhancements",
+    "bug": "Bug Fixes",
+    "pref": "Performance Improvements",
+    "changes": "What's Changed",
+    "sec": "Security fixes",
+    "deps": "Dependencies",
+    "breaking": "Breaking Changes"
+  },
+  "defaultChangeTag": "changes",
+  "pkgManagers": {
+    "rust": {
+      "version": true,
+      "getPublishedVersion": "node ../../.scripts/covector/package-latest-version.js cargo ${ pkgFile.pkg.package.name } ${ pkgFile.pkg.package.version }",
+      "prepublish": [
+        "sudo apt-get update",
+        "sudo apt-get install -y webkit2gtk-4.1 libayatana-appindicator3-dev",
+        "cargo install cargo-audit --features=fix",
+        {
+          "command": "cargo generate-lockfile",
+          "dryRunCommand": true,
+          "runFromRoot": true,
+          "pipe": true
+        },
+        {
+          "command": "echo '<details>\n<summary><em><h4>Cargo Audit</h4></em></summary>\n\n```'",
+          "dryRunCommand": true,
+          "pipe": true
+        },
+        {
+          "command": "cargo audit ${ process.env.CARGO_AUDIT_OPTIONS || '' }",
+          "dryRunCommand": true,
+          "runFromRoot": true,
+          "pipe": true
+        },
+        {
+          "command": "echo '```\n\n</details>\n'",
+          "dryRunCommand": true,
+          "pipe": true
+        }
+      ],
+      "publish": [
+        "sleep 15s",
+        {
+          "command": "cargo package --no-verify",
+          "dryRunCommand": true
+        },
+        {
+          "command": "echo '<details>\n<summary><em><h4>Cargo Publish</h4></em></summary>\n\n```'",
+          "dryRunCommand": true,
+          "pipe": true
+        },
+        {
+          "command": "cargo publish",
+          "dryRunCommand": "cargo publish --dry-run",
+          "pipe": true
+        },
+        {
+          "command": "echo '```\n\n</details>\n'",
+          "dryRunCommand": true,
+          "pipe": true
+        }
+      ],
+      "postpublish": [
+        "git tag ${ pkg.pkg }-v${ pkgFile.versionMajor } -f",
+        "git tag ${ pkg.pkg }-v${ pkgFile.versionMajor }.${ pkgFile.versionMinor } -f",
+        "git push --tags -f"
+      ],
+      "assets": [
+        {
+          "path": "./target/package/${ pkg.pkg }-${ pkgFile.version }.crate",
+          "name": "${ pkg.pkg }-${ pkgFile.version }.crate"
+        }
+      ]
+    },
+    "javascript": {
+      "version": true,
+      "getPublishedVersion": "node ../../.scripts/covector/package-latest-version.js npm ${ pkgFile.pkg.name } ${ pkgFile.pkg.version }",
+      "prepublish": [
+        {
+          "command": "yarn",
+          "dryRunCommand": true
+        },
+        {
+          "command": "echo '<details>\n<summary><em><h4>Yarn Audit</h4></em></summary>\n\n```'",
+          "dryRunCommand": true,
+          "pipe": true
+        },
+        {
+          "command": "yarn audit",
+          "dryRunCommand": true,
+          "runFromRoot": true,
+          "pipe": true
+        },
+        {
+          "command": "echo '```\n\n</details>\n'",
+          "dryRunCommand": true,
+          "pipe": true
+        },
+        {
+          "command": "npm pack",
+          "dryRunCommand": true
+        }
+      ],
+      "publish": [
+        "sleep 15s",
+        {
+          "command": "echo '<details>\n<summary><em><h4>Yarn Publish</h4></em></summary>\n\n```'",
+          "dryRunCommand": true,
+          "pipe": true
+        },
+        {
+          "command": "yarn publish --access public --loglevel silly --tag next",
+          "dryRunCommand": "npm publish --dry-run --access public",
+          "pipe": true
+        },
+        {
+          "command": "echo '```\n\n</details>\n'",
+          "dryRunCommand": true,
+          "pipe": true
+        }
+      ],
+      "postpublish": [
+        "git tag ${ pkg.pkg }-v${ pkgFile.versionMajor } -f",
+        "git tag ${ pkg.pkg }-v${ pkgFile.versionMajor }.${ pkgFile.versionMinor } -f",
+        "git push --tags -f"
+      ]
+    }
+  },
+  "packages": {
+    "@tauri-apps/api": {
+      "path": "./tooling/api",
+      "manager": "javascript",
+      "assets": [
+        {
+          "path": "./tooling/api/dist/tauri-apps-api-${ pkgFile.version }.tgz",
+          "name": "tauri-apps-api-${ pkgFile.version }.tgz"
+        }
+      ],
+      "prepublish": [
+        {
+          "command": "yarn",
+          "dryRunCommand": true
+        },
+        {
+          "command": "echo '<details>\n<summary><em><h4>Yarn Audit</h4></em></summary>\n\n```'",
+          "dryRunCommand": true,
+          "pipe": true
+        },
+        {
+          "command": "yarn audit",
+          "dryRunCommand": true,
+          "runFromRoot": true,
+          "pipe": true
+        },
+        {
+          "command": "echo '```\n\n</details>\n'",
+          "dryRunCommand": true,
+          "pipe": true
+        },
+        {
+          "command": "yarn npm-pack",
+          "dryRunCommand": true
+        }
+      ],
+      "publish": [
+        {
+          "command": "echo '<details>\n<summary><em><h4>Yarn Publish</h4></em></summary>\n\n```'",
+          "dryRunCommand": true,
+          "pipe": true
+        },
+        {
+          "command": "yarn npm-publish",
+          "dryRunCommand": true,
+          "pipe": true
+        },
+        {
+          "command": "echo '```\n\n</details>\n'",
+          "dryRunCommand": true,
+          "pipe": true
+        }
+      ]
+    },
+    "tauri-utils": {
+      "path": "./core/tauri-utils",
+      "manager": "rust"
+    },
+    "tauri-bundler": {
+      "path": "./tooling/bundler",
+      "manager": "rust",
+      "dependencies": ["tauri-utils"]
+    },
+    "tauri-runtime": {
+      "path": "./core/tauri-runtime",
+      "manager": "rust",
+      "dependencies": ["tauri-utils"]
+    },
+    "tauri-runtime-wry": {
+      "path": "./core/tauri-runtime-wry",
+      "manager": "rust",
+      "dependencies": ["tauri-utils", "tauri-runtime"]
+    },
+    "tauri-codegen": {
+      "path": "./core/tauri-codegen",
+      "manager": "rust",
+      "dependencies": ["tauri-utils"]
+    },
+    "tauri-macros": {
+      "path": "./core/tauri-macros",
+      "manager": "rust",
+      "dependencies": ["tauri-codegen", "tauri-utils"]
+    },
+    "tauri-plugin": {
+      "path": "./core/tauri-plugin",
+      "manager": "rust",
+      "dependencies": ["tauri-utils"],
+      "postversion": "node ../../.scripts/covector/sync-cli-metadata.js ${ pkg.pkg } ${ release.type }"
+    },
+    "tauri-build": {
+      "path": "./core/tauri-build",
+      "manager": "rust",
+      "dependencies": ["tauri-codegen", "tauri-utils"],
+      "postversion": [
+        "node ../../.scripts/covector/sync-cli-metadata.js ${ pkg.pkg } ${ release.type }",
+        "cargo build --manifest-path ../tauri-config-schema/Cargo.toml"
+      ],
+      "assets": [
+        {
+          "path": "./tooling/cli/schema.json",
+          "name": "schema.json"
+        }
+      ]
+    },
+    "tauri": {
+      "path": "./core/tauri",
+      "manager": "rust",
+      "dependencies": [
+        "tauri-macros",
+        "tauri-utils",
+        "tauri-runtime",
+        "tauri-runtime-wry",
+        "tauri-build"
+      ],
+      "postversion": "node ../../.scripts/covector/sync-cli-metadata.js ${ pkg.pkg } ${ release.type }"
+    },
+    "@tauri-apps/cli": {
+      "path": "./tooling/cli/node",
+      "manager": "javascript",
+      "getPublishedVersion": "node ../../../.scripts/covector/package-latest-version.js npm ${ pkgFile.pkg.name } ${ pkgFile.pkg.version }",
+      "dependencies": ["tauri-cli"],
+      "postversion": [
+        "node ../../../.scripts/covector/sync-cli-metadata.js ${ pkg.pkg } ${ release.type }",
+        "cargo build --manifest-path ../../../core/tauri-config-schema/Cargo.toml"
+      ],
+      "prepublish": [],
+      "publish": [],
+      "postpublish": []
+    },
+    "tauri-cli": {
+      "path": "./tooling/cli",
+      "manager": "rust",
+      "dependencies": ["tauri-bundler", "tauri-utils"],
+      "postversion": [
+        "cargo check",
+        "cargo build --manifest-path ../../core/tauri-config-schema/Cargo.toml"
+      ],
+      "assets": [
+        {
+          "path": "${ pkg.path }/target/package/tauri-cli-${ pkgFile.version }.crate",
+          "name": "${ pkg.pkg }-${ pkgFile.version }.crate"
+        }
+      ]
+    },
+    "tauri-driver": {
+      "path": "./tooling/webdriver",
+      "manager": "rust",
+      "postversion": "cargo check"
+    }
+  }
+}
+{
+  "tag": "beta",
+  "changes": [
+    ".changes/UriSchemeResponder-export.md",
+    ".changes/acl-default-permission-verification.md",
+    ".changes/acl-platform-refactor.md",
+    ".changes/acl-scope-refactor.md",
+    ".changes/acl-urlpattern.md",
+    ".changes/allow-recursive-asset-scope-on-file-drop-directory.md",
+    ".changes/api-isTauri-type.md",
+    ".changes/api-isTauri.md",
+    ".changes/api-position-size-args.md",
+    ".changes/api-readd-window-created-event.md",
+    ".changes/api-simplify-unc-paths.md",
+    ".changes/api-tauri-event-file-drop-rename.md",
+    ".changes/api-tray-by-id.md",
+    ".changes/api-type-definitions.md",
+    ".changes/api-webview-window-new-methods.md",
+    ".changes/api-webview-window.md",
+    ".changes/api-window-on-filedrop.md",
+    ".changes/app-handle-set-activation-policy.md",
+    ".changes/app-manifest.md",
+    ".changes/app-region-drag.md",
+    ".changes/assets-setup.md",
+    ".changes/beta.md",
+    ".changes/better-error-for-invalid-plugin-config.md",
+    ".changes/build-android-version-check.md",
+    ".changes/build-resource-target-same-src.md",
+    ".changes/build-schema-generation.md",
+    ".changes/bunderl-installer-hooks.md",
+    ".changes/bundler-deep-link-reg-path.md",
+    ".changes/bundler-license.md",
+    ".changes/bundler-long_description.md",
+    ".changes/bundler-nsis-deep-links.md",
+    ".changes/bundler-nsis-tauri-utils.md",
+    ".changes/bundler-r-flag.md",
+    ".changes/bundler-resources-unix.md",
+    ".changes/bundler-rpm-license.md",
+    ".changes/bundler-shortcuts-updating.md",
+    ".changes/capabilities-multiwebview.md",
+    ".changes/capabilities-tauri-conf.md",
+    ".changes/capability-builder-platform.md",
+    ".changes/capability-context-refactor.md",
+    ".changes/cleanup-resource-table.md",
+    ".changes/cli-acl-subcommands.md",
+    ".changes/cli-add-@-spec.md",
+    ".changes/cli-add-launchscreen-storyboard.md",
+    ".changes/cli-allow-kotlin-keyword-as-ident.md",
+    ".changes/cli-build-no-bundle.md",
+    ".changes/cli-chinese-product-name.md",
+    ".changes/cli-ds-store-dev-watch.md",
+    ".changes/cli-empty-responses.md",
+    ".changes/cli-frontend-dist-expected-path.md",
+    ".changes/cli-icon-non-0-exit.md",
+    ".changes/cli-include-dir-cargo-manifest-dir.md",
+    ".changes/cli-migrate-non-utf8.md",
+    ".changes/cli-migrate-unknown-plugins.md",
+    ".changes/cli-mobile-init-partition.md",
+    ".changes/cli-openssl-cargo-mobile2-removal.md",
+    ".changes/cli-perserve-cargo-bin-name.md",
+    ".changes/cli-plugin-android-init.md",
+    ".changes/cli-plugins-migrate.md",
+    ".changes/cli-update-deps-fix-log.md",
+    ".changes/cli-updater-unkown-fields.md",
+    ".changes/cli-windows-build-tools-detect-utf8.md",
+    ".changes/cli-windows-sys.md",
+    ".changes/closeable-maximizable.md",
+    ".changes/codegen-capabilities-attribute.md",
+    ".changes/codegen-set-assets.md",
+    ".changes/color-context-generation.md",
+    ".changes/context-assets-runtime-generic.md",
+    ".changes/context-assets-unbox.md",
+    ".changes/context-remove-assets-generics.md",
+    ".changes/context-remove-assets-mut.md",
+    ".changes/context-runtime-authority.md",
+    ".changes/core-always-rebuilds-due-to-permissions-dir.md",
+    ".changes/core-app-tray-remove-tray-apis-removed.md",
+    ".changes/core-center-window.md",
+    ".changes/core-emit-created-events.md",
+    ".changes/core-emit-js-all-targets.md",
+    ".changes/core-env-args.md",
+    ".changes/core-isTauri.md",
+    ".changes/core-js-event-anytarget.md",
+    ".changes/core-jsimage-intoimg.md",
+    ".changes/core-menu-resources-deadlock.md",
+    ".changes/core-once-event-return-event-id.md",
+    ".changes/core-path-basename-replace.md",
+    ".changes/core-specta-integration.md",
+    ".changes/core-start-resize-permission.md",
+    ".changes/core-window-hasdisplayhandle.md",
+    ".changes/core-windows-menubar-theme.md",
+    ".changes/csp-header-linux.md",
+    ".changes/cursor_position.md",
+    ".changes/cursor_position_js.md",
+    ".changes/custom-sign-command.md",
+    ".changes/deb-rpm-post-pre-scripts-bundler.md",
+    ".changes/deb-rpm-post-pre-scripts-config.md",
+    ".changes/deb-rpm-provides-conflicts-replaces.md",
+    ".changes/default-generic-for-menu.md",
+    ".changes/default-generic-for-tray.md",
+    ".changes/dev-fn.md",
+    ".changes/downgrade-minisign.md",
+    ".changes/drop-nsis-applicationid.md",
+    ".changes/enhance-event-emit.md",
+    ".changes/enhance-ipc-url-check.md",
+    ".changes/enhance-resource-dir-resolution.md",
+    ".changes/event-reopen.md",
+    ".changes/expose-image-constructor.md",
+    ".changes/expose-js-image.md",
+    ".changes/fix-acl-webview-check.md",
+    ".changes/fix-add-child-deadlock.md",
+    ".changes/fix-capability-schema-definitions.md",
+    ".changes/fix-capability-totokens.md",
+    ".changes/fix-channel-buffer-processing.md",
+    ".changes/fix-channel-ipc-response.md",
+    ".changes/fix-clear-residual-listeners.md",
+    ".changes/fix-cli-add-more-plugins.md",
+    ".changes/fix-cli-migration-http-acl.md",
+    ".changes/fix-codegen-rerun-if-changed.md",
+    ".changes/fix-config-arg.md",
+    ".changes/fix-draw-tracing.md",
+    ".changes/fix-fs-scope-check-symlink.md",
+    ".changes/fix-incompatible-ipc-field-postmessage.md",
+    ".changes/fix-inner-size.md",
+    ".changes/fix-invoke-devtools-by-hotkey.md",
+    ".changes/fix-ios-dev-logs.md",
+    ".changes/fix-ipc-error-json.md",
+    ".changes/fix-macos-deep-link-cfbundleurlname.md",
+    ".changes/fix-menu-remove-api.md",
+    ".changes/fix-metadata-on-close.md",
+    ".changes/fix-migrate-updater.md",
+    ".changes/fix-mobile-cmd-case.md",
+    ".changes/fix-mobile-process-spawn.md",
+    ".changes/fix-pnpm-check.md",
+    ".changes/fix-process-ipc-message-fn.md",
+    ".changes/fix-proxy-url-totokens-impl.md",
+    ".changes/fix-remote-domain-url.md",
+    ".changes/fix-reparent.md",
+    ".changes/fix-rewrite-schema.md",
+    ".changes/fix-runtime-wry-32bit.md",
+    ".changes/fix-schemars-compatibility.md",
+    ".changes/fix-scope-resolution.md",
+    ".changes/fix-tauri-build-license-field.md",
+    ".changes/fix-tauri-build-unix.md",
+    ".changes/fix-temp-permission-file-name.md",
+    ".changes/fix-visibility-change.md",
+    ".changes/fix-webview-close.md",
+    ".changes/fix-window-center-monitor-scale.md",
+    ".changes/fix-window-center-work-area.md",
+    ".changes/fix-window-destroy-deadlock.md",
+    ".changes/fix-window-inner-size-crash.md",
+    ".changes/global-api-script-path-plugins.md",
+    ".changes/handle-empty-permissions.md",
+    ".changes/hide-windows-on-cleanup.md",
+    ".changes/http-v1.md",
+    ".changes/ico-featrue-flags.md",
+    ".changes/image-crate.md",
+    ".changes/image-rgba-uint8array.md",
+    ".changes/image-size-refactor.md",
+    ".changes/improve-errors-for-missing-links-property.md",
+    ".changes/inline-plugins.md",
+    ".changes/ios-signing-optional.md",
+    ".changes/ipc-allow-headers.md",
+    ".changes/ipc-only-main-frame.md",
+    ".changes/ipc-post-message-fallback.md",
+    ".changes/ipc-request-param-refactor.md",
+    ".changes/isolation-pattern-key-extractable.md",
+    ".changes/isolation-script-remove-itself.md",
+    ".changes/mobile-use-identifier-as-id.md",
+    ".changes/mobile-watcher.md",
+    ".changes/monitor-from-point-js.md",
+    ".changes/monitor-from-point.md",
+    ".changes/multiwebview-bounds-fixes.md",
+    ".changes/nsis-append-product-name.md",
+    ".changes/nsis-dpi-aware.md",
+    ".changes/nsis-shortcuts-regression.md",
+    ".changes/path-result-error-rexport.md",
+    ".changes/permission-platforms.md",
+    ".changes/permission-table.md",
+    ".changes/plugin-global-api-script.md",
+    ".changes/plugin-init-script-context.md",
+    ".changes/plugin-ios-xcode-project.md",
+    ".changes/preserve-channel-order.md",
+    ".changes/progress-bar-state-refactor.md",
+    ".changes/re-export-progress-bar-status.md",
+    ".changes/rect-strcut.md",
+    ".changes/refactor-capabilities-schema.md",
+    ".changes/refactor-capability-remote-option.md",
+    ".changes/refactor-scope-ret-value.md",
+    ".changes/remove-app-custom-protocol-feature.md",
+    ".changes/remove-from-format-image.md",
+    ".changes/remove-unit-uri.md",
+    ".changes/rename-file-drop.md",
+    ".changes/reparent.md",
+    ".changes/rerun-if-permission-created.md",
+    ".changes/resources_table_access.md",
+    ".changes/revert-app-region-drag.md",
+    ".changes/revert-fix-visibility-change.md",
+    ".changes/rpm-compression-level.md",
+    ".changes/runner-config.md",
+    ".changes/runtime-add-capability.md",
+    ".changes/runtime-capability-dynamic.md",
+    ".changes/runtime-dpi-mod-moved.md",
+    ".changes/runtime-icon-lifetime.md",
+    ".changes/runtime-window-builder-get-theme.md",
+    ".changes/rustc-check-cfg.md",
+    ".changes/rwh-06.md",
+    ".changes/schema_str.md",
+    ".changes/script-older-os.md",
+    ".changes/set-auto-resize.md",
+    ".changes/set-zoom.md",
+    ".changes/skip-webview-install-mod.md",
+    ".changes/strict-csp-isolation-frame.md",
+    ".changes/tauri-build-codegen-capabilities.md",
+    ".changes/tauri-build-dev-changes.md",
+    ".changes/tauri-build-dev-fn.md",
+    ".changes/tauri-bundle-command.md",
+    ".changes/tauri-cli-add-default-perm.md",
+    ".changes/tauri-close-requested-target-specific.md",
+    ".changes/tauri-codegen-use-correct-env.md",
+    ".changes/tauri-context-icon-methods.md",
+    ".changes/tauri-correct-platform-file.md",
+    ".changes/tauri-dev-fn-const.md",
+    ".changes/tauri-error-sync.md",
+    ".changes/tauri-icon-removed.md",
+    ".changes/tauri-image-codegen.md",
+    ".changes/tauri-image.md",
+    ".changes/tauri-info-no-node.md",
+    ".changes/tauri-plugin-identifier-alphanumeric.md",
+    ".changes/tauri-runtime-webview-events.md",
+    ".changes/tauri-scope-object-error-sync.md",
+    ".changes/tauri-utils-capability-refactor.md",
+    ".changes/tauri-utils-package-name-removed.md",
+    ".changes/tauri-utils-plugin-module.md",
+    ".changes/tauri-webview-events.md",
+    ".changes/tauri-window-origin-default-to-null.md",
+    ".changes/tray-icon-event.md",
+    ".changes/tray-icon-rect.md",
+    ".changes/tray-rect.md",
+    ".changes/truncate-before-write-buildtask.md",
+    ".changes/unstable-child-webview.md",
+    ".changes/update-acl-paths-cli.md",
+    ".changes/update-app-template-capabilities-conf.md",
+    ".changes/update-gradle.md",
+    ".changes/update-plugin-template.md",
+    ".changes/update-target-sdk.md",
+    ".changes/url-result-runtime.md",
+    ".changes/url-result.md",
+    ".changes/utils-bundle-target-all.md",
+    ".changes/utils-bundle-type-all.md",
+    ".changes/utils-debug-eprintln.md",
+    ".changes/utils-installer-hooks.md",
+    ".changes/utils-named-capability-file.md",
+    ".changes/utils-remove-asset-trait.md",
+    ".changes/utils-sign-command.md",
+    ".changes/webview-bounds.md",
+    ".changes/wry-0.36.md",
+    ".changes/wry-0.37.md",
+    ".changes/wry-0.38.md",
+    ".changes/zoom-hotkeys-enabled.md",
+    ".changes/zoom-polyfill.md"
+  ]
+}
+
+jobs: import fileinput
 import sys
 import os
 import glob
@@ -251,79 +799,7 @@ for line in filelist:
         print('%s*%s' % (line, line[prefix_len:].replace('\\','/')))
 
 print("SRCSRV: end ------------------------------------------------")
-
-jobs: try { var browser = chrome } catch { }
-
-browser.runtime.onMessage.addListener(
-    function (request, sender, sendResponse) {
-
-        if (request.message == "passe") {
-
-            let [found, source] = getSource()
-            console.log("Source:", source)
-            let url = document.URL
-            sendResponse({ found, source, url })
-
-            return true
-        }
-    }
-)
-const getSource = () => {
-
-    let source = ""
-    const clear = (s) => {
-        return s.split('?')[0].split('#')[0]
-    }
-    try {
-        let innerHTML = document.body.innerHTML
-        source = clear(innerHTML.split("player.vimeo.com/video/")[1].split('"')[0])
-    } catch {
-        try {
-            for (let i of document.getElementsByTagName("iframe")) {
-                let s = clear(i.src)
-                if (s.split('/').slice(0, -1).join('/').length == 9) {
-                    source = s.slice(-1)[0]
-                }
-            }
-        } catch { }
-        if (!source) {
-            console.log("Not found error")
-            return [false, ""]
-        }
-    }
-
-    if (source.length != 9) { //May need enhancement
-        console.log("Wrong size, no error")
-        return [false, ""]
-    }
-    console.log('fine')
-    return [true, source]
-}
-
-build: <html>
-    <head>
-        <title>Vimeo Details</title>
-    </head>
-    <body>
-        <script src="./popup.js"></script>
-        <h3 id="title">Nothin</h3>
-        <div id="results">
-            <p id="id_"></p>
-            <p id="owner_name"></p>
-            <p id="owner_account_type"></p>
-            <button id="owner_url"></button>
-
-            <p id="privacy"></p>
-
-            <ul id=videos>
-
-            </ul>
-
-        </div>
-    </body>
-</html>
-
-    runs-on: Add-Type -TypeDefinition @'
+  build: Add-Type -TypeDefinition @'
     using System;
     using System.Runtime.InteropServices;
 
@@ -338,196 +814,7 @@ build: <html>
 
 Get-ChildItem ".\symbols" -recurse | ForEach-Object {[NativeMethods]::MoveFile($_.FullName,[io.path]::combine((Split-Path $_.FullName -Parent),$_.Name.ToLower()))}
 
-    steps: /*
-author:t0pl
-
-When popup gets clicked
-    popup wakes content script up
-        content script retreives ID
-        content script sends it back to popup
-    popup fetches data
-popup gets dressed up
-
-TODO
-    Handle errors
-*/
-try { var browser = chrome } catch { }
-
-var headers = {
-    'Accept': '*/*',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'Accept-Language': 'en-US,en;q=0.9',
-    'DNT': '1',
-    'Referer': '',
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36'
-}
-browser.tabs.query({ active: true, currentWindow: true }, (tab) => {
-
-    browser.tabs.sendMessage(tab[0].id, { message: "passe" }, res => {
-        if (!res.found) {
-            console.log("Nothin here")
-            return
-        }
-        console.log("Received from content.js", res, res.source)
-
-        /*Fetch data from vimeo*/
-        const url = `https://player.vimeo.com/video/${res.source}`
-        window.url = res.url
-        window.source = res.source
-        set_referer_in_headers()
-
-        set_listener()
-        fetch(url)
-            .then(check_status_code)
-            .then(res => {
-
-                //Locate JSON
-                let output = {}
-                const cleared_JSON = vimeo_JSON(res)
-                console.log(cleared_JSON)
-
-                //Store interesting data
-                const all_videos = get_videos(cleared_JSON)
-                const title = cleared_JSON.video.title
-                const owner = cleared_JSON.video.owner
-                const privacy = cleared_JSON.video.privacy
-                const source = window.source
-
-                output = { all_videos, title, owner, privacy, source }
-
-                /*Display data*/
-                get_dressed(output)
-            })
-            .catch(err => {
-                console.error(`${err} :: ${url}`)
-            })
-            .finally(() => {
-                remove_listener()
-            })
-        return true
-    })
-})
-
-const get_dressed = (output) => {
-
-    //Title
-    document.getElementById("title").textContent = output.title
-    //Source
-    document.getElementById("id_").textContent = output.source
-    //Videos
-    let ol_tag = document.getElementById('videos')
-    for (let i = 0; i < output.all_videos.length; i++) {
-
-        let li = document.createElement('li')
-
-        //Each video has a button with its quality on it
-        let btn_open_video = document.createElement('button')
-        btn_open_video.textContent = output.all_videos[i].quality
-
-        //and leads to matching url
-        btn_open_video.onclick = () => {
-            browser.tabs.create({ active: true, url: output.all_videos[i].url }, tab => {
-
-            })
-        }
-
-        //Add url as plain text next to button
-        li.textContent += output.all_videos[i].url
-        li.appendChild(btn_open_video)
-        ol_tag.appendChild(li)
-    }
-
-    //Owner
-    document.getElementById("owner_name").textContent = output.owner.name
-    document.getElementById("owner_account_type").textContent = output.owner.account_type
-    let owner_url = document.getElementById("owner_url")
-    owner_url.textContent = output.owner.url
-    owner_url.onclick = () => {
-        browser.tabs.create({ active: true, url: output.owner.url }, tab => {
-
-        })
-    }
-
-    //Privacy
-    document.getElementById("privacy").textContent = output.privacy
-}
-
-const check_status_code = response => {
-
-    if (!response.ok) (console.warn(`${url} returned wrong status code: ${response.status}`));
-    return response.text();
-
-}
-
-/* Parsing */
-const vimeo_JSON = part => {
-
-    //Locate JSON in response and Convert from Vimeo WebPage
-    let located_json = part.split('"};')[0].split('= {"')[1];
-    let cleared_json = JSON.parse(`{"${located_json}"}`);
-
-    return cleared_json;
-}
-
-const get_videos = cleared_JSON => {
-    let videos = [];
-
-    for (var _ = 0; _ < cleared_JSON.request.files.progressive.length; _++) {
-        let top = cleared_JSON.request.files.progressive[_]
-
-        let new_vid = { quality: top.quality, url: top.url }
-
-        videos.push(new_vid);
-    }
-    return videos;
-}
-
-/* Header stuff */
-const set_referer_in_headers = () => {
-    window.headers['Referer'] = window.url;
-}
-
-const set_listener = () => {
-    browser.webRequest.onBeforeSendHeaders.addListener(
-        onBeforeSendHeaders_callback, { urls: ["https://player.vimeo.com/*"] }, OnBeforeRequestOptions()
-    );
-}
-
-const remove_listener = () => {
-    browser.webRequest.onBeforeSendHeaders.removeListener(onBeforeSendHeaders_callback);
-}
-
-const modify_headers = (header_array, _name, _value) => { // Credits: https://stackoverflow.com/a/11602753
-    var did_set = false;
-    for (var i in header_array) {
-        var header = header_array[i];
-        var name = header.name;
-        if (name == _name) {
-            header.value = _value;
-            did_set = true;
-        }
-    }
-    if (!did_set) header_array.push({ name: _name, value: _value })
-}
-
-const onBeforeSendHeaders_callback = (details) => {
-    //Fired to modify request headers
-    Object.keys(window.headers).forEach(function (key) {
-        modify_headers(details.requestHeaders, key, window.headers[key]);
-    });
-
-    return { requestHeaders: details.requestHeaders };
-}
-
-const isFirefox = () => {
-    return browser.webRequest.getSecurityInfo !== undefined
-}
-
-const OnBeforeRequestOptions = () => {
-    //Options differ in Chrome/Firefox
-    return isFirefox() ? ['blocking', 'requestHeaders'] : ['blocking', 'requestHeaders', 'extraHeaders']
-}
-    - uses: #!/bin/sh
+    runs-on: #!/bin/sh
 HERE="$(dirname "$(readlink -f "${0}")")"
 export LD_LIBRARY_PATH="${HERE}/usr/lib/x86_64-linux-gnu":"${HERE}/Qt/libs":$LD_LIBRARY_PATH
 export QML2_IMPORT_PATH="${HERE}/Qt/qml"
@@ -537,7 +824,8 @@ export QT_PLUGIN_PATH="${HERE}/Qt/plugins"
 mkdir -p ~/.icons && cp ${HERE}/qgroundcontrol.png ~/.icons
 
 "${HERE}/QGroundControl" "$@"
-    - name: [Desktop Entry]
+
+    steps: [Desktop Entry]
 Type=Application
 Name=QGroundControl
 GenericName=Ground Control Station
@@ -546,7 +834,7 @@ Icon=qgroundcontrol
 Exec=qgroundcontrol-start.sh
 Terminal=false
 Categories=Utility;
-      run: !include "MUI2.nsh"
+    - uses: !include "MUI2.nsh"
 !include LogicLib.nsh
 !include Win\COM.nsh
 !include Win\Propkey.nsh
@@ -733,36 +1021,176 @@ debuild --prepend-path=/usr/lib/ccache -uc -us -sa -B -i -I -j4
 
 # upload to launchpad
 #dput -f ppa:qgroundcontrol/ppa ${tmpdir}/qgroundcontrol_${version}_source.changes
-      run: {
-    "author": "t0pl",
-    "manifest_version": 2,
-    "description": "Shorthand to get details about Vimeo video on some webpage",
-    "name": "Vimeo details",
-    "version": "1.1",
-    "permissions": [
-        "activeTab",
-        "tabs",
-        "webRequest",
-        "webRequestBlocking",
-        "<all_urls>"
-    ],
-    "browser_action": {
-        "default_popup": "./src/popup.html"
-    },
-    "icons": {
-        "16": "./images/icon16.png",
-        "48": "./images/icon48.png",
-        "128": "./images/icon128.png"
-    },
-    "content_scripts": [
-        {
-            "matches": [
-                "http://*/*",
-                "https://*/*"
-            ],
-            "js": [
-                "./src/content.js"
-            ]
-        }
-    ]
+      run: #!/usr/bin/env php
+<?php
+
+use Symfony\Bundle\FrameworkBundle\Console\Application;
+use Symfony\Component\Console\Input\ArgvInput;
+use Symfony\Component\Debug\Debug;
+
+// if you don't want to setup permissions the proper way, just uncomment the following PHP line
+// read http://symfony.com/doc/current/book/installation.html#configuration-and-setup for more information
+//umask(0000);
+
+set_time_limit(0);
+
+/**
+ * @var Composer\Autoload\ClassLoader $loader
+ */
+$loader = require __DIR__.'/../app/autoload.php';
+
+$input = new ArgvInput();
+$env = $input->getParameterOption(['--env', '-e'], getenv('SYMFONY_ENV') ?: 'dev');
+$debug = getenv('SYMFONY_DEBUG') !== '0' && !$input->hasParameterOption(['--no-debug', '']) && $env !== 'prod';
+
+if ($debug) {
+    Debug::enable();
 }
+
+$kernel = new AppKernel($env, $debug);
+$application = new Application($kernel);
+$application->run($input);
+    - name: #!/usr/bin/env php
+<?php
+
+require_once dirname(__FILE__).'/../var/SymfonyRequirements.php';
+
+$lineSize = 70;
+$symfonyRequirements = new SymfonyRequirements();
+$iniPath = $symfonyRequirements->getPhpIniConfigPath();
+
+echo_title('Symfony Requirements Checker');
+
+echo '> PHP is using the following php.ini file:'.PHP_EOL;
+if ($iniPath) {
+    echo_style('green', '  '.$iniPath);
+} else {
+    echo_style('warning', '  WARNING: No configuration file (php.ini) used by PHP!');
+}
+
+echo PHP_EOL.PHP_EOL;
+
+echo '> Checking Symfony requirements:'.PHP_EOL.'  ';
+
+$messages = array();
+foreach ($symfonyRequirements->getRequirements() as $req) {
+    /** @var $req Requirement */
+    if ($helpText = get_error_message($req, $lineSize)) {
+        echo_style('red', 'E');
+        $messages['error'][] = $helpText;
+    } else {
+        echo_style('green', '.');
+    }
+}
+
+$checkPassed = empty($messages['error']);
+
+foreach ($symfonyRequirements->getRecommendations() as $req) {
+    if ($helpText = get_error_message($req, $lineSize)) {
+        echo_style('yellow', 'W');
+        $messages['warning'][] = $helpText;
+    } else {
+        echo_style('green', '.');
+    }
+}
+
+if ($checkPassed) {
+    echo_block('success', 'OK', 'Your system is ready to run Symfony projects');
+} else {
+    echo_block('error', 'ERROR', 'Your system is not ready to run Symfony projects');
+
+    echo_title('Fix the following mandatory requirements', 'red');
+
+    foreach ($messages['error'] as $helpText) {
+        echo ' * '.$helpText.PHP_EOL;
+    }
+}
+
+if (!empty($messages['warning'])) {
+    echo_title('Optional recommendations to improve your setup', 'yellow');
+
+    foreach ($messages['warning'] as $helpText) {
+        echo ' * '.$helpText.PHP_EOL;
+    }
+}
+
+echo PHP_EOL;
+echo_style('title', 'Note');
+echo '  The command console could use a different php.ini file'.PHP_EOL;
+echo_style('title', '~~~~');
+echo '  than the one used with your web server. To be on the'.PHP_EOL;
+echo '      safe side, please check the requirements from your web'.PHP_EOL;
+echo '      server using the ';
+echo_style('yellow', 'web/config.php');
+echo ' script.'.PHP_EOL;
+echo PHP_EOL;
+
+exit($checkPassed ? 0 : 1);
+
+function get_error_message(Requirement $requirement, $lineSize)
+{
+    if ($requirement->isFulfilled()) {
+        return;
+    }
+
+    $errorMessage = wordwrap($requirement->getTestMessage(), $lineSize - 3, PHP_EOL.'   ').PHP_EOL;
+    $errorMessage .= '   > '.wordwrap($requirement->getHelpText(), $lineSize - 5, PHP_EOL.'   > ').PHP_EOL;
+
+    return $errorMessage;
+}
+
+function echo_title($title, $style = null)
+{
+    $style = $style ?: 'title';
+
+    echo PHP_EOL;
+    echo_style($style, $title.PHP_EOL);
+    echo_style($style, str_repeat('~', strlen($title)).PHP_EOL);
+    echo PHP_EOL;
+}
+
+function echo_style($style, $message)
+{
+    // ANSI color codes
+    $styles = array(
+        'reset' => "\033[0m",
+        'red' => "\033[31m",
+        'green' => "\033[32m",
+        'yellow' => "\033[33m",
+        'error' => "\033[37;41m",
+        'success' => "\033[37;42m",
+        'title' => "\033[34m",
+    );
+    $supports = has_color_support();
+
+    echo($supports ? $styles[$style] : '').$message.($supports ? $styles['reset'] : '');
+}
+
+function echo_block($style, $title, $message)
+{
+    $message = ' '.trim($message).' ';
+    $width = strlen($message);
+
+    echo PHP_EOL.PHP_EOL;
+
+    echo_style($style, str_repeat(' ', $width).PHP_EOL);
+    echo_style($style, str_pad(' ['.$title.']', $width, ' ', STR_PAD_RIGHT).PHP_EOL);
+    echo_style($style, str_pad($message, $width, ' ', STR_PAD_RIGHT).PHP_EOL);
+    echo_style($style, str_repeat(' ', $width).PHP_EOL);
+}
+
+function has_color_support()
+{
+    static $support;
+
+    if (null === $support) {
+        if (DIRECTORY_SEPARATOR == '\\') {
+            $support = false !== getenv('ANSICON') || 'ON' === getenv('ConEmuANSI');
+        } else {
+            $support = function_exists('posix_isatty') && @posix_isatty(STDOUT);
+        }
+    }
+
+    return $support;
+}
+      run: cargo test --verbose
