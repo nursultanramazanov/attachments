@@ -2203,7 +2203,96 @@ def start(argv):
     else:
         gitLabRunner.getProjects(args["--project"], strict=True)
         gitLabRunner.runPipeline()
-  build: import logging
+  build: from random import randint
+from whereami.get_data import aps_to_dict
+from whereami.pipeline import get_pipeline
+from whereami.predict import crossval
+
+
+def mock_get_train_data():
+    X = [aps_to_dict([
+        {"quality": randint(0, 130), "bssid": "XX:XX:XX:XX:XX:84", "ssid": "X", "security": "XX"},
+        {"quality": randint(0, 130), "bssid": "XX:XX:XX:XX:XX:90",
+         "ssid": "X", "security": "XX"},
+        {"quality": randint(0, 130), "bssid": "XX:XX:XX:XX:XX:d1",
+         "ssid": "X", "security": "XX"},
+        {"quality": randint(0, 130), "bssid": "XX:XX:XX:XX:XX:c8", "ssid": "X", "security": "XX"}])
+        for _ in range(50)]
+    y = [0] * 25 + [1] * 25
+    return X, y
+
+
+def mock_get_model():
+    return get_pipeline()
+
+
+def test_train_model():
+    X, y = mock_get_train_data()
+    pipeline = mock_get_model()
+    pipeline.fit(X, y)
+    return pipeline, X, y
+
+
+def test_crossval():
+    X, y = mock_get_train_data()
+    pipeline = mock_get_model()
+    assert crossval(pipeline, X, y, folds=2, n=1)
+
+
+def test_predict():
+    pipeline, X, y = test_train_model()
+    assert pipeline.predict(X[0])[0] == y[0]
+
+    runs-on: import sys
+from whereami.__main__ import main
+
+
+def test_main_learn():
+    sys.argv[1:] = ["learn", "-l", "bed", "-n", "1"]
+    main()
+
+
+def test_main_predict():
+    sys.argv[1:] = ["predict"]
+    main()
+
+
+def test_main_predict_proba():
+    sys.argv[1:] = ["predict_proba"]
+    main()
+
+
+def test_main_locations():
+    sys.argv[1:] = ["locations"]
+    main()
+
+    steps: from whereami import print_version
+
+
+def test_print():
+    assert print_version()
+    - uses: MIT License
+
+Copyright (c) 2019 t0pl
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+    - name: import logging
 import platform
 import socket
 import subprocess
@@ -2524,8 +2613,7 @@ while True:
             print("|                                                                                                   ",get_vendor(mac))
         print("+----------------------------------------------------------------------------------------------------------------------------------------------+"+colorama.Style.RESET_ALL)
         continue
-
-    runs-on: # encoding: utf-8
+      run: # encoding: utf-8
 import subprocess
 from socket import socket,AF_INET, SOCK_STREAM, setdefaulttimeout, SOCK_DGRAM
 from platform import system
@@ -2604,8 +2692,7 @@ def GetDefaultGateway():
                         return False#Disconnected or Error(language,...)
         except:
                 return False
-
-    steps: import socket
+    - name: import socket
 import subprocess
 import threading
 from ipaddress import IPv4Address, IPv6Address
@@ -2773,7 +2860,7 @@ class Scan():
                         self.open_tcp_ports.append(ix)
                 self.closed_tcp_ports.append((max(yy, xx)-min(yy,xx))-len(self.open_tcp_ports))
                 return self.open_tcp_ports, self.closed_tcp_ports
-    - uses: import os
+      run: import os
 import platform
 import socket
 from getpass import getuser
@@ -2925,7 +3012,5 @@ class Main():
                                 print("Id: ", distribu[2])
                 print("")
                 print("|________________________________________________________________|")
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
+
+
