@@ -729,349 +729,279 @@ void swifi_routine(sblock_t* block)
 
     block->status = NULL;
 }
-    - uses: <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Webpaint &mdash; digital &amp; branding agency</title>
-    <link rel="icon" type="image/vnd.microsoft.icon" href="/img/favicon.ico">
-    <link rel="stylesheet" href="/css/custom-fonts.css">
-    <link rel="stylesheet" href="/css/main.css">
-    <link rel="stylesheet" href="/css/adaptive.css">
-</head>
-<body>
-    <header>
-        <div class="header-container center">
-            <a href="/home.html" class="logo"></a>
-            <nav class="menu">
-                <div class="menu-item active"><a href="home.html">home</a></div>
-                <div class="menu-item"><a href="portfolio.html">portfolio</a></div>
-                <div class="menu-item"><a href="about.html">about</a></div>
-                <div class="menu-item"><a href="blog.html">blog</a></div>
-                <div class="menu-item"><a href="contact.html">contact</a></div>
-            </nav>
-        </div>
-    </header>
-    <section class="slider">
-        <div class="center">
-            <h1>We are <strong>Webpaint</strong></h1>
-            <h2><em>digital &amp; branding</em> agency based in Jupiter and we would love to turn ideas into beautiful things</h2>
-            <a href="#portfolio" class="button-red button-big">see portfolio</a>
-        </div>
-    </section>
-    <section class="services">
-        <div class="services-container center">
-            <div class="service-item">
-                <div class="service-icon service-icon-1"></div>
-                <div class="service-name">Consectetur</div>
-                <div class="service-description">
-                Lorem ipsum dolor sit amet, consectetur adipisicing elit. Hic iusto, quod expedita tempora placeat sequi dolor architecto.
-                </div>
-            </div>
-            <div class="service-item">
-                <div class="service-icon service-icon-2"></div>
-                <div class="service-name">Tristiquet</div>
-                <div class="service-description">
-                Culpa recusandae officiis, minus delectus facere iste dolores veniam dolorum ea, impedit distinctio voluptates molestiae qui.
-                </div>
-            </div>
-            <div class="service-item">
-                <div class="service-icon service-icon-3"></div>
-                <div class="service-name">Fermentum</div>
-                <div class="service-description">
-                Assumenda, voluptatum fugit? Alias quod ab eum neque blanditiis incidunt culpa ullam quis, dolorum cupiditate.
-                </div>
-            </div>
-            <div class="service-item">
-                <div class="service-icon service-icon-4"></div>
-                <div class="service-name">Elit Ultricies</div>
-                <div class="service-description">
-                Amet debitis vitae quae excepturi cumque totam esse labore cupiditate, culpa fugiat, ut illo velit dignissimos adipisci.
-                </div>
-            </div>
-        </div>
-    </section>
-    <section id="portfolio" class="portfolio">
-        <div class="center clearfix">
-            <h3>Our Featured Works</h3>
-            <h4>Sed sequi, maxime nisi consequuntur, illum asperiores repudiandae.</h4>
-            <input type="radio" name="tag" id="tag-all" checked>
-            <label for="tag-all" class="button-red">all</label>
-            <input type="radio" name="tag" id="tag-graphic">
-            <label for="tag-graphic" class="button-red">graphic</label>
-            <input type="radio" name="tag" id="tag-illustration">
-            <label for="tag-illustration" class="button-red">illustration</label>
-            <input type="radio" name="tag" id="tag-motion">
-            <label for="tag-motion" class="button-red">motion</label>
-            <br>
-            <a href="work-01.html" class="tag-graphic"><img src="/img/thumb-01.jpg" alt="portfolio work-01"></a>
-            <a href="work-02.html" class="tag-graphic"><img src="/img/thumb-02.jpg" alt="portfolio work-02"></a>
-            <a href="work-03.html" class="tag-graphic"><img src="/img/thumb-03.jpg" alt="portfolio work-03"></a>
-            <a href="work-04.html" class="tag-graphic"><img src="/img/thumb-04.jpg" alt="portfolio work-04"></a>
-            <a href="work-05.html" class="tag-illustration"><img src="/img/thumb-05.jpg" alt="portfolio work-05"></a>
-            <a href="work-06.html" class="tag-illustration"><img src="/img/thumb-06.jpg" alt="portfolio work-06"></a>
-            <a href="work-07.html" class="tag-illustration"><img src="/img/thumb-07.jpg" alt="portfolio work-07"></a>
-            <a href="work-08.html" class="tag-illustration"><img src="/img/thumb-08.jpg" alt="portfolio work-08"></a>
-            <a href="work-09.html" class="tag-motion"><img src="/img/thumb-09.jpg" alt="portfolio work-09"></a>
-            <a href="work-10.html" class="tag-motion"><img src="/img/thumb-10.jpg" alt="portfolio work-10"></a>
-            <a href="work-11.html" class="tag-motion"><img src="/img/thumb-11.jpg" alt="portfolio work-11"></a>
-            <a href="work-12.html" class="tag-motion"><img src="/img/thumb-12.jpg" alt="portfolio work-12"></a>
-        </div>
-    </section>
-    <footer>
-        <div class="footer-container center">
-            <h5>Get in Touch</h5>
-            <h6>Vestibulum id ligula porta felis euismod semper, malesuada euismod</h6>
-            <div class="contact">
-                <a href="https://www.google.com.ua/maps/place/%D0%A3%D0%BB%D0%B8%D1%86%D0%B0+%D0%BF%D1%83%D1%88%D0%BA%D0%B8%D0%BD%D0%B0+%D0%B4%D0%BE%D0%BC+%D0%BA%D0%BE%D0%BB%D0%BE%D1%82%D1%83%D1%88%D0%BA%D0%B8%D0%BD%D0%B0/@55.8190893,37.4957068,17z/data=!3m1!4b1!4m2!3m1!1s0x46b5483b949ea495:0xc4ebcbe568aabe28?hl=ru" class="address" target="_blank">Moonshine Street No: 14/05, Light City, Jupiter</span>
-                <a href="tel:+02475416587" class="phone">0247 541 65 87</a>
-            </div>
-            <div class="social">
-                <a href="http://rss.example.com" class="social-icon rss" target="_blank"></a>
-                <a href="http://www.facebook.com" class="social-icon facebook" target="_blank"></a>
-                <a href="http://twitter.com" class="social-icon twitter" target="_blank"></a>
-                <a href="http://dribbble.com" class="social-icon dribbble" target="_blank"></a>
-                <a href="http://printerest.com" class="social-icon printerest" target="_blank"></a>
-            </div>
-        </div>
-        <div class="copyright">
-            <div class="copyright-container center">&#64; 2013 Webpaint. All Rights Reserved.</div>
-        </div>
-    </footer>
-</body>
-</html>
-    - name: function(commonlibsf_parse_version VERSION)
-    message("${version_match_count}")
-    string(REGEX MATCHALL "^([0-9]+)(\\.([0-9]+)(\\.([0-9]+)(\\.([0-9]+))?)?)?$" version_match "${VERSION}")
-    unset(COMMONLIBSF_VERSION_MAJOR PARENT_SCOPE)
-    unset(COMMONLIBSF_VERSION_MINOR PARENT_SCOPE)
-    unset(COMMONLIBSF_VERSION_PATCH PARENT_SCOPE)
-    unset(COMMONLIBSF_VERSION_TWEAK PARENT_SCOPE)
+        - uses: <?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <array name="qt_sources">
+        <item>https://download.qt-project.org/ministro/android/qt5/qt-5.4</item>
+    </array>
 
-    if("${version_match} " STREQUAL " ")
-        set(COMMONLIBSF_VERSION_MATCH FALSE PARENT_SCOPE)
-        return()
-    endif()
+    <!-- The following is handled automatically by the deployment tool. It should
+         not be edited manually. -->
 
-    set(COMMONLIBSF_VERSION_MATCH TRUE PARENT_SCOPE)
-    set(COMMONLIBSF_VERSION_MAJOR "${CMAKE_MATCH_1}" PARENT_SCOPE)
-    set(COMMONLIBSF_VERSION_MINOR "0" PARENT_SCOPE)
-    set(COMMONLIBSF_VERSION_PATCH "0" PARENT_SCOPE)
-    set(COMMONLIBSF_VERSION_TWEAK "0" PARENT_SCOPE)
+    <array name="bundled_libs">
+        <!-- %%INSERT_EXTRA_LIBS%% -->
+    </array>
 
-    if(DEFINED CMAKE_MATCH_3)
-        set(COMMONLIBSF_VERSION_MINOR "${CMAKE_MATCH_3}" PARENT_SCOPE)
-    endif()
-    if(DEFINED CMAKE_MATCH_5)
-        set(COMMONLIBSF_VERSION_PATCH "${CMAKE_MATCH_5}" PARENT_SCOPE)
-    endif()
-    if(DEFINED CMAKE_MATCH_7)
-        set(COMMONLIBSF_VERSION_TWEAK "${CMAKE_MATCH_7}" PARENT_SCOPE)
-    endif()
-endfunction()
+     <array name="qt_libs">
+         <!-- %%INSERT_QT_LIBS%% -->
+     </array>
 
-function(target_commonlibsf_properties TARGET)
-    # EXCLUDE_FROM_ALL and SOURCES are supported here to simplify passing arguments from add_commonlibsf_plugin.
-    set(options OPTIONAL USE_ADDRESS_LIBRARY USE_SIGNATURE_SCANNING STRUCT_DEPENDENT EXCLUDE_FROM_ALL)
-    set(oneValueArgs NAME AUTHOR EMAIL VERSION MINIMUM_SFSE_VERSION)
-    set(multiValueArgs COMPATIBLE_RUNTIMES SOURCES)
+    <array name="bundled_in_lib">
+        <!-- %%INSERT_BUNDLED_IN_LIB%% -->
+    </array>
+    <array name="bundled_in_assets">
+        <!-- %%INSERT_BUNDLED_IN_ASSETS%% -->
+    </array>
 
-    cmake_parse_arguments(PARSE_ARGV 1 ADD_COMMONLIBSF_PLUGIN "${options}" "${oneValueArgs}"
-            "${multiValueArgs}")
+</resources>
+    - name: package labs.mavlink.VideoReceiverApp;
 
-    set(commonlibsf_plugin_file "${CMAKE_CURRENT_BINARY_DIR}/Plugin.h")
+/* Copyright 2013 Google Inc.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
+ *
+ * Project home page: http://code.google.com/p/usb-serial-for-android/
+ */
+///////////////////////////////////////////////////////////////////////////////////////////
+//  Written by: Mike Goza April 2014
+//
+//  These routines interface with the Android USB Host devices for serial port communication.
+//  The code uses the usb-serial-for-android software library.  The QGCActivity class is the
+//  interface to the C++ routines through jni calls.  Do not change the functions without also
+//  changing the corresponding calls in the C++ routines or you will break the interface.
+//
+////////////////////////////////////////////////////////////////////////////////////////////
 
-    # Set the plugin name.
-    set(commonlibsf_plugin_name "${TARGET}")
-    if(DEFINED ADD_COMMONLIBSF_PLUGIN_NAME)
-        set(commonlibsf_plugin_name "${ADD_COMMONLIBSF_PLUGIN_NAME}")
-    endif()
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.io.IOException;
 
-    # Setup version number of the plugin.
-    set(commonlibsf_plugin_version "${PROJECT_VERSION}")
-    if(DEFINED ADD_COMMONLIBSF_PLUGIN_VERSION)
-        set(commonlibsf_plugin_version "${ADD_COMMONLIBSF_PLUGIN_VERSION}")
-    endif()
+import android.app.Activity;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.hardware.usb.UsbAccessory;
+import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbDeviceConnection;
+import android.hardware.usb.UsbManager;
+import android.widget.Toast;
+import android.util.Log;
+import android.os.PowerManager;
+import android.os.Bundle;
+import android.app.PendingIntent;
+import android.view.WindowManager;
+import android.os.Bundle;
+import android.bluetooth.BluetoothDevice;
 
-    commonlibsf_parse_version("${commonlibsf_plugin_version}")
+import org.qtproject.qt5.android.bindings.QtActivity;
+import org.qtproject.qt5.android.bindings.QtApplication;
 
-    if(NOT DEFINED COMMONLIBSF_VERSION_MAJOR)
-        message(FATAL_ERROR "Unable to parse plugin version number ${commonlibsf_plugin_version}.")
-    endif()
+public class QGLSinkActivity extends QtActivity
+{
+    public native void nativeInit();
 
-    set(commonlibsf_plugin_version "REL::Version{${COMMONLIBSF_VERSION_MAJOR}, ${COMMONLIBSF_VERSION_MINOR}, ${COMMONLIBSF_VERSION_PATCH}, ${COMMONLIBSF_VERSION_TWEAK}}")
-
-    # Handle minimum SFSE version constraints.
-    if(NOT DEFINED ADD_COMMONLIBSF_PLUGIN_MINIMUM_SFSE_VERSION)
-        set(ADD_COMMONLIBSF_PLUGIN_MINIMUM_SFSE_VERSION 0)
-    endif()
-
-    commonlibsf_parse_version("${ADD_COMMONLIBSF_PLUGIN_MINIMUM_SFSE_VERSION}")
-
-    if(NOT COMMONLIBSF_VERSION_MATCH)
-        message(FATAL_ERROR "Unable to parse SFSE minimum SFSE version number "
-                "${ADD_COMMONLIBSF_PLUGIN_MINIMUM_SFSE_VERSION}.")
-    endif()
-
-    set(commonlibsf_min_sfse_version "REL::Version{${COMMONLIBSF_VERSION_MAJOR}, ${COMMONLIBSF_VERSION_MINOR}, ${COMMONLIBSF_VERSION_PATCH}, ${COMMONLIBSF_VERSION_TWEAK}}")
-
-    # Setup compatibility configuration.
-    if(NOT ADD_COMMONLIBSF_PLUGIN_STRUCT_DEPENDENT)
-        set(commonlibsf_is_layout_dependent "true")
-    else()
-        set(commonlibsf_is_layout_dependent "false")
-    endif()
-
-    if(NOT ADD_COMMONLIBSF_PLUGIN_USE_SIGNATURE_SCANNING)
-        set(ADD_COMMONLIBSF_PLUGIN_USE_ADDRESS_LIBRARY TRUE)
-    endif()
-
-    if(ADD_COMMONLIBSF_PLUGIN_USE_ADDRESS_LIBRARY OR ADD_COMMONLIBSF_PLUGIN_USE_SIGNATURE_SCANNING)
-        if(NOT ADD_COMMONLIBSF_PLUGIN_USE_ADDRESS_LIBRARY)
-            set(commonlibsf_uses_address_library "false")
-        else()
-            set(commonlibsf_uses_address_library "true")
-        endif()
-    endif()
-
-    if(NOT DEFINED ADD_COMMONLIBSF_PLUGIN_COMPATIBLE_RUNTIMES)
-        set(commonlibsf_plugin_compatibility "{ SFSE::RUNTIME_LATEST }")
-    else()
-        list(LENGTH ${ADD_COMMONLIBSF_PLUGIN_COMPATIBLE_RUNTIMES} commonlibsf_plugin_compatibility_count)
-        if(commonlibsf_plugin_compatibility_count GREATER 16)
-            message(FATAL_ERROR "No more than 16 version numbers can be provided for COMPATIBLE_RUNTIMES.")
-        endif()
-        foreach(STARFIELD_VERSION ${ADD_COMMONLIBSF_PLUGIN_COMPATIBLE_RUNTIMES})
-            if(DEFINED commonlibsf_plugin_compatibility)
-                set(commonlibsf_plugin_compatibility "${commonlibsf_plugin_compatibility}, ")
-            endif()
-            commonlibsf_parse_version("${STARFIELD_VERSION}")
-            if(NOT COMMONLIBSF_VERSION_MATCH)
-                message(FATAL_ERROR "Unable to parse Starfield runtime version number ${STARFIELD_VERSION}.")
-            endif()
-            set(commonlibsf_plugin_compatibility "${commonlibsf_plugin_compatibility}REL::Version{${COMMONLIBSF_VERSION_MAJOR}, ${COMMONLIBSF_VERSION_MINOR}, ${COMMONLIBSF_VERSION_PATCH}, ${COMMONLIBSF_VERSION_TWEAK}}")
-        endforeach()
-        set(commonlibsf_plugin_compatibility "{ ${commonlibsf_plugin_compatibility} }")
-    endif()
-
-    file(WRITE "${commonlibsf_plugin_file}"
-            "#pragma once\n\n"
-            "namespace Plugin\n"
-            "{\n"
-            "    using namespace std::string_view_literals;\n\n"
-            "    static constexpr auto Name{ \"${commonlibsf_plugin_name}\"sv };\n"
-            "    static constexpr auto Author{ \"${ADD_COMMONLIBSF_PLUGIN_AUTHOR}\"sv };\n"
-            "    static constexpr auto Version{\n"
-            "        ${commonlibsf_plugin_version}\n"
-            "    };\n"
-            "}\n\n"
-            "SFSEPluginVersion = []() noexcept {\n"
-            "    SFSE::PluginVersionData data{};\n"
-            "\n"
-            "    data.PluginVersion(Plugin::Version);\n"
-            "    data.PluginName(Plugin::Name);\n"
-            "    data.AuthorName(Plugin::Author);\n"
-            "    data.UsesAddressLibrary(${commonlibsf_uses_address_library});\n"
-            "    data.IsLayoutDependent(${commonlibsf_is_layout_dependent});\n"
-            "    data.CompatibleVersions(${commonlibsf_plugin_compatibility});\n"
-            "\n"
-            "    return data;\n"
-            "}();\n")
-
-    target_compile_definitions("${TARGET}" PRIVATE __CMAKE_COMMONLIBSF_PLUGIN=1)
-    target_link_libraries("${TARGET}" PUBLIC CommonLibSF::CommonLibSF)
-    target_include_directories("${TARGET}" PUBLIC CommonLibSF_INCLUDE_DIRS)
-    target_include_directories("${TARGET}" PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
-endfunction()
-
-function(add_commonlibsf_plugin TARGET)
-    set(options OPTIONAL USE_ADDRESS_LIBRARY USE_SIGNATURE_SCANNING STRUCT_DEPENDENT EXCLUDE_FROM_ALL)
-    set(oneValueArgs NAME AUTHOR VERSION MINIMUM_SFSE_VERSION)
-    set(multiValueArgs COMPATIBLE_RUNTIMES SOURCES)
-
-    cmake_parse_arguments(PARSE_ARGV 1 ADD_COMMONLIBSF_PLUGIN "${options}" "${oneValueArgs}"
-            "${multiValueArgs}")
-
-    add_library("${TARGET}" SHARED $<$<BOOL:${ADD_COMMONLIBSF_PLUGIN_EXCLUDE_FROM_ALL}>:EXCLUDE_FROM_ALL>
-            ${ADD_COMMONLIBSF_PLUGIN_SOURCES})
-
-    target_commonlibsf_properties("${TARGET}" ${ARGN})
-endfunction()
-      run: <?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <ItemDefinitionGroup>
-    <ClCompile>
-      <BuildStlModules>false</BuildStlModules>
-    </ClCompile>
-  </ItemDefinitionGroup>
-</Project>
-    - name: include("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@-targets.cmake")
-include("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@.cmake")
-include(CMakeFindDependencyMacro)
-
-find_dependency(spdlog CONFIG)
-find_dependency(xbyak CONFIG)
-      run: #Requires -Version 5
-
-# args
-param (
-    [string]$PathIn,
-    [string]$PathOut
-)
-
-$ErrorActionPreference = "Stop"
-
-$SourceExt = @('.asm', '.c', '.cc', '.cpp', 'cppm', '.cxx', '.h', '.hpp', '.hxx', 'inc', '.inl', '.ixx', '.mxx')
-$ConfigExt = @('.ini', '.json', '.toml', '.xml')
-$DocsExt = @('.md')
-
-function Normalize-Path {
-    param (
-        [string]$in
-    )
-
-    $out = $in -replace '\\', '/'
-    while ($out.Contains('//')) {
-        $out = $out -replace '//', '/'
+    // QGLSinkActivity singleton
+    public QGLSinkActivity() {
     }
-    return $out
-}
 
-function Resolve-Files {
-    param (
-        [string[]]$range = @('include', 'src')
-    )
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        nativeInit();
+    }
 
-    process {
-        Push-Location $PathIn
-        $_generated = [System.Collections.ArrayList]::new(2048)
+    @Override
+    public void onResume() {
+        super.onResume();
+    }
 
-        try {
-            foreach ($directory in $range) {
-                Write-Host "[$PathIn/$directory]"
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+    }
 
-                Get-ChildItem "$PathIn/$directory" -Recurse -File -ErrorAction SilentlyContinue | Where-Object {
-                    ($_.Extension -in ($SourceExt + $DocsExt))
-                } | Resolve-Path -Relative | ForEach-Object {
-                    Write-Host "`t<$_>"
-                    $_generated.Add("`n`t`"$(Normalize-Path $_.Substring(2))`"") | Out-Null
-                }
-            }
-        }
-        finally {
-            Pop-Location
-        }
+    public void onInit(int status) {
+    }
 
-        return $_generated
+    public void jniOnLoad() {
+        nativeInit();
     }
 }
+      run: /*
+ * Copyright (C) 2012, Collabora Ltd.
+ *   
+ *
+ * Copyright (C) 2015, Collabora Ltd.
+ *   
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation
+ * version 2.1 of the License.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+ *
+ */
 
-# @@SOURCEGEN
-Write-Host "`tGenerating CMake sourcelist..."
-Remove-Item "$PathOut/sourcelist.cmake" -Force -Confirm:$false -ErrorAction Ignore
+package org.freedesktop.gstreamer.androidmedia;
 
-$generated = 'set(SOURCES'
-$generated += Resolve-Files
-$generated += "`n)"
-[IO.File]::WriteAllText("$PathOut/sourcelist.cmake", $generated)
- 
+import android.hardware.Camera;
+
+public class GstAhcCallback implements Camera.PreviewCallback,
+                                       Camera.ErrorCallback,
+                                       Camera.AutoFocusCallback {
+    public long mUserData;
+    public long mCallback;
+
+    public static native void gst_ah_camera_on_preview_frame(byte[] data, Camera camera,
+                                                             long callback, long user_data);
+    public static native void gst_ah_camera_on_error(int error, Camera camera,
+                                                     long callback, long user_data);
+    public static native void gst_ah_camera_on_auto_focus(boolean success, Camera camera,
+                                                             long callback, long user_data);
+
+    public GstAhcCallback(long callback, long user_data) {
+        mCallback = callback;
+        mUserData = user_data;
+    }
+
+    @Override
+    public void onPreviewFrame(byte[] data, Camera camera) {
+        gst_ah_camera_on_preview_frame(data, camera, mCallback, mUserData);
+    }
+
+    @Override
+    public void onError(int error, Camera camera) {
+        gst_ah_camera_on_error(error, camera, mCallback, mUserData);
+    }
+
+    @Override
+    public void onAutoFocus(boolean success, Camera camera) {
+        gst_ah_camera_on_auto_focus(success, camera, mCallback, mUserData);
+    }
+}
+    - name: /*
+ * Copyright (C) 2016 SurroundIO
+ *   
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Library General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Library General Public License for more details.
+ *
+ * You should have received a copy of the GNU Library General Public
+ * License along with this library; if not, write to the
+ * Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
+ * Boston, MA 02110-1301, USA.
+ */
+
+package org.freedesktop.gstreamer.androidmedia;
+
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+
+public class GstAhsCallback implements SensorEventListener {
+    public long mUserData;
+    public long mSensorCallback;
+    public long mAccuracyCallback;
+
+    public static native void gst_ah_sensor_on_sensor_changed(SensorEvent event,
+                                                              long callback, long user_data);
+    public static native void gst_ah_sensor_on_accuracy_changed(Sensor sensor, int accuracy,
+                                                                long callback, long user_data);
+
+    public GstAhsCallback(long sensor_callback,
+        long accuracy_callback, long user_data) {
+        mSensorCallback = sensor_callback;
+        mAccuracyCallback = accuracy_callback;
+        mUserData = user_data;
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+      gst_ah_sensor_on_sensor_changed(event, mSensorCallback, mUserData);
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+      gst_ah_sensor_on_accuracy_changed(sensor, accuracy,
+          mAccuracyCallback, mUserData);
+    }
+}
+      run: /*
+ * Copyright (C) 2015, Collabora Ltd.
+ *   
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation
+ * version 2.1 of the License.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+ *
+ */
+
+package org.freedesktop.gstreamer.androidmedia;
+
+import android.graphics.SurfaceTexture;
+import android.graphics.SurfaceTexture.OnFrameAvailableListener;
+
+public class GstAmcOnFrameAvailableListener implements OnFrameAvailableListener
+{
+    private long context = 0;
+
+    public synchronized void onFrameAvailable (SurfaceTexture surfaceTexture) {
+        native_onFrameAvailable(context, surfaceTexture);
+    }
+
+    public synchronized long getContext () {
+        return context;
+    }
+
+    public synchronized void setContext (long c) {
+        context = c;
+    }
+
+    private native void native_onFrameAvailable (long context, SurfaceTexture surfaceTexture);
+}
