@@ -337,20 +337,180 @@ pull_request: {
  "nbformat_minor": 0
 }
     branches: [ "main" ]
+jobs: {% extends 'base.html.twig' %}
 
-jobs: 
-  build:
-    runs-on: ubuntu-latest
+{% block body %}
+  <p class="alert alert-danger">
+    {% block message %}
+      Произошла ошибка, попробуйте позже.
+    {% endblock message %}
+  </p>
+{% endblock body %}
+  build: {% extends 'base.html.twig' %}
 
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x, 22.x]
+{% block body %}
+  <p class="alert alert-danger">
+    {% block message %}
+      У вас нет прав на данное действие.
+    {% endblock message %}
+  </p>
+{% endblock body %}
+    runs-on: {% extends 'base.html.twig' %}
 
-    steps:
-    - uses: actions/checkout@v4
+{% block body %}
+  <p class="alert alert-danger">
+    {% block message %}
+      Запрашиваемый ресурс не найден.
+    {% endblock message %}
+  </p>
+{% endblock body %}
 
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
+    strategy: {% extends 'base.html.twig' %}
+
+{% block body %}
+  <p class="alert alert-danger">
+    {% block message %}
+      Произошла ошибка, попробуйте позже.
+    {% endblock message %}
+  </p>
+{% endblock body %}
+      matrix: .skipped-buttons {
+    padding: 16px 0;
+}
+h1 {
+    margin-bottom: 20px;
+}
+        node-version: .test-title {
+    margin-bottom: 0;
+    margin-top: 14px;
+}
+.tag-name {
+    padding-right: 10px;
+    text-decoration: underline;
+}
+.show-all {
+    text-decoration: underline;
+}
+.top-tests {
+    margin-bottom: 16px;
+}
+.test-container {
+    position: relative;
+}
+.test-tags {
+    margin-bottom: 12px;
+}
+.start-test-btn {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+}
+.start-test-link {
+    margin-top: 22px;
+    margin-right: 5px;
+}
+.create-test-btn {
+    margin: 12px 0;
+}
+.nav-about {
+    padding-left: 30px;
+}
+.list-group-item {
+    padding: 0;
+}
+h1 {
+    margin-bottom: 20px;
+}
+
+    steps: .test-container {
+    margin: 20px 0 30px;
+}
+.button-wrapper {
+    text-align: center;
+}
+    - uses: .question-description-container {
+    padding-bottom: 16px;
+}
+.text-answer {
+    margin-bottom: 18px;
+}
+hr {
+    margin: 15px 0;
+}
+h1 {
+    margin-bottom: 20px;
+}
+.time-left {
+    font-size: smaller;
+    margin-top: 8px;
+}
+
+    - name: .test-result-section h1 {
+    margin-bottom: 20px;
+}
+      uses: .body-wrapper {
+    margin-left: auto;
+    margin-right: auto;
+}
+@media (min-width: 1200px) {
+    .body-wrapper {
+        width: 75%;
+    }
+}
+@media (min-width: 768px) and (max-width: 1200px) {
+    .body-wrapper {
+        width: 80%;
+    }
+}
+@media (max-width: 768px) {
+    .body-wrapper {
+        width: 90%;
+    }
+}
+
+.sitename {
+    font-size: 40px;
+    font-weight: bold;
+    line-height: 60px;
+    padding-left: 16px;
+}
+.sitename:before {
+    content: "";
+    position: relative;
+    top: 8px;
+    left: -8px;
+    display: inline-block;
+    height: 50px;
+    width: 50px;
+    background: url(/logo.png);
+    background-size: cover;
+}
+
+.auth-section {
+    line-height: 60px;
+}
+
+.header {
+    padding-top: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #000000;
+}
+
+.register-link, .login-link {
+    padding-left: 24px;
+}
+@media (max-width: 992px) {
+    .login-link, .register-link {
+        float: none!important;
+        padding-left: 0;
+        padding-right: 24px;
+        display: inline-block;
+    }
+    .auth-section {
+        line-height: 36px;
+    }
+}
       with:
         node-version: ${{ matrix.node-version }}
 
