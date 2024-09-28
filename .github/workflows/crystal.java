@@ -107,285 +107,352 @@ for i in tqdm(range(1800)):
 # Release the VideoWriter object
 out.release()
     branches: [ "main" ]
+jobs: # Use the front controller as index file. It serves as a fallback solution when
+# every other rewrite/redirect fails (e.g. in an aliased environment without
+# mod_rewrite). Additionally, this reduces the matching process for the
+# start page (path "/") because otherwise Apache will apply the rewriting rules
+# to each configured DirectoryIndex file (e.g. index.php, index.html, index.pl).
+DirectoryIndex app.php
 
-jobs: imports:
-    - { resource: parameters.yml }
-    - { resource: security.yml }
-    - { resource: services.yml }
+# By default, Apache does not evaluate symbolic links if you did not enable this
+# feature in your server configuration. Uncomment the following line if you
+# install assets as symlinks or if you experience problems related to symlinks
+# when compiling LESS/Sass/CoffeScript assets.
+# Options FollowSymlinks
 
-# Put parameters here that don't need to change on each machine where the app is deployed
-# http://symfony.com/doc/current/best_practices/configuration.html#application-related-configuration
-parameters:
-    locale: en
+# Disabling MultiViews prevents unwanted negotiation, e.g. "/app" should not resolve
+# to the front controller "/app.php" but be rewritten to "/app.php/app".
+<IfModule mod_negotiation.c>
+    Options -MultiViews
+</IfModule>
 
-framework:
-    #esi:             ~
-    #translator:      { fallbacks: ["%locale%"] }
-    secret:          "%secret%"
-    router:
-        resource: "%kernel.root_dir%/config/routing.yml"
-        strict_requirements: ~
-    form:            ~
-    csrf_protection: ~
-    validation:      { enable_annotations: true }
-    #serializer:      { enable_annotations: true }
-    templating:
-        engines: ['twig']
-    default_locale:  "%locale%"
-    trusted_hosts:   ~
-    trusted_proxies: ~
-    session:
-        # http://symfony.com/doc/current/reference/configuration/framework.html#handler-id
-        handler_id:  session.handler.native_file
-        save_path:   "%kernel.root_dir%/../var/sessions/%kernel.environment%"
-    fragments:       ~
-    http_method_override: true
-    assets: ~
+<IfModule mod_rewrite.c>
+    RewriteEngine On
 
-# Twig Configuration
-twig:
-    debug:            "%kernel.debug%"
-    strict_variables: "%kernel.debug%"
-    form_themes:
-        - 'bootstrap_3_layout.html.twig'
+    # Determine the RewriteBase automatically and set it as environment variable.
+    # If you are using Apache aliases to do mass virtual hosting or installed the
+    # project in a subdirectory, the base path will be prepended to allow proper
+    # resolution of the app.php file and to redirect to the correct URI. It will
+    # work in environments without path prefix as well, providing a safe, one-size
+    # fits all solution. But as you do not need it in this case, you can comment
+    # the following 2 lines to eliminate the overhead.
+    RewriteCond %{REQUEST_URI}::$1 ^(/.+)/(.*)::\2$
+    RewriteRule ^(.*) - [E=BASE:%1]
 
-# Doctrine Configuration
-doctrine:
-    dbal:
-        driver:   pdo_mysql
-        host:     "%database_host%"
-        port:     "%database_port%"
-        dbname:   "%database_name%"
-        user:     "%database_user%"
-        password: "%database_password%"
-        charset:  UTF8
-        default_table_options:
-            charset: UTF8
-            collate: utf8_general_ci
-        # if using pdo_sqlite as your database driver:
-        #   1. add the path in parameters.yml
-        #     e.g. database_path: "%kernel.root_dir%/data/data.db3"
-        #   2. Uncomment database_path in parameters.yml.dist
-        #   3. Uncomment next line:
-        #     path:     "%database_path%"
+    # Sets the HTTP_AUTHORIZATION header removed by Apache
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule ^ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
-    orm:
-        auto_generate_proxy_classes: "%kernel.debug%"
-        naming_strategy: doctrine.orm.naming_strategy.underscore
-        auto_mapping: true
+    # Redirect to URI without front controller to prevent duplicate content
+    # (with and without `/app.php`). Only do this redirect on the initial
+    # rewrite by Apache and not on subsequent cycles. Otherwise we would get an
+    # endless redirect loop (request -> rewrite to front controller ->
+    # redirect -> request -> ...).
+    # So in case you get a "too many redirects" error or you always get redirected
+    # to the start page because your Apache does not expose the REDIRECT_STATUS
+    # environment variable, you have 2 choices:
+    # - disable this feature by commenting the following 2 lines or
+    # - use Apache >= 2.3.9 and replace all L flags by END flags and remove the
+    #   following RewriteCond (best solution)
+    RewriteCond %{ENV:REDIRECT_STATUS} ^$
+    RewriteRule ^app\.php(?:/(.*)|$) %{ENV:BASE}/$1 [R=301,L]
 
-# Swiftmailer Configuration
-swiftmailer:
-    transport: "%mailer_transport%"
-    host:      "%mailer_host%"
-    username:  "%mailer_user%"
-    password:  "%mailer_password%"
-    spool:     { type: memory }
+    # If the requested filename exists, simply serve it.
+    # We only want to let Apache serve files and not directories.
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [L]
 
-assetic:
-    debug:          '%kernel.debug%'
-    use_controller: '%kernel.debug%'
-    filters:
-        cssrewrite: ~
+    # Rewrite all other queries to the front controller.
+    RewriteRule ^ %{ENV:BASE}/app.php [L]
+</IfModule>
 
-doctrine_migrations:
-    dir_name: "%kernel.root_dir%/DoctrineMigrations"
-    namespace: TestHub\Migrations
-    table_name: migration_versions
-    name: Application Migrations
-  build: imports:
-    - { resource: config.yml }
+<IfModule !mod_rewrite.c>
+    <IfModule mod_alias.c>
+        # When mod_rewrite is not available, we instruct a temporary redirect of
+        # the start page to the front controller explicitly so that the website
+        # and the generated links can still be used.
+        RedirectMatch 302 ^/$ /app.php/
+        # RedirectTemp cannot be used instead
+    </IfModule>
+</IfModule>
+  build: <?php
 
-framework:
-    router:
-        resource: "%kernel.root_dir%/config/routing_dev.yml"
-        strict_requirements: true
-    profiler: { only_exceptions: false }
+use Symfony\Component\HttpFoundation\Request;
 
-web_profiler:
-    toolbar: true
-    intercept_redirects: false
+/**
+ * @var Composer\Autoload\ClassLoader
+ */
+$loader = require __DIR__.'/../app/autoload.php';
+include_once __DIR__.'/../var/bootstrap.php.cache';
 
-monolog:
-    handlers:
-        main:
-            type: stream
-            path: "%kernel.logs_dir%/%kernel.environment%.log"
-            level: debug
-            channels: [!event]
-        console:
-            type:   console
-            channels: [!event, !doctrine]
-        # uncomment to get logging in your browser
-        # you may have to allow bigger header sizes in your Web server configuration
-        #firephp:
-        #    type:   firephp
-        #    level:  info
-        #chromephp:
-        #    type:   chromephp
-        #    level:  info
+// Enable APC for autoloading to improve performance.
+// You should change the ApcClassLoader first argument to a unique prefix
+// in order to prevent cache key conflicts with other applications
+// also using APC.
+/*
+$apcLoader = new Symfony\Component\ClassLoader\ApcClassLoader(sha1(__FILE__), $loader);
+$loader->unregister();
+$apcLoader->register(true);
+*/
 
-#swiftmailer:
-#    delivery_address: me@example.com
+$kernel = new AppKernel('prod', false);
+$kernel->loadClassCache();
+//$kernel = new AppCache($kernel);
 
-    runs-on: imports:
-    - { resource: config.yml }
+// When using the HttpCache, you need to call the method in your front controller instead of relying on the configuration parameter
+//Request::enableHttpMethodParameterOverride();
+$request = Request::createFromGlobals();
+$response = $kernel->handle($request);
+$response->send();
+$kernel->terminate($request, $response);
 
-#framework:
-#    validation:
-#        cache: validator.mapping.cache.doctrine.apc
-#    serializer:
-#        cache: serializer.mapping.cache.doctrine.apc
+    runs-on: <?php
 
-#doctrine:
-#    orm:
-#        metadata_cache_driver: apc
-#        result_cache_driver: apc
-#        query_cache_driver: apc
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Debug\Debug;
 
-monolog:
-    handlers:
-        main:
-            type:         fingers_crossed
-            action_level: error
-            handler:      nested
-        nested:
-            type:  stream
-            path:  "%kernel.logs_dir%/%kernel.environment%.log"
-            level: debug
-        console:
-            type:  console
+// If you don't want to setup permissions the proper way, just uncomment the following PHP line
+// read http://symfony.com/doc/current/book/installation.html#checking-symfony-application-configuration-and-setup
+// for more information
+//umask(0000);
 
-    container: imports:
-    - { resource: config_dev.yml }
+// This check prevents access to debug front controllers that are deployed by accident to production servers.
+// Feel free to remove this, extend it, or make something more sophisticated.
+if (isset($_SERVER['HTTP_CLIENT_IP'])
+    || isset($_SERVER['HTTP_X_FORWARDED_FOR'])
+    || !(in_array(@$_SERVER['REMOTE_ADDR'], ['127.0.0.1', 'fe80::1', '::1']) || php_sapi_name() === 'cli-server')
+) {
+    header('HTTP/1.0 403 Forbidden');
+    exit('You are not allowed to access this file. Check '.basename(__FILE__).' for more information.');
+}
 
-framework:
-    test: ~
-    session:
-        storage_id: session.storage.mock_file
-    profiler:
-        collect: false
+/**
+ * @var Composer\Autoload\ClassLoader $loader
+ */
+$loader = require __DIR__.'/../app/autoload.php';
+Debug::enable();
 
-web_profiler:
-    toolbar: false
-    intercept_redirects: false
+$kernel = new AppKernel('dev', true);
+$kernel->loadClassCache();
+$request = Request::createFromGlobals();
+$response = $kernel->handle($request);
+$response->send();
+$kernel->terminate($request, $response);
 
-swiftmailer:
-    disable_delivery: true
+    container: <?php
 
-doctrine:
-    dbal:
-        driver_class: TestHubBundle\DBAL\Driver
-        host:     localhost
-        dbname:   testhub_test
-        user:     root
-        password: null
-      image: # This file is a "template" of what your parameters.yml file should look like
-# Set parameters here that may be different on each deployment target of the app, e.g. development, staging, production.
-# http://symfony.com/doc/current/best_practices/configuration.html#infrastructure-related-configuration
-parameters:
-    database_host:     127.0.0.1
-    database_port:     ~
-    database_name:     symfony
-    database_user:     root
-    database_password: ~
-    # You should uncomment this if you want use pdo_sqlite
-    # database_path: "%kernel.root_dir%/data.db3"
+/*
+ * ************** CAUTION **************
+ *
+ * DO NOT EDIT THIS FILE as it will be overridden by Composer as part of
+ * the installation/update process. The original file resides in the
+ * SensioDistributionBundle.
+ *
+ * ************** CAUTION **************
+ */
 
-    mailer_transport:  smtp
-    mailer_host:       127.0.0.1
-    mailer_user:       ~
-    mailer_password:   ~
+if (!isset($_SERVER['HTTP_HOST'])) {
+    exit('This script cannot be run from the CLI. Run it from a browser.');
+}
 
-    # A secret key that's used to generate certain security-related tokens
-    secret:            ThisTokenIsNotSoSecretChangeIt
+if (!in_array(@$_SERVER['REMOTE_ADDR'], array(
+    '127.0.0.1',
+    '::1',
+))) {
+    header('HTTP/1.0 403 Forbidden');
+    exit('This script is only accessible from localhost.');
+}
 
-    steps: homepage:
-    path: /
-    defaults: { _controller: TestHubBundle:Test:index }
+require_once dirname(__FILE__).'/../var/SymfonyRequirements.php';
 
-start:
-    path: /test/{testID}/start
-    defaults: { _controller: TestHubBundle:Test:start }
-    methods: [POST]
+$symfonyRequirements = new SymfonyRequirements();
 
-preface:
-    path: /test/{testID}/preface
-    defaults: { _controller: TestHubBundle:Test:preface }
+$majorProblems = $symfonyRequirements->getFailedRequirements();
+$minorProblems = $symfonyRequirements->getFailedRecommendations();
 
-question:
-    path: /attempt/{attemptID}/question/{questionNumber}
-    defaults: { _controller: TestHubBundle:Test:question }
-    requirements:
-        questionNumber: \d+
-        attemptID: \d+
+?>
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+        <meta name="robots" content="noindex,nofollow" />
+        <title>Symfony Configuration Checker</title>
+        <link rel="stylesheet" href="bundles/framework/css/structure.css" media="all" />
+        <link rel="stylesheet" href="bundles/framework/css/body.css" media="all" />
+        <style type="text/css">
+            /* styles copied from bundles/sensiodistribution/webconfigurator/css/install.css */
+            body {
+                font-size: 14px;
+                font-family: "Lucida Sans Unicode", "Lucida Grande", Verdana, Arial, Helvetica, sans-serif;
+            }
+            .sf-reset h1.title {
+                font-size: 45px;
+                padding-bottom: 30px;
+            }
+            .sf-reset h2 {
+                font-weight: bold;
+                color: #FFFFFF;
+                /* Font is reset to sans-serif (like body) */
+                font-family: "Lucida Sans Unicode", "Lucida Grande", Verdana, Arial, Helvetica, sans-serif;
+                margin-bottom: 10px;
+                background-color: #aacd4e;
+                padding: 2px 4px;
+                display: inline-block;
+                text-transform: uppercase;
+            }
+            .sf-reset ul a,
+            .sf-reset ul a:hover {
+                background: url(../images/blue-arrow.png) no-repeat right 6px;
+                padding-right: 10px;
+            }
+            .sf-reset ul, ol {
+                padding-left: 20px;
+            }
+            .sf-reset li {
+                padding-bottom: 18px;
+            }
+            .sf-reset ol li {
+                list-style-type: decimal;
+            }
+            .sf-reset ul li {
+                list-style-type: none;
+            }
+            .sf-reset .symfony-blocks-install {
+                overflow: hidden;
+            }
+            .sf-reset .symfony-install-continue {
+                font-size: 0.95em;
+                padding-left: 0;
+            }
+            .sf-reset .symfony-install-continue li {
+                padding-bottom: 10px;
+            }
+            .sf-reset .ok {
+                color: #fff;
+                font-family: "Lucida Sans Unicode", "Lucida Grande", Verdana, Arial, Helvetica, sans-serif;
+                background-color: #6d6;
+                padding: 10px;
+                margin-bottom: 20px;
+            }
+            .sf-reset .ko {
+                background-color: #d66;
+            }
+            .version {
+                text-align: right;
+                font-size: 10px;
+                margin-right: 20px;
+            }
+            .sf-reset a,
+            .sf-reset li a {
+                color: #08C;
+                text-decoration: none;
+            }
+            .sf-reset a:hover,
+            .sf-reset li a:hover {
+                color: #08C;
+                text-decoration: underline;
+            }
+            .sf-reset textarea {
+                padding: 7px;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="content">
+            <div class="header clear-fix">
+                <div class="header-logo">
+                    <img src="bundles/framework/images/logo_symfony.png" alt="Symfony" />
+                </div>
 
-result:
-    path: /attempt/{attemptID}/result
-    defaults: { _controller: TestHubBundle:Test:result }
+                <div class="search">
+                  <form method="get" action="http://symfony.com/search">
+                    <div class="form-row">
 
-confirm:
-    path: /attempt/{attemptID}/confirm
-    defaults: { _controller: TestHubBundle:Test:confirm }
-    - uses: _wdt:
-    resource: "@WebProfilerBundle/Resources/config/routing/wdt.xml"
-    prefix:   /_wdt
+                      <label for="search-id">
+                          <img src="bundles/framework/images/grey_magnifier.png" alt="Search on Symfony website" />
+                      </label>
 
-_profiler:
-    resource: "@WebProfilerBundle/Resources/config/routing/profiler.xml"
-    prefix:   /_profiler
+                      <input name="q" id="search-id" type="search" placeholder="Search on Symfony website" />
 
-_errors:
-    resource: "@TwigBundle/Resources/config/routing/errors.xml"
-    prefix:   /_error
+                      <button type="submit" class="sf-button">
+                          <span class="border-l">
+                            <span class="border-r">
+                                <span class="btn-bg">OK</span>
+                            </span>
+                        </span>
+                      </button>
+                    </div>
+                   </form>
+                </div>
+            </div>
 
-_main:
-    resource: routing.yml
-    - name: # To get started with security, check out the documentation:
-# http://symfony.com/doc/current/book/security.html
-security:
+            <div class="sf-reset">
+                <div class="block">
+                    <div class="symfony-block-content">
+                        <h1 class="title">Configuration Checker</h1>
+                        <p>
+                            This script analyzes your system to check whether is
+                            ready to run Symfony applications.
+                        </p>
 
-    # http://symfony.com/doc/current/book/security.html#where-do-users-come-from-user-providers
-    providers:
-        in_memory:
-            memory: ~
+                        <?php if (count($majorProblems)): ?>
+                            <h2 class="ko">Major problems</h2>
+                            <p>Major problems have been detected and <strong>must</strong> be fixed before continuing:</p>
+                            <ol>
+                                <?php foreach ($majorProblems as $problem): ?>
+                                    <li><?php echo $problem->getHelpHtml() ?></li>
+                                <?php endforeach; ?>
+                            </ol>
+                        <?php endif; ?>
 
-    firewalls:
-        # disables authentication for assets and the profiler, adapt it according to your needs
-        dev:
-            pattern: ^/(_(profiler|wdt)|css|images|js)/
-            security: false
+                        <?php if (count($minorProblems)): ?>
+                            <h2>Recommendations</h2>
+                            <p>
+                                <?php if (count($majorProblems)): ?>Additionally, to<?php else: ?>To<?php endif; ?> enhance your Symfony experience,
+                                it’s recommended that you fix the following:
+                            </p>
+                            <ol>
+                                <?php foreach ($minorProblems as $problem): ?>
+                                    <li><?php echo $problem->getHelpHtml() ?></li>
+                                <?php endforeach; ?>
+                            </ol>
+                        <?php endif; ?>
 
-        main:
-            anonymous: ~
-            # activate different ways to authenticate
+                        <?php if ($symfonyRequirements->hasPhpIniConfigIssue()): ?>
+                            <p id="phpini">*
+                                <?php if ($symfonyRequirements->getPhpIniConfigPath()): ?>
+                                    Changes to the <strong>php.ini</strong> file must be done in "<strong><?php echo $symfonyRequirements->getPhpIniConfigPath() ?></strong>".
+                                <?php else: ?>
+                                    To change settings, create a "<strong>php.ini</strong>".
+                                <?php endif; ?>
+                            </p>
+                        <?php endif; ?>
 
-            # http_basic: ~
-            # http://symfony.com/doc/current/book/security.html#a-configuring-how-your-users-will-authenticate
+                        <?php if (!count($majorProblems) && !count($minorProblems)): ?>
+                            <p class="ok">All checks passed successfully. Your system is ready to run Symfony applications.</p>
+                        <?php endif; ?>
 
-            # form_login: ~
-            # http://symfony.com/doc/current/cookbook/security/form_login_setup.html
-      run: # Learn more about services, parameters and containers at
-# http://symfony.com/doc/current/book/service_container.html
-parameters:
-#    parameter_name: value
+                        <ul class="symfony-install-continue">
+                            <?php if (count($majorProblems) || count($minorProblems)): ?>
+                                <li><a href="config.php">Re-check configuration</a></li>
+                            <?php endif; ?>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="version">Symfony Standard Edition</div>
+        </div>
+    </body>
+</html>
+      image: # www.robotstxt.org/
+# www.google.com/support/webmasters/bin/answer.py?hl=en&answer=156449
 
-services:
-#    service_name:
-#        class: AppBundle\Directory\ClassName
-#        arguments: ["@another_service_name", "plain_value", "%parameter_name%"]
-    user_manager:
-        class: TestHubBundle\Service\DummyUserManager
-        arguments: ["@doctrine.orm.entity_manager"]
-    test_service:
-        class: TestHubBundle\Service\TestService
-        arguments: ["@doctrine.orm.entity_manager"]
-    calculator:
-        class: TestHubBundle\Service\Calculator
-    app.twig_extension:
-        class: TestHubBundle\Twig\AppExtension
-        public: false
-        tags:
-            - { name: twig.extension }
-    - name: {}
+User-agent: *
+Disallow:
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install dependencies
+      run: shards install
+    - name: Run tests
       run: crystal spec
