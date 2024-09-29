@@ -1,638 +1,1315 @@
 name: NodeJS with Grunt
 
-on: import requests
-import base64
+on: dofile('Scripts/Database/wsTypes.lua')
+dofile('Scripts/World/Radio/BeaconTypes.lua')
+dofile('Scripts/World/Radio/BeaconSites.lua')
 
-a = requests.post("https://www.hackthebox.eu/api/invite/generate")
-b = a.json()
-print(b)
-if b["success"] == 1:
-        password = b["data"]["code"]
-        print(base64.b64decode(password).decode())
-else:
-        print("Failed")
-  push: import socket
-import platform
-from requests import get
-from lxml import etree
-import os
-from subprocess import Popen
+local disableNauticalBeacons = true
+
+local gettext = require("i_18n")
+local       _ = gettext.translate
+
+--WORLD BEACONS
+
+--[[
+        Persian Gulf beacon mod v.1.0, updated August 5th, 2018.
+        
+        General info:
+        I have added ICLS beacons for the F/A-18C for all runways that are already equipped with regular ILS.
+        Instead of using DMEs co-located with the Glide Path(/Slope), I have added TACANS for use in aircraft without separate DME and VOR receivers.
+        Three letter IDENT codes are used for TACAN, since the Hornet only displays the first three letters.
+        All VORs (except Shiraz, which already has a TACAN) are converted to VORTACs, for use with both VOR and TACAN equiupped aircraft.
+        
+        Added beacons:
+        - Al Ain: VORTAC ch. 73X / 112.6 MHz
+        - Al Maktoum: VORTAC ch. 81 / 113.4 MHz
+        - Al Maktoum RWY 12: ICLS ch. 8, TACAN ch. 54X
+        - Al Maktoum RWY 30: ICLS ch. 12, TACAN ch. 35X
+        - Al Minhad: VORTAC ch. 99 / 115.2 MHz
+        - Al Minhad RWY 09: ICLS ch. 7, TACAN ch. 44X
+        - Al Minhad RWY 27: ICLS ch. 9, TACAN ch. 45X
+        - Bandar Abbas: VORTAC ch. 119 / 117.2 MHz
+        - Bandar Abbas RWY21L: ICLS ch. 19, TACAN ch. 36X
+        - Bandar Lengeh: VORTAC ch. 95 / 114.8 MHz
+        - Dubai: VORTAC 21X / 108.4 MHz - new beacon located along the extended centerline of RWY 12L/30R
+        - Dubai RWY 12L: ICLS ch. 11, TACAN ch. 38X
+        - Dubai RWY 12R: ICLS ch. 15, TACAN ch. 32X
+        - Dubai RWY 30L: ICLS ch. 13, TACAN ch. 50X
+        - Dubai RWY 30R: ICLS ch. 19, TACAN ch. 46X
+        - Fujairah: VORTAC ch. 85X
+        - Fujairah RWY 29: ICLS ch. 1, TACAN ch. 40
+        - Havadarya RWY 08: ICLS ch. 8, TACAN ch. 26X
+        - Kerman: VORTAC ch. 57 / 112.0 MHz
+        - Khasab RWY 19: ICLS ch. 3, TACAN ch. 40X
+        - Kish Island: VORTAC ch. 121 / 117.4 MHz
+        - Lar: VORTAC ch. 126X / 117.9 MHz
+        - Lar RWY 09: ICLS ch. 15, TACAN ch. 52X
+        - Qeshm Island: VORTAC ch. 118X / 117.1 MHz
+        - Ras Al Khaimah: VORTAC ch. 83X / 113.6 MHz
+        - Sharjah: VORTAC ch. 70X / 112.3 MHz
+        - Sharjah RWY 12L: ICLS ch. 6, TACAN ch. 22X
+        - Sharjah RWY 30L: ICLS ch. 20, TACAN ch. 56X
+        - Sirri Island: VORTAC ch. 84Y / 113.75 MHz
+
+        
+]]--
 
 
-class Main():
-        mycostatus = False
-        ip = ''
-        if socket.gethostbyname(socket.gethostname()) != '127.0.0.1':
-                local_ip = socket.gethostbyname(socket.gethostname())
-        def __init__(self):
-                try:
-                        moninstance = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                        moninstance.connect(("8.8.8.8", 80)) # Google DNS
-                except socket.error:
-                        self.mycostatus = False
-                else:
-                        self.ip = get('https://api.ipify.org').text
+beaconsTableFormat = 2
+beacons = {
+        {
+                display_name = _('Abumusa');
+                beaconId = 'airfield1_0';
+                type = BEACON_TYPE_HOMER;
+                callsign = 'ABM';
+                frequency = 285000.000000;
+                position = { -31340.871094, 5.000005, -122275.148438 };
+                direction = 174.107027;
+                positionGeo = { latitude = 25.877348, longitude = 55.023518 };
+                sceneObjects = {'t:428933120'};
+        };
+        {
+                display_name = _('BandarAbbas');
+                beaconId = 'airfield2_0';
+                type = BEACON_TYPE_VORTAC;
+                callsign = 'BND';
+                frequency = 117200000.000000;
+                channel = 119;
+                position = { 113480.484375, 5.854269, 13045.339844 };
+                direction = 26.337865;
+                positionGeo = { latitude = 27.197000, longitude = 56.366833 };
+                sceneObjects = {'t:-1265303496'};
+        };
+        {
+                display_name = _('BandarAbbas');
+                beaconId = 'airfield2_1';
+                type = BEACON_TYPE_HOMER;
+                callsign = 'BND';
+                frequency = 250000.000000;
+                position = { 115560.210938, 16.835809, 12328.879883 };
+                direction = 26.337865;
+                positionGeo = { latitude = 27.215742, longitude = 56.359493 };
+                sceneObjects = {'t:475070464'};
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield2_2';
+                type = BEACON_TYPE_ILS_LOCALIZER;
+                callsign = 'IBND';
+                frequency = 109900000.000000;
+                position = { 113693.234375, 5.776140, 13155.006836 };
+                direction = 28.001016;
+                positionGeo = { latitude = 27.198926, longitude = 56.367930 };
+                sceneObjects = {'t:197885952'};
+                chartOffsetX = 4544.000000;
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield2_3';
+                type = BEACON_TYPE_ILS_GLIDESLOPE;
+                callsign = 'IBND';
+                frequency = 109900000.000000;
+                position = { 116974.781250, 5.880138, 14981.854492 };
+                direction = 26.337865;
+                positionGeo = { latitude = 27.228633, longitude = 56.386212 };
+                sceneObjects = {'t:-1265303495'};
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield2_4';
+                type = BEACON_TYPE_ICLS_LOCALIZER;
+                callsign = 'BND';
+                frequency = 15655000000.000000;
+                channel = 19;
+                position = { 113693.234375, 5.776140, 13155.006836 };
+                direction = 28.001016;
+                positionGeo = { latitude = 27.198926, longitude = 56.367930 };
+                sceneObjects = {'t:197885952'};
+                chartOffsetX = 4544.000000;
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield2_5';
+                type = BEACON_TYPE_ICLS_GLIDESLOPE;
+                callsign = 'BND';
+                frequency = 15655000000.000000;
+                channel = 19;
+                position = { 116974.781250, 5.880138, 14981.854492 };
+                direction = 26.337865;
+                positionGeo = { latitude = 27.228633, longitude = 56.386212 };
+                sceneObjects = {'t:-1265303495'};
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield2_6';
+                type = BEACON_TYPE_TACAN;
+                callsign = 'BND';
+                frequency = 109900000.000000;
+                channel = 36;
+                position = { 116974.781250, 5.880138, 14981.854492 };
+                direction = 26.337865;
+                positionGeo = { latitude = 27.228633, longitude = 56.386212 };
+                sceneObjects = {'t:-1265074090'};
+        };
+        {
+                display_name = _('BandarLengeh');
+                beaconId = 'airfield3_0';
+                type = BEACON_TYPE_HOMER;
+                callsign = 'LEN';
+                frequency = 408000.000000;
+                position = { 41337.355469, 23.178969, -140284.187500 };
+                direction = -1.600031;
+                positionGeo = { latitude = 26.530575, longitude = 54.831754 };
+                sceneObjects = {'t:435027968'};
+        };
+        {
+                display_name = _('BandarLengeh');
+                beaconId = 'airfield3_1';
+                type = BEACON_TYPE_VORTAC;
+                callsign = 'LEN';
+                frequency = 114800000.000000;
+                channel = 95;
+                position = { 41944.980469, 20.168563, -138343.031250 };
+                direction = -1.600031;
+                positionGeo = { latitude = 26.536353, longitude = 54.851123 };
+                sceneObjects = {'t:435060736'};
+        };
+        {
+                display_name = _('AlDhafra');
+                beaconId = 'airfield4_0';
+                type = BEACON_TYPE_VORTAC;
+                callsign = 'MA';
+                frequency = 114900000.000000;
+                channel = 96;
+                position = { -211188.156250, 16.000016, -173477.796875 };
+                direction = 37.615738;
+                positionGeo = { latitude = 24.246803, longitude = 54.545387 };
+                sceneObjects = {'t:335675392'};
+        };
+        {
+                display_name = _('DUBAI');
+                beaconId = 'airfield5_0';
+                type = BEACON_TYPE_HOMER;
+                callsign = 'DO';
+                frequency = 265000.000000;
+                position = { -103374.234375, 7.304522, -85496.226563 };
+                direction = 30.557747;
+                positionGeo = { latitude = 25.231649, longitude = 55.399134 };
+                sceneObjects = {'t:402423808'};
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield5_1';
+                type = BEACON_TYPE_ILS_LOCALIZER;
+                callsign = 'IDBW';
+                frequency = 109500000.000000;
+                position = { -103160.304688, 5.000005, -85509.226563 };
+                direction = -57.960002;
+                positionGeo = { latitude = 25.233579, longitude = 55.398979 };
+                sceneObjects = {'t:-1265205182'};
+                chartOffsetX = 5165.000000;
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield5_2';
+                type = BEACON_TYPE_ILS_LOCALIZER;
+                callsign = 'IDBR';
+                frequency = 110100000.000000;
+                position = { -101655.835938, 5.000005, -87173.156250 };
+                direction = -58.009998;
+                positionGeo = { latitude = 25.246980, longitude = 55.382285 };
+                sceneObjects = {'t:-1265205181'};
+                chartOffsetX = 4461.000000;
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield5_3';
+                type = BEACON_TYPE_ILS_LOCALIZER;
+                callsign = 'IDBE';
+                frequency = 111300000.000000;
+                position = { -100336.234375, 5.000005, -90012.007813 };
+                direction = 122.059989;
+                positionGeo = { latitude = 25.258581, longitude = 55.353947 };
+                sceneObjects = {'t:-1265205180'};
+                chartOffsetX = 5340.000000;
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield5_4';
+                type = BEACON_TYPE_ILS_LOCALIZER;
+                callsign = 'IDBL';
+                frequency = 110900000.000000;
+                position = { -99354.195313, 5.000005, -90856.460938 };
+                direction = 122.069989;
+                positionGeo = { latitude = 25.267352, longitude = 55.345444 };
+                sceneObjects = {'t:-1265205179'};
+                chartOffsetX = 4326.000000;
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield5_5';
+                type = BEACON_TYPE_ILS_GLIDESLOPE;
+                callsign = 'IDBL';
+                frequency = 110900000.000000;
+                position = { -101331.320313, 5.000005, -87516.156250 };
+                direction = 123.104971;
+                positionGeo = { latitude = 25.249872, longitude = 55.378842 };
+                sceneObjects = {'t:-1265205178'};
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield5_6';
+                type = BEACON_TYPE_ILS_GLIDESLOPE;
+                callsign = 'IDBR';
+                frequency = 110100000.000000;
+                position = { -99715.640625, 5.000005, -90031.437500 };
+                direction = -60.241516;
+                positionGeo = { latitude = 25.264181, longitude = 55.353679 };
+                sceneObjects = {'t:-1265205177'};
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield5_7';
+                type = BEACON_TYPE_ILS_GLIDESLOPE;
+                callsign = 'IDBE';
+                frequency = 111300000.000000;
+                position = { -102607.976563, 5.000005, -86169.898438 };
+                direction = 124.706241;
+                positionGeo = { latitude = 25.238494, longitude = 55.392357 };
+                sceneObjects = {'t:-1265205176'};
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield5_8';
+                type = BEACON_TYPE_ILS_GLIDESLOPE;
+                callsign = 'IDBW';
+                frequency = 109500000.000000;
+                position = { -101020.156250, 5.000005, -88667.859375 };
+                direction = -57.330628;
+                positionGeo = { latitude = 25.252555, longitude = 55.367372 };
+                sceneObjects = {'t:-1265205175'};
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield5_9';
+                type = BEACON_TYPE_ICLS_LOCALIZER;
+                callsign = 'DBW';
+                frequency = 15535000000.000000;
+                channel = 15;
+                position = { -103160.304688, 5.000005, -85509.226563 };
+                direction = -57.960002;
+                positionGeo = { latitude = 25.233579, longitude = 55.398979 };
+                sceneObjects = {'t:-1265205182'};
+                chartOffsetX = 5165.000000;
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield5_10';
+                type = BEACON_TYPE_ICLS_LOCALIZER;
+                callsign = 'DBR';
+                frequency = 15415000000.000000;
+                channel = 11;
+                position = { -101655.835938, 5.000005, -87173.156250 };
+                direction = -58.009998;
+                positionGeo = { latitude = 25.246980, longitude = 55.382285 };
+                sceneObjects = {'t:-1265205181'};
+                chartOffsetX = 4461.000000;
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield5_11';
+                type = BEACON_TYPE_ICLS_LOCALIZER;
+                callsign = 'DBE';
+                frequency = 15475000000.000000;
+                channel = 13;
+                position = { -100336.234375, 5.000005, -90012.007813 };
+                direction = 122.059989;
+                positionGeo = { latitude = 25.258581, longitude = 55.353947 };
+                sceneObjects = {'t:-1265205180'};
+                chartOffsetX = 5340.000000;
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield5_12';
+                type = BEACON_TYPE_ICLS_LOCALIZER;
+                callsign = 'DBL';
+                frequency = 15655000000.000000;
+                channel = 19;
+                position = { -99354.195313, 5.000005, -90856.460938 };
+                direction = 122.069989;
+                positionGeo = { latitude = 25.267352, longitude = 55.345444 };
+                sceneObjects = {'t:-1265205179'};
+                chartOffsetX = 4326.000000;
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield5_13';
+                type = BEACON_TYPE_ICLS_GLIDESLOPE;
+                callsign = 'DBL';
+                frequency = 15655000000.000000;
+                channel = 19;
+                position = { -101331.320313, 5.000005, -87516.156250 };
+                direction = 123.104971;
+                positionGeo = { latitude = 25.249872, longitude = 55.378842 };
+                sceneObjects = {'t:-1265205178'};
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield5_14';
+                type = BEACON_TYPE_ICLS_GLIDESLOPE;
+                callsign = 'DBR';
+                frequency = 15415000000.000000;
+                channel = 11;
+                position = { -99715.640625, 5.000005, -90031.437500 };
+                direction = -60.241516;
+                positionGeo = { latitude = 25.264181, longitude = 55.353679 };
+                sceneObjects = {'t:-1265205177'};
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield5_15';
+                type = BEACON_TYPE_ICLS_GLIDESLOPE;
+                callsign = 'DBE';
+                frequency = 15475000000.000000;
+                channel = 13;
+                position = { -102607.976563, 5.000005, -86169.898438 };
+                direction = 124.706241;
+                positionGeo = { latitude = 25.238494, longitude = 55.392357 };
+                sceneObjects = {'t:-1265205176'};
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield5_16';
+                type = BEACON_TYPE_ICLS_GLIDESLOPE;
+                callsign = 'DBW';
+                frequency = 15535000000.000000;
+                channel = 15;
+                position = { -101020.156250, 5.000005, -88667.859375 };
+                direction = -57.330628;
+                positionGeo = { latitude = 25.252555, longitude = 55.367372 };
+                sceneObjects = {'t:-1265205175'};
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield5_17';
+                type = BEACON_TYPE_TACAN;
+                callsign = 'DBL';
+                frequency = 110900000.000000;
+                channel = 46;
+                position = { -101331.320313, 5.000005, -87516.156250 };
+                direction = 123.104971;
+                positionGeo = { latitude = 25.249872, longitude = 55.378842 };
+                sceneObjects = {'t:-1265074090'};
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield5_18';
+                type = BEACON_TYPE_TACAN;
+                callsign = 'DBR';
+                frequency = 110100000.000000;
+                channel = 38;
+                position = { -99715.640625, 5.000005, -90031.437500 };
+                direction = -60.241516;
+                positionGeo = { latitude = 25.264181, longitude = 55.353679 };
+                sceneObjects = {'t:-1265074090'};
+        };
 
-                        self.mycostatus = True
-                finally:
-                        moninstance.close()
-        def IpDetails(self, target=ip):
-                if self.mycostatus == True:
-                        details = get('http://ip-api.com/xml/{}'.format(str(target))).text
-                        nveaufichierxml = open("resultatip.xml", 'w')
-                        nveaufichierxml.write(str(details))
-                        nveaufichierxml.close()
-                        tree = etree.parse("resultatip.xml")
-                        for a in tree.xpath("/query/country"):
-                                country = a.text
-                        for b in tree.xpath("/query/countryCode"):
-                                countrycode = b.text
-                        for c in tree.xpath("/query/region"):
-                                region = c.text
-                        for d in tree.xpath("/query/regionName"):
-                                regionName = d.text
-                        for e in tree.xpath("/query/city"):
-                                city = e.text
-                        for f in tree.xpath("/query/zip"):
-                                zipcode = f.text
-                        for g in tree.xpath("/query/lat"):
-                                latitude = g.text
-                        for h in tree.xpath("/query/lon"):
-                                longitude = h.text
-                        for i in tree.xpath("/query/timezone"):
-                                timezone = i.text
-                        for j in tree.xpath("/query/isp"):
-                                ispname = j.text
-                        for k in tree.xpath("/query/org"):
-                                organization = k.text
-                        for l in tree.xpath("/query/as"):
-                                As = l.text
-                        for m in tree.xpath("/query/query"):
-                                cible = m.text
-                        print("   0000-----------------{}-----------------0000".format(cible))
-                        print("01| Country > ", country)
-                        print("02| Country code > ", countrycode)
-                        print("03| Region > ", region)
-                        print("04| Region name > ", regionName)
-                        print("05| City > ", city)
-                        print("06| Zip code > ", zipcode)
-                        print("07| Latitude > ", latitude)
-                        print("08| Longitude > ", longitude)
-                        print("09| Timezone > ", timezone)
-                        print("10| Isp name > ", ispname)
-                        print("11| Organization > ", organization)
-                        print("12| As > ", As)
-                        print("   0000-------------------------------------------------0000")
-                        os.remove("resultatip.xml")#FileNotFoundError
-        def PublicIpAddress(self):
-                if self.mycostatus == True:
-                        self.ip = get('https://api.ipify.org').text
-                        return self.ip
-        def MyPcDetails(self):
-                pc_details = platform.uname()
-                print("|________________________________________________________________|")
-                print("")
-                if self.mycostatus == True:
-                        print("Internet access: OK")
-                        print("Local ip: ", self.local_ip)
-                        print("External ip: ", self.ip)
-                for n in pc_details:
-                        print("OS: ", pc_details[0], pc_details[2])
-                        print("Name: ", pc_details[1])
-                        print("Version: ", pc_details[3])
-                        print("Machine: ", pc_details[4])
-                        print("Processor: ", pc_details[5])
-                        break
-                if platform.system() == 'Linux':
-                        distribu = platform.linux_distribution()
-                        for o in distribu:
-                                print("Distrib: ", distribu[0], distribu[1])
-                                print("Id: ", distribu[2])
-                                break
-                print("")
-                print("|________________________________________________________________|")
+        {
+                display_name = _('');
+                beaconId = 'airfield5_19';
+                type = BEACON_TYPE_TACAN;
+                callsign = 'DBE';
+                frequency = 111300000.000000;
+                channel = 50;
+                position = { -102607.976563, 5.000005, -86169.898438 };
+                direction = 124.706241;
+                positionGeo = { latitude = 25.238494, longitude = 55.392357 };                
+                sceneObjects = {'t:-1265074090'};
+        };
+
+        {
+                display_name = _('');
+                beaconId = 'airfield5_20';
+                type = BEACON_TYPE_TACAN;
+                callsign = 'DBW';
+                frequency = 109500000.000000;
+                channel = 32;
+                position = { -101020.156250, 5.000005, -88667.859375 };
+                direction = -57.330628;
+                positionGeo = { latitude = 25.252555, longitude = 55.367372 };
+                sceneObjects = {'t:-1265074090'};
+        };
+
+        {
+                display_name = _('');
+                beaconId = 'airfield5_21';
+                type = BEACON_TYPE_VORTAC;
+                callsign = 'DXB';
+                frequency = 108400000.000000;
+                channel = 21;
+                position = { -102120, 5, -86442 };
+                direction = 37.615738;
+                positionGeo = { latitude = 25.242767, longitude = 55.389433 };
+                sceneObjects = {'t:335675392'};
+        };
+        {
+                display_name = _('AlMaktoumIntl');
+                beaconId = 'airfield6_0';
+                type = BEACON_TYPE_VORTAC;
+                callsign = 'JXB';
+                frequency = 113400000.000000;
+                channel = 81;
+                position = { -142027.656250, 37.618499, -107028.085938 };
+                direction = -167.121177;
+                positionGeo = { latitude = 24.880274, longitude = 55.190583 };
+                sceneObjects = {'t:379257130'};
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield6_1';
+                type = BEACON_TYPE_ILS_LOCALIZER;
+                callsign = 'IJEA';
+                frequency = 111750000.000000;
+                position = { -141530.671875, 37.618499, -107812.914063 };
+                direction = -58.079994;
+                positionGeo = { latitude = 24.884666, longitude = 55.182751 };
+                sceneObjects = {'t:-1265172389'};
+                chartOffsetX = 5249.000000;
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield6_2';
+                type = BEACON_TYPE_ILS_GLIDESLOPE;
+                callsign = 'IJWA';
+                frequency = 109750000.000000;
+                position = { -141086.531250, 37.618499, -108299.953125 };
+                direction = -56.676742;
+                positionGeo = { latitude = 24.888616, longitude = 55.177872 };
+                sceneObjects = {'t:380174336'};
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield6_3';
+                type = BEACON_TYPE_ILS_GLIDESLOPE;
+                callsign = 'IJEA';
+                frequency = 111750000.000000;
+                position = { -139039.453125, 37.618499, -111508.414063 };
+                direction = 121.722933;
+                positionGeo = { latitude = 24.906703, longitude = 55.145846 };
+                sceneObjects = {'t:-1265172387'};
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield6_4';
+                type = BEACON_TYPE_ILS_LOCALIZER;
+                callsign = 'IJWA';
+                frequency = 109750000.000000;
+                position = { -138832.656250, 37.618499, -112149.820313 };
+                direction = 121.949994;
+                positionGeo = { latitude = 24.908491, longitude = 55.139470 };
+                sceneObjects = {'t:-1265172388'};
+                chartOffsetX = 5248.000000;
+        };
+        {
+                display_name = _(''); -- RWY 12
+                beaconId = 'airfield6_5';
+                type = BEACON_TYPE_ICLS_LOCALIZER;
+                callsign = 'JEA';
+                frequency = 15625000000.000000;
+                channel = 8;
+                position = { -141530.671875, 37.618499, -107812.914063 };
+                direction = -58.079994;
+                positionGeo = { latitude = 24.884666, longitude = 55.182751 };
+                sceneObjects = {'t:-1265172389'};
+                chartOffsetX = 5249.000000;
+        };
+        {
+                display_name = _(''); -- RWY 30
+                beaconId = 'airfield6_6';
+                type = BEACON_TYPE_ICLS_GLIDESLOPE;
+                callsign = 'JWA';
+                frequency = 15445000000.000000;
+                channel = 12;
+                position = { -141086.531250, 37.618499, -108299.953125 };
+                direction = 121.722933;
+                positionGeo = { latitude = 24.888616, longitude = 55.177872 };
+                sceneObjects = {'t:380174336'};
+        };
+        {
+                display_name = _(''); -- RWY 12
+                beaconId = 'airfield6_7';
+                type = BEACON_TYPE_ICLS_GLIDESLOPE;
+                callsign = 'JEA';
+                frequency = 15625000000.000000;
+                channel = 8;
+                position = { -139039.453125, 37.618499, -111508.414063 };
+                direction = -56.676742;
+                positionGeo = { latitude = 24.906703, longitude = 55.145846 };
+                sceneObjects = {'t:-1265172387'};
+        };
+        {
+                display_name = _(''); -- RWY 30
+                beaconId = 'airfield6_8';
+                type = BEACON_TYPE_ICLS_LOCALIZER;
+                callsign = 'JWA';
+                frequency = 15445000000.000000;
+                channel = 12;
+                position = { -138832.656250, 37.618499, -112149.820313 };
+                direction = 121.949994;
+                positionGeo = { latitude = 24.908491, longitude = 55.139470 };
+                sceneObjects = {'t:-1265172388'};
+                chartOffsetX = 5248.000000;
+        };
+        {
+                display_name = _(''); -- RWY 30
+                beaconId = 'airfield6_9';
+                type = BEACON_TYPE_TACAN;
+                callsign = 'JWA';
+                frequency = 109800000.000000;
+                channel = 35;
+                position = { -141086.531250, 37.618499, -108299.953125 };
+                direction = -56.676742;
+                positionGeo = { latitude = 24.888616, longitude = 55.177872 };
+                sceneObjects = {'t:-1265074090'};
+        };
+        {
+                display_name = _(''); -- RWY 12
+                beaconId = 'airfield6_10';
+                type = BEACON_TYPE_TACAN;
+                callsign = 'JEA';
+                frequency = 111700000.000000;
+                channel = 54;
+                position = { -139039.453125, 37.618499, -111508.414063 };
+                direction = 121.722933;
+                positionGeo = { latitude = 24.906703, longitude = 55.145846 };
+                sceneObjects = {'t:-1265074090'};
+        };
+        {
+                display_name = _('Fujairah');
+                beaconId = 'airfield7_0';
+                type = BEACON_TYPE_VORTAC;
+                callsign = 'FJV';
+                frequency = 113800000.000000;
+                channel = 85;
+                position = { -118684.765625, 3.201513, 10676.752930 };
+                direction = -157.881708;
+                positionGeo = { latitude = 25.100651, longitude = 56.354556 };
+                sceneObjects = {'t:393838649'};
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield7_1';
+                type = BEACON_TYPE_ILS_GLIDESLOPE;
+                callsign = 'IFJR';
+                frequency = 111100000.000000;
+                position = { -118135.539063, 19.503962, 9027.303711 };
+                direction = 112.627742;
+                positionGeo = { latitude = 25.105538, longitude = 56.338172 };
+                sceneObjects = {'t:-1265139689'};
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield7_2';
+                type = BEACON_TYPE_ILS_LOCALIZER;
+                callsign = 'IFJR';
+                frequency = 111100000.000000;
+                position = { -116548.843750, 44.992561, 5567.033203 };
+                direction = 112.589986;
+                positionGeo = { latitude = 25.119710, longitude = 56.303773 };
+                sceneObjects = {'t:-1265139690'};
+                chartOffsetX = 4201.000000;
+        };
+                {
+                display_name = _('');
+                beaconId = 'airfield7_3';
+                type = BEACON_TYPE_TACAN;
+                callsign = 'FJR';
+                frequency = 110300000.000000;
+                channel = 40;
+                position = { -118135.539063, 19.503962, 9027.303711 };
+                direction = 112.627742;
+                positionGeo = { latitude = 25.105538, longitude = 56.338172 };
+                sceneObjects = {'t:-1265041393'};
+        };        
+        {
+                display_name = _('');
+                beaconId = 'airfield7_4';
+                type = BEACON_TYPE_ICLS_GLIDESLOPE;
+                callsign = 'FJR';
+                frequency = 15415000000.000000;
+                channel = 1;
+                position = { -118135.539063, 19.503962, 9027.303711 };
+                direction = 112.627742;
+                positionGeo = { latitude = 25.105538, longitude = 56.338172 };
+                sceneObjects = {'t:-1265139689'};
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield7_5';
+                type = BEACON_TYPE_ICLS_LOCALIZER;
+                callsign = 'FJR';
+                frequency = 15415000000.000000;
+                channel = 1;
+                position = { -116548.843750, 44.992561, 5567.033203 };
+                direction = 112.589986;
+                positionGeo = { latitude = 25.119710, longitude = 56.303773 };
+                sceneObjects = {'t:-1265139690'};
+                chartOffsetX = 4201.000000;
+        };
+        {
+                display_name = _('Havadarya');
+                beaconId = 'airfield9_0';
+                type = BEACON_TYPE_TACAN;
+                callsign = 'HDR';
+                frequency = 111000000.000000;
+                channel = 47;
+                position = { 109557.203125, 11.012902, -6187.317383 };
+                direction = -130.596154;
+                positionGeo = { latitude = 27.160571, longitude = 56.172924 };
+                sceneObjects = {'t:-1265074090'};
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield9_1';
+                type = BEACON_TYPE_ILS_LOCALIZER;
+                callsign = 'IBHD';
+                frequency = 108900000.000000;
+                position = { 109569.265625, 9.455730, -4889.315430 };
+                direction = -100.999995;
+                positionGeo = { latitude = 27.160757, longitude = 56.186023 };
+                sceneObjects = {'t:-1265074128'};
+                chartOffsetX = 2717.000000;
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield9_2';
+                type = BEACON_TYPE_ILS_GLIDESLOPE;
+                callsign = 'IBHD';
+                frequency = 108900000.000000;
+                position = { 109172.148438, 6.802046, -7163.755371 };
+                direction = -100.911496;
+                positionGeo = { latitude = 27.157037, longitude = 56.163095 };
+                sceneObjects = {'t:-1265074127'};
+        };
+        {
+                display_name = _(''); -- RWY 09
+                beaconId = 'airfield9_3';
+                type = BEACON_TYPE_TACAN;
+                callsign = 'BHD';
+                frequency = 108900000.000000;
+                channel = 26;
+                position = { 109172.148438, 6.802046, -7163.755371 };
+                direction = -100.911496;
+                positionGeo = { latitude = 27.157037, longitude = 56.163095 };
+                sceneObjects = {'t:-1265074090'};
+        };
+        {
+                display_name = _(''); -- RWY 09
+                beaconId = 'airfield9_4';
+                type = BEACON_TYPE_ICLS_LOCALIZER;
+                callsign = 'BHD';
+                frequency = 15625000000.000000;
+                channel = 8;
+                position = { 109569.265625, 9.455730, -4889.315430 };
+                direction = -100.999995;
+                positionGeo = { latitude = 27.160757, longitude = 56.186023 };
+                sceneObjects = {'t:-1265074128'};
+                chartOffsetX = 2717.000000;
+        };
+        {
+                display_name = _(''); -- RWY 09
+                beaconId = 'airfield9_5';
+                type = BEACON_TYPE_ICLS_GLIDESLOPE;
+                callsign = 'BHD';
+                frequency = 15625000000.000000;
+                channel = 8;
+                position = { 109172.148438, 6.802046, -7163.755371 };
+                direction = -100.911496;
+                positionGeo = { latitude = 27.157037, longitude = 56.163095 };
+                sceneObjects = {'t:-1265074127'};
+        };
+        {
+                display_name = _('KERMAN');
+                beaconId = 'airfield18_0';
+                type = BEACON_TYPE_HOMER;
+                callsign = 'KER';
+                frequency = 290000.000000;
+                position = { 453186.718750, 1751.425580, 71843.406250 };
+                direction = 144.697285;
+                positionGeo = { latitude = 30.264720, longitude = 56.959325 };
+                sceneObjects = {'t:133792405'};
+        };
+        {
+                display_name = _('KERMAN');
+                beaconId = 'airfield18_1';
+                type = BEACON_TYPE_VORTAC;
+                callsign = 'KER';
+                frequency = 112000000.000000;
+                channel = 57;
+                position = { 455450.843750, 1751.425824, 70352.039063 };
+                direction = 0.000000;
+                positionGeo = { latitude = 30.285146, longitude = 56.943809 };
+                sceneObjects = {'t:304185408'};
+        };
+        {
+                display_name = _('Khasab');
+                beaconId = 'airfield10_0';
+                type = BEACON_TYPE_TACAN;
+                callsign = 'KSB';
+                frequency = 113700000.000000;
+                channel = 84;
+                position = { 667.781860, 15.763658, -91.611923 };
+                direction = 88.473189;
+                positionGeo = { latitude = 26.177844, longitude = 56.240980 };
+                sceneObjects = {'t:-1265041393'};
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield10_1';
+                type = BEACON_TYPE_ILS_LOCALIZER;
+                callsign = 'IBKS';
+                frequency = 110300000.000000;
+                position = { -1521.258057, 31.899736, -503.110107 };
+                direction = 14.030001;
+                positionGeo = { latitude = 26.158057, longitude = 56.236991 };
+                sceneObjects = {'t:-1265041400'};
+                chartOffsetX = 2627.000000;
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield10_2';
+                type = BEACON_TYPE_ILS_GLIDESLOPE;
+                callsign = 'IBKS';
+                frequency = 110300000.000000;
+                position = { 673.278259, 15.972951, 101.777466 };
+                direction = 14.261517;
+                positionGeo = { latitude = 26.177903, longitude = 56.242914 };
+                sceneObjects = {'t:-1265041399'};
+                chartOffsetX = 1000.000000;
+        };
+                {
+                display_name = _('');
+                beaconId = 'airfield10_3';
+                type = BEACON_TYPE_TACAN;
+                callsign = 'BKS';
+                frequency = 110300000.000000;
+                channel = 40;
+                position = { 673.278259, 15.972951, 101.777466 };
+                direction = 14.261517;
+                positionGeo = { latitude = 26.177903, longitude = 56.242914 };
+                sceneObjects = {'t:-1265041393'};
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield10_4';
+                type = BEACON_TYPE_ICLS_LOCALIZER;
+                callsign = 'BKS';
+                frequency = 15475000000.000000;
+                channel = 3;
+                position = { -1521.258057, 31.899736, -503.110107 };
+                direction = 14.030001;
+                positionGeo = { latitude = 26.158057, longitude = 56.236991 };
+                sceneObjects = {'t:-1265041400'};
+                chartOffsetX = 2627.000000;
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield10_5';
+                type = BEACON_TYPE_ICLS_GLIDESLOPE;
+                callsign = 'BKS';
+                frequency = 15475000000.000000;
+                channel = 3;
+                position = { 673.278259, 15.972951, 101.777466 };
+                direction = 14.261517;
+                positionGeo = { latitude = 26.177903, longitude = 56.242914 };
+                sceneObjects = {'t:-1265041399'};
+                chartOffsetX = 1000.000000;
+        };
+        {
+                display_name = _('LAR');
+                beaconId = 'airfield11_0';
+                type = BEACON_TYPE_VORTAC;
+                callsign = 'LAR';
+                frequency = 117900000.000000;
+                channel = 126;
+                position = { 168932.671875, 792.860046, -179095.390625 };
+                direction = 0.000000;
+                positionGeo = { latitude = 27.674948, longitude = 54.416221 };
+                sceneObjects = {'t:515735552'};
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield11_1';
+                type = BEACON_TYPE_ILS_LOCALIZER;
+                callsign = 'OISL';
+                frequency = 111500000.000000;
+                position = { 168963.328125, 798.975591, -180089.718750 };
+                direction = -89.651007;
+                positionGeo = { latitude = 27.675037, longitude = 54.406142 };
+                sceneObjects = {'t:216399872'};
+                chartOffsetX = 3885.000000;
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield11_2';
+                type = BEACON_TYPE_ILS_GLIDESLOPE;
+                callsign = 'OISL';
+                frequency = 111500000.000000;
+                position = { 168903.421875, 803.328928, -183491.234375 };
+                direction = -88.808462;
+                positionGeo = { latitude = 27.673847, longitude = 54.371698 };
+                sceneObjects = {'t:515670094'};
+        };
+        {
+                display_name = _('LAR');
+                beaconId = 'airfield11_3';
+                type = BEACON_TYPE_HOMER;
+                callsign = 'OISL';
+                frequency = 224000.000000;
+                position = { 168452.046875, 803.328928, -183086.562500 };
+                direction = 0.000000;
+                positionGeo = { latitude = 27.669854, longitude = 54.375895 };
+                sceneObjects = {'t:515670098'};
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield11_4';
+                type = BEACON_TYPE_ICLS_LOCALIZER;
+                callsign = 'ISL';
+                frequency = 15535000000.000000;
+                channel = 15;
+                position = { 168963.328125, 798.975591, -180089.718750 };
+                direction = -89.651007;
+                positionGeo = { latitude = 27.675037, longitude = 54.406142 };
+                sceneObjects = {'t:216399872'};
+                chartOffsetX = 3885.000000;
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield11_5';
+                type = BEACON_TYPE_ICLS_GLIDESLOPE;
+                callsign = 'ISL';
+                frequency = 15535000000.000000;
+                channel = 15;
+                position = { 168903.421875, 803.328928, -183491.234375 };
+                direction = -88.808462;
+                positionGeo = { latitude = 27.673847, longitude = 54.371698 };
+                sceneObjects = {'t:515670094'};
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield11_6';
+                type = BEACON_TYPE_TACAN;
+                callsign = 'ISL';
+                frequency = 111500000.000000;
+                channel = 52;
+                position = { 168903.421875, 803.328928, -183491.234375 };
+                direction = -88.808462;
+                positionGeo = { latitude = 27.673847, longitude = 54.371698 };
+                sceneObjects = {'t:-1265074090'};
+        };
+        {
+                display_name = _('Minhad');
+                beaconId = 'airfield12_0';
+                type = BEACON_TYPE_VORTAC;
+                callsign = 'MIN';
+                frequency = 115200000.000000;
+                channel = 99;
+                position = { -126012.203125, 56.568256, -86126.000000 };
+                direction = -90.145369;
+                positionGeo = { latitude = 25.027220, longitude = 55.395556 };
+                sceneObjects = {'t:-1265008566'};
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield12_1';
+                type = BEACON_TYPE_ILS_LOCALIZER;
+                callsign = 'IMNW';
+                frequency = 110700000.000000;
+                position = { -126014.757813, 57.834752, -86793.367188 };
+                direction = -90.009988;
+                positionGeo = { latitude = 25.027125, longitude = 55.388944 };
+                sceneObjects = {'t:-1265008565'};
+                chartOffsetX = 4567.000000;
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield12_2';
+                type = BEACON_TYPE_ILS_GLIDESLOPE;
+                callsign = 'IMNW';
+                frequency = 110700000.000000;
+                position = { -125893.375000, 52.421538, -90741.046875 };
+                direction = -90.145369;
+                positionGeo = { latitude = 25.027792, longitude = 55.349815 };
+                sceneObjects = {'t:-1265008563'};
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield12_3';
+                type = BEACON_TYPE_ILS_LOCALIZER;
+                callsign = 'IMNR';
+                frequency = 110750000.000000;
+                position = { -126015.968750, 52.421538, -91371.843750 };
+                direction = 89.980011;
+                positionGeo = { latitude = 25.026616, longitude = 55.343580 };
+                sceneObjects = {'t:-1265008564'};
+                chartOffsetX = 4549.000000;
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield12_4';
+                type = BEACON_TYPE_ILS_GLIDESLOPE;
+                callsign = 'IMNR';
+                frequency = 110750000.000000;
+                position = { -125895.132813, 58.193624, -87437.218750 };
+                direction = 90.000474;
+                positionGeo = { latitude = 25.028136, longitude = 55.382550 };
+                sceneObjects = {'t:-1265008562'};
+        };
+        {
+                display_name = _(''); -- rwy 09
+                beaconId = 'airfield12_5';
+                type = BEACON_TYPE_ICLS_LOCALIZER;
+                callsign = 'MNW';
+                frequency = 15595000000.000000;
+                channel = 7;
+                position = { -126014.757813, 57.834752, -86793.367188 };
+                direction = -90.009988;
+                positionGeo = { latitude = 25.027125, longitude = 55.388944 };
+                sceneObjects = {'t:-1265008565'};
+                chartOffsetX = 4567.000000;
+        };
+        {
+                display_name = _(''); -- rwy 09
+                beaconId = 'airfield12_6';
+                type = BEACON_TYPE_ICLS_GLIDESLOPE;
+                callsign = 'MNW';
+                frequency = 15595000000.000000;
+                channel = 7;
+                position = { -125893.375000, 52.421538, -90741.046875 };
+                direction = -90.145369;
+                positionGeo = { latitude = 25.027792, longitude = 55.349815 };
+                sceneObjects = {'t:-1265008563'};
+        };
+        {
+                display_name = _(''); -- rwy 27
+                beaconId = 'airfield12_7';
+                type = BEACON_TYPE_ICLS_LOCALIZER;
+                callsign = 'MNR';
+                frequency = 15655000000.000000;
+                channel = 9;
+                position = { -126015.968750, 52.421538, -91371.843750 };
+                direction = 89.980011;
+                positionGeo = { latitude = 25.026616, longitude = 55.343580 };
+                sceneObjects = {'t:-1265008564'};
+                chartOffsetX = 4549.000000;
+        };
+        {
+                display_name = _(''); -- rwy 27
+                beaconId = 'airfield12_8';
+                type = BEACON_TYPE_ICLS_GLIDESLOPE;
+                callsign = 'MNR';
+                frequency = 15655000000.000000;
+                channel = 9;
+                position = { -125895.132813, 58.193624, -87437.218750 };
+                direction = 90.000474;
+                positionGeo = { latitude = 25.028136, longitude = 55.382550 };
+                sceneObjects = {'t:-1265008562'};
+        };
+        {
+                display_name = _(''); -- rwy 09
+                beaconId = 'airfield12_9';
+                type = BEACON_TYPE_TACAN;
+                callsign = 'MNW';
+                frequency = 110700000.000000;
+                channel = 44;
+                position = { -125893.375000, 52.421538, -90741.046875 };
+                direction = -90.145369;
+                positionGeo = { latitude = 25.027792, longitude = 55.349815 };
+                sceneObjects = {'t:-1265008563'};
+        };
+        {
+                display_name = _(''); -- rwy 27
+                beaconId = 'airfield12_10';
+                type = BEACON_TYPE_TACAN;
+                callsign = 'MNR';
+                frequency = 110800000.000000;
+                channel = 45;
+                position = { -125895.132813, 58.193624, -87437.218750 };
+                direction = 90.000474;
+                positionGeo = { latitude = 25.028136, longitude = 55.382550 };
+                sceneObjects = {'t:-1265008562'};
+        };
+        {
+                display_name = _('GheshmIsland');
+                beaconId = 'airfield13_0';
+                type = BEACON_TYPE_HOMER;
+                callsign = 'KHM';
+                frequency = 233000.000000;
+                position = { 65696.914063, 5.999469, -32833.363281 };
+                direction = 141.512093;
+                positionGeo = { latitude = 26.762802, longitude = 55.907839 };
+                sceneObjects = {'t:443514880'};
+        };
+        {
+                display_name = _('GheshmIsland');
+                beaconId = 'airfield13_1';
+                type = BEACON_TYPE_VORTAC;
+                callsign = 'KHM';
+                frequency = 117100000.000000;
+                channel = 118;
+                position = { 64811.847656, 5.999469, -33663.304688 };
+                direction = 0.000000;
+                positionGeo = { latitude = 26.754748, longitude = 55.899569 };
+                sceneObjects = {'t:78282784'};
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield14_0';
+                type = BEACON_TYPE_ILS_LOCALIZER;
+                callsign = 'ISRE';
+                frequency = 108550000.000000;
+                position = { -93834.992188, 29.999980, -71385.187500 };
+                direction = -57.030006;
+                positionGeo = { latitude = 25.319219, longitude = 55.538154 };
+                sceneObjects = {'t:-1264943044'};
+                chartOffsetX = 4492.000000;
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield14_1';
+                type = BEACON_TYPE_ILS_LOCALIZER;
+                callsign = 'ISHW';
+                frequency = 111950000.000000;
+                position = { -91290.867188, 29.999980, -75307.093750 };
+                direction = 122.970016;
+                positionGeo = { latitude = 25.341794, longitude = 55.498918 };
+                sceneObjects = {'t:-1264943043'};
+                chartOffsetX = 4480.000000;
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield14_2';
+                type = BEACON_TYPE_ILS_GLIDESLOPE;
+                callsign = 'ISHW';
+                frequency = 111950000.000000;
+                position = { -93187.609375, 29.972640, -72018.781250 };
+                direction = 121.869334;
+                positionGeo = { latitude = 25.325000, longitude = 55.531791 };
+                sceneObjects = {'t:-1264943042'};
+        };
+        {
+                display_name = _('');
+                beaconId = 'airfield14_3';
+                type = BEACON_TYPE_ILS_GLIDESLOPE;
+                callsign = 'ISRE';
+                frequency = 108550000.000000;
+                position = { -91604.445313, 29.999980, -74424.015625 };
+                direction = -57.111762;
+                positionGeo = { latitude = 25.339053, longitude = 55.507725 };
+                sceneObjects = {'t:-1264943041'};
+        };
+        {
+                display_name = _('Sharjah');  
+                beaconId = 'airfield14_4';
+                type = BEACON_TYPE_VORTAC;
+                callsign = 'SHJ';
+                frequency = 112300000.000000;
+                channel = 70;
+                position = { -92371.390625, 28.209940, -73056.312500 };
+                direction = 122.888246;
+                positionGeo = { latitude = 25.332266, longitude = 55.521396 };
+                sceneObjects = {'t:408617017'};
+        };
+                {
+                display_name = _(''); -- 12L
+                beaconId = 'airfield14_5';
+                type = BEACON_TYPE_ICLS_LOCALIZER;
+                callsign = 'SRE';
+                frequency = 15565000000.000000;
+                channel = 6;
+                position = { -93834.992188, 29.999980, -71385.187500 };
+                direction = -57.030006;
+                positionGeo = { latitude = 25.319219, longitude = 55.538154 };
+                sceneObjects = {'t:-1264943044'};
+                chartOffsetX = 4492.000000;
+        };
+        {
+                display_name = _(''); -- 30R
+                beaconId = 'airfield14_6';
+                type = BEACON_TYPE_ICLS_LOCALIZER;
+                callsign = 'SHW';
+                frequency = 15685000000.000000;
+                channel = 20;
+                position = { -91290.867188, 29.999980, -75307.093750 };
+                direction = 122.970016;
+                positionGeo = { latitude = 25.341794, longitude = 55.498918 };
+                sceneObjects = {'t:-1264943043'};
+                chartOffsetX = 4480.000000;
+        };
+        {
+                display_name = _(''); -- 30R
+                beaconId = 'airfield14_7';
+                type = BEACON_TYPE_ICLS_GLIDESLOPE;
+                callsign = 'SHW';
+                frequency = 15685000000.000000;
+                channel = 20;
+                position = { -93187.609375, 29.972640, -72018.781250 };
+                direction = 121.869334;
+                positionGeo = { latitude = 25.325000, longitude = 55.531791 };
+                sceneObjects = {'t:-1264943042'};
+        };
+        {
+                display_name = _(''); -- 12L
+                beaconId = 'airfield14_8';
+                type = BEACON_TYPE_ICLS_GLIDESLOPE;
+                callsign = 'SRE';
+                frequency = 15565000000.000000;
+                channel = 6;
+                position = { -91604.445313, 29.999980, -74424.015625 };
+                direction = -57.111762;
+                positionGeo = { latitude = 25.339053, longitude = 55.507725 };
+                sceneObjects = {'t:-1264943041'};
+        };
+                {
+                display_name = _(''); -- rwy 12L
+                beaconId = 'airfield14_9';
+                type = BEACON_TYPE_TACAN;
+                callsign = 'SRE';
+                frequency = 108550000.000000;
+                channel = 22;
+                position = { -91604.445313, 29.999980, -74424.015625 };
+                direction = -57.111762;
+                positionGeo = { latitude = 25.339053, longitude = 55.507725 };
+                sceneObjects = {'t:-1265008562'};
+        };
+        {
+                display_name = _(''); -- rwy 30R
+                beaconId = 'airfield14_10';
+                type = BEACON_TYPE_TACAN;
+                callsign = 'SHW';
+                frequency = 111900000.000000;
+                channel = 56;
+                position = { -93187.609375, 29.972640, -72018.781250 };
+                direction = 121.869334;
+                positionGeo = { latitude = 25.325000, longitude = 55.531791 };
+                sceneObjects = {'t:-1265008562'};
+        };
+        {
+                display_name = _('SHIRAZ');
+                beaconId = 'airfield19_0';
+                type = BEACON_TYPE_VOR_DME;
+                callsign = 'SYZ';
+                frequency = 117800000.000000;
+                channel = 125;
+                position = { 381030.062500, 1487.001487, -351865.593750 };
+                direction = -153.938912;
+                positionGeo = { latitude = 29.540193, longitude = 52.588744 };
+                sceneObjects = {'t:122491860'};
+        };
+        {
+                display_name = _('SHIRAZ');
+                beaconId = 'airfield19_1';
+                type = BEACON_TYPE_TACAN;
+                callsign = 'SYZ1';
+                frequency = 114700000.000000;
+                channel = 94;
+                position = { 381238.562500, 1487.001487, -352249.281250 };
+                direction = -153.938912;
+                positionGeo = { latitude = 29.541938, longitude = 52.584714 };
+                sceneObjects = {'t:651165847'};
+        };
+        {
+                display_name = _('SHIRAZ');
+                beaconId = 'airfield19_2';
+                type = BEACON_TYPE_HOMER;
+                callsign = 'SR';
+                frequency = 205000.000000;
+                position = { 379775.937500, 1487.001365, -350896.250000 };
+                direction = 0.000000;
+                positionGeo = { latitude = 29.529239, longitude = 52.599209 };
+                sceneObjects = {'t:649756715'};
+        };
+        {
+                display_name = _('SirriIsland');
+                beaconId = 'airfield15_0';
+                type = BEACON_TYPE_HOMER;
+                callsign = 'SIR';
+                frequency = 300000.000000;
+                position = { -27844.582031, 5.338042, -169988.296875 };
+                direction = 38.778616;
+                positionGeo = { latitude = 25.901625, longitude = 54.546971 };
+                sceneObjects = {'t:75893228'};
+        };
+        {
+                display_name = _('SirriIsland');
+                beaconId = 'airfield15_1';
+                type = BEACON_TYPE_VORTAC;
+                callsign = 'SIR';
+                frequency = 113750000.000000;
+                channel = 84;
+                position = { -26408.787109, 8.874265, -171201.140625 };
+                direction = 0.000000;
+                positionGeo = { latitude = 25.914373, longitude = 54.534604 };
+                sceneObjects = {'t:75890968'};
+        };
+        {
+                display_name = _('Kochak');
+                beaconId = 'airfield16_0';
+                type = BEACON_TYPE_TACAN;
+                callsign = 'KCK';
+                frequency = 114200000.000000;
+                channel = 89;
+                position = { 8918.999023, 4.131644, -109438.015625 };
+                direction = -7.639437;
+                positionGeo = { latitude = 26.242384, longitude = 55.145874 };
+                sceneObjects = {'t:182976541'};
+        };
+        {
+                display_name = _('Kish');
+                beaconId = 'world_0';
+                type = BEACON_TYPE_VORTAC;
+                callsign = 'KIS';
+                frequency = 117400000.000000;
+                channel = 121;
+                position = { 42498.050781, 20.856592, -226966.140625 };
+                direction = 0.000000;
+                positionGeo = { latitude = 26.525169, longitude = 53.962352 };
+                sceneObjects = {'t:77103104'};
+        };
+        {
+                display_name = _('AlAin');
+                beaconId = 'world_1';
+                type = BEACON_TYPE_VORTAC;
+                callsign = 'ALN';
+                frequency = 112600000.000000;
+                channel = 73;
+                position = { -211213.640625, 243.331756, -65684.554688 };
+                direction = 0.000000;
+                positionGeo = { latitude = 24.260000, longitude = 55.606667 };
+                sceneObjects = {'t:57704455'};
+        };
+        {
+                display_name = _('RasAlKhaiman');
+                beaconId = 'world_2';
+                type = BEACON_TYPE_VORTAC;
+                callsign = 'RAV';
+                frequency = 113600000.000000;
+                channel = 83;
+                position = { -64417.347656, 30.405420, -30027.595703 };
+                direction = 0.000000;
+                positionGeo = { latitude = 25.588333, longitude = 55.946667 };
+                sceneObjects = {'t:73860331'};
+        };
+}
+  push:
     branches: [ "main" ]
-pull_request: @media (max-width: 960px) {
-    h1 { font-size: 40px; }
-    h2 { font-size: 24px; }
-    .button-big {
-        margin: 30px auto;
-    }
-    .service-item {
-        padding: 50px 2% 0;
-        float: none;
-        width: 100%;
-    }
-    .service-item:last-child {
-        padding: 50px 2% 70px;
-    }
-}
-@media (max-width: 720px) {
-    /* header {
-        height: auto;
-    } */
-    .header-container {
-        display: block;
-    }
-    .header-container.center {
-        max-width: none;
-        width: 100%;
-    }
-    .logo {
-        display: block;
-        text-align: center;
-        margin-left: auto;
-        margin-right: auto;
-    }
-    .menu {
-        display: block;
-        text-align: center;
-        font-size: 14px;
-    }
-    .menu-item {
-        display: block;
-        margin: 0;
-        border-top: 1px solid #2A2A2A;
-    }
-    .menu-item a:link,
-    .menu-item a:active,
-    .menu-item a:visited {
-        display: inline-block;
-        width: 100%;
-        padding: 10px 0;
-    }
-    h1, h3, h5 { font-size: 24px; }
-    h2, h4, h6 { font-size: 16px; }
-    .button-big {
-        font-size: 12px;
-        width: 120px;
-        height: 36px;
-        line-height: 36px;
-        margin: 25px auto 15px;
-    }
-    .slider {
-        padding-top: 25px;
-    }
-    .service-item {
-        padding: 30px 2% 0;
-    }
-    .service-item:last-child {
-        padding: 30px 2%;
-    }
-    .portfolio {
-        padding: 10px 0 30px;
-    }
-    h3, h4 {
-        margin: 30px 0;
-    }
-    .portfolio label {
-        display: block;
-        width: auto;
-        margin: 5px;
-    }
-    .footer-container {
-        padding: 10px 0;
-    }
-    .address, .phone {
-        display: block;
-        margin: 0;
-        padding: 0;
-    }
-    .phone::before, .address::before {
-        position: relative;
-        left: -4px;
-        top: 2px;
-    }
-    .social {
-        margin: 18px 0;
-    }
-    .copyright-container {
-        padding: 24px 0;
-    }
-}
+  pull_request:
     branches: [ "main" ]
 
-jobs: @font-face {
-    font-family: "Lato Regular";
-    src: local("Lato Regular"), url(/fonts/Lato-Regular.ttf);
-}
-@font-face {
-    font-family: "Lato Black";
-    src: local("Lato Black"), url(/fonts/Lato-Black.ttf);
-}
-@font-face {
-    font-family: "Lato Light";
-    src: local("Lato Light"), url(/fonts/Lato-Light.ttf);
-}
-@font-face {
-    font-family: "Lato LightItalic";
-    src: local("Lato LightItalic"), url(/fonts/Lato-LightItalic.ttf);
-}
-  build: html, body {
-    margin: 0;
-    padding: 0;
-    background-color: #FFF;
-    font: 16px/1.3 "Lato Regular", arial;
-}
-.center {
-    max-width: 1120px;
-    width: 90%;
-    margin: 0 auto;
-}
-
-/* HEADER */
-header {
-    background-color: #262626;
-    color: #D9D9D9;
-    font-family: "ReklameScript RegularDEMO";
-}
-.header-container {
-    height: 100%;
-    display: table;
-    padding-top: 1px;
-}
-.logo {
-    background-image: url(/img/logo.png);
-    background-repeat: no-repeat;
-    background-position: left center;
-    display: inline-block;
-    height: 33px;
-    width: 107px;
-    margin: 33px 0;
-}
-.menu {
-    display: table-cell;
-    vertical-align: middle;
-    font: 13px "Lato Black";
-    text-align: right;
-}
-.menu-item {
-    display: inline-block;
-    margin-left: 50px;
-    text-transform: uppercase;
-}
-.menu-item a:link,
-.menu-item a:active,
-.menu-item a:visited {
-    text-decoration: none;
-    color: #D9D9D9;
-    padding: 10px 0;
-}
-.menu-item.active a:link,
-.menu-item.active a:active,
-.menu-item.active a:visited {
-    color: #FF6760;
-}
-.menu-item a:hover { color: #FCC; }
-.menu-item.active a:hover { color: #FCC; }
-
-/* SLIDER SECTION */
-.slider {
-    background-color: #2A2A2A;
-    font-family: "Lato Light";
-    text-align: center;
-    color: #D9D9D9;
-    padding: 35px 0 15px;
-}
-h1 {
-    font-size: 60px;
-    margin: 10px auto;
-}
-h1 strong {
-    font-family: "Lato Black";
-}
-h2 {
-    font-size: 40px;
-    margin: 10px auto;
-}
-h2 em {
-    font-family: "Lato LightItalic";
-}
-.button-big {
-    display: block;
-    width: 200px;
-    height: 50px;
-    margin: 45px auto;
-    line-height: 50px;
-    /* font: 14px "Lato Black"; 
-    почему-то не работает, очень странно;
-    а вот по одному все правильно применяется */
-    font-family: "Lato Black";
-    font-size: 14px;
-    text-transform: uppercase;
-    user-select: none;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-}
-a.button-big:link,
-a.button-big:visited,
-a.button-bit:active {
-    text-decoration: none;
-    color: #FFF;
-}
-.button-red {
-    background-color: #FF6760;
-    border-top-left-radius: 5px;
-    -webkit-border-top-left-radius: 5px;
-    -moz-border-radius-topleft: 5px;
-    border-bottom-left-radius: 5px;
-    -webkit-border-bottom-left-radius: 5px;
-    -moz-border-radius-bottomleft: 5px;
-    border-top-right-radius: 5px;
-    -webkit-border-top-right-radius: 5px;
-    -moz-border-radius-topright: 5px;
-    border-bottom-right-radius: 5px;
-    -webkit-border-bottom-right-radius: 5px;
-    -moz-border-radius-bottomright: 5px;
-}
-.button-red:hover {
-    background-color: #F77;
-}
-
-/* SERVICES SECTION */
-.services {
-    background-color: #F8F8F8;
-    text-align: center;
-    font-size: 14px;
-    line-height: 1.8;
-    color: #616161;
-}
-.services-container::after {
-    content: "";
-    display: block;
-    clear: both;
-}
-.service-item {
-    float: left;
-    width: 21%;
-    padding: 80px 2%;
-}
-.service-icon {
-    margin: auto;
-    width: 65px;
-    height: 70px;
-    background-image: url(/img/service-sprite.png);
-}
-.service-icon-1 { background-position: left 0px center; }
-.service-icon-2 { background-position: left 65px center; }
-.service-icon-3 { background-position: left 130px center; }
-.service-icon-4 { background-position: left 195px center; }
-.service-name {
-    font: 18px "Lato Black";
-    margin: 10px 0;
-}
-
-/* PORTFOLIO SECTION */
-.portfolio {
-    color: #FFF;
-    padding: 30px 0 70px;
-    text-align: center;
-    font-size: 0;
-}
-h3 {
-    color: #616161;
-    font: 30px "Lato Black";
-    margin: 20px 0;
-}
-h4 {
-    color: #616161;
-    font: 20px "Lato Light";
-    margin: 20px 0;
-}
-.portfolio label {
-    display: inline-block;
-    margin: 30px 5px 50px;
-    user-select: none;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    cursor: pointer;
-    font: 12px "Lato Black";
-    padding: 12px 20px;
-    text-transform: uppercase;
-}
-.portfolio input {
-    display: none;
-}
-.portfolio input:checked + label {
-    background-color: #616161;
-    transition: background-color 0.3s ease;
-    -moz-transition: background-color 0.3s ease;
-    -webkit-transition: background-color 0.3s ease;
-}
-.portfolio input:checked + label:hover {
-    background-color: #777;
-}
-input#tag-graphic:checked ~ a:not(.tag-graphic),
-input#tag-illustration:checked ~ a:not(.tag-illustration),
-input#tag-motion:checked ~ a:not(.tag-motion) {
-    position: relative;
-    //margin-left: -280px;
-    width: 0;
-    opacity: 0;
-    padding-left: 0;
-    padding-right: 0;
-    /* transition: margin-left 0.6s ease, opacity 0.6s ease;
-    -moz-transition: margin-left 0.6s ease, opacity 0.6s ease;
-    -webkit-transition: margin-left 0.6s ease, opacity 0.6s ease; */
-    transition: width 0.3s ease, padding-left 0.3s ease, padding-right 0.3s ease;
-    -moz-transition: width 0.3s ease, padding-left 0.3s ease, padding-right 0.3s ease;
-    -webkit-transition: width 0.3s ease, padding-left 0.3s ease, padding-right 0.3s ease;
-}
-.portfolio a {
-    padding: 5px;
-    display: inline-block;
-}
-.clearfix::after {
-    content: "";
-    display: block;
-    clear: both;
-}
-
-/* FOOTER */
-footer {
-    background-color: #313131;
-    text-align: center;
-    color: #BEBEBE;
-}
-.footer-container {
-    padding: 35px 0;
-}
-.copyright {
-    background-color: #2C2C2C;
-    font-size: 14px;
-}
-.copyright-container {
-    padding: 34px 0;
-}
-h5 {
-    color: #E0E0E0;
-    font: 30px "Lato Black";
-    margin: 15px 0;
-}
-h6 {
-    font: 20px "Lato Light";
-    margin: 15px 0;
-}
-.contact {
-    font-size: 14px;
-    padding: 5px 0;
-}
-.address {
-    position: relative;
-    margin-right: 55px;
-}
-.address::before, .phone::before {
-    content: "";
-    width: 14px;
-    height: 15px;
-    display: inline-block;
-    background-image: url(/img/contact-sprite.png);
-    position: absolute;
-    left: -18px;
-    bottom: 1px;
-}
-.phone { position: relative; }
-.phone:link, .phone:visited, .phone:active,
-.address:link, .address:visited, .phone:active {
-    color: #BEBEBE;
-    text-decoration: none;
-}
-.phone::before {
-    background-position: left 14px center;
-}
-.social {
-    font-size: 0;
-    margin: 20px;
-}
-.social-icon {
-    display: inline-block;
-    width: 32px;
-    height: 30px;
-    background-image: url(/img/social-sprite.png);
-    margin: 3px;
-}
-.social-icon:hover {
-    opacity: 0.6;
-    transition: opacity 0.3s ease-in;
-    -webkit-transition: opacity 0.3s ease-in;
-    -moz-transition: opacity 0.3s ease-in;
-}
-.rss { background-position: left 0px center; }
-.printerest { background-position: left 32px center; }
-.dribbble { background-position: left 64px center; }
-.twitter { background-position: left 96px center; }
-.facebook { background-position: left 128px center; }
-    runs-on: <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Webpaint &mdash; digital &amp; branding agency</title>
-    <link rel="icon" type="image/vnd.microsoft.icon" href="/img/favicon.ico">
-    <link rel="stylesheet" href="/css/custom-fonts.css">
-    <link rel="stylesheet" href="/css/main.css">
-    <link rel="stylesheet" href="/css/adaptive.css">
-</head>
-<body>
-    <header>
-        <div class="header-container center">
-            <a href="/home.html" class="logo"></a>
-            <nav class="menu">
-                <div class="menu-item active"><a href="home.html">home</a></div>
-                <div class="menu-item"><a href="portfolio.html">portfolio</a></div>
-                <div class="menu-item"><a href="about.html">about</a></div>
-                <div class="menu-item"><a href="blog.html">blog</a></div>
-                <div class="menu-item"><a href="contact.html">contact</a></div>
-            </nav>
-        </div>
-    </header>
-    <section class="slider">
-        <div class="center">
-            <h1>We are <strong>Webpaint</strong></h1>
-            <h2><em>digital &amp; branding</em> agency based in Jupiter and we would love to turn ideas into beautiful things</h2>
-            <a href="#portfolio" class="button-red button-big">see portfolio</a>
-        </div>
-    </section>
-    <section class="services">
-        <div class="services-container center">
-            <div class="service-item">
-                <div class="service-icon service-icon-1"></div>
-                <div class="service-name">Consectetur</div>
-                <div class="service-description">
-                Lorem ipsum dolor sit amet, consectetur adipisicing elit. Hic iusto, quod expedita tempora placeat sequi dolor architecto.
-                </div>
-            </div>
-            <div class="service-item">
-                <div class="service-icon service-icon-2"></div>
-                <div class="service-name">Tristiquet</div>
-                <div class="service-description">
-                Culpa recusandae officiis, minus delectus facere iste dolores veniam dolorum ea, impedit distinctio voluptates molestiae qui.
-                </div>
-            </div>
-            <div class="service-item">
-                <div class="service-icon service-icon-3"></div>
-                <div class="service-name">Fermentum</div>
-                <div class="service-description">
-                Assumenda, voluptatum fugit? Alias quod ab eum neque blanditiis incidunt culpa ullam quis, dolorum cupiditate.
-                </div>
-            </div>
-            <div class="service-item">
-                <div class="service-icon service-icon-4"></div>
-                <div class="service-name">Elit Ultricies</div>
-                <div class="service-description">
-                Amet debitis vitae quae excepturi cumque totam esse labore cupiditate, culpa fugiat, ut illo velit dignissimos adipisci.
-                </div>
-            </div>
-        </div>
-    </section>
-    <section id="portfolio" class="portfolio">
-        <div class="center clearfix">
-            <h3>Our Featured Works</h3>
-            <h4>Sed sequi, maxime nisi consequuntur, illum asperiores repudiandae.</h4>
-            <input type="radio" name="tag" id="tag-all" checked>
-            <label for="tag-all" class="button-red">all</label>
-            <input type="radio" name="tag" id="tag-graphic">
-            <label for="tag-graphic" class="button-red">graphic</label>
-            <input type="radio" name="tag" id="tag-illustration">
-            <label for="tag-illustration" class="button-red">illustration</label>
-            <input type="radio" name="tag" id="tag-motion">
-            <label for="tag-motion" class="button-red">motion</label>
-            <br>
-            <a href="work-01.html" class="tag-graphic"><img src="/img/thumb-01.jpg" alt="portfolio work-01"></a>
-            <a href="work-02.html" class="tag-graphic"><img src="/img/thumb-02.jpg" alt="portfolio work-02"></a>
-            <a href="work-03.html" class="tag-graphic"><img src="/img/thumb-03.jpg" alt="portfolio work-03"></a>
-            <a href="work-04.html" class="tag-graphic"><img src="/img/thumb-04.jpg" alt="portfolio work-04"></a>
-            <a href="work-05.html" class="tag-illustration"><img src="/img/thumb-05.jpg" alt="portfolio work-05"></a>
-            <a href="work-06.html" class="tag-illustration"><img src="/img/thumb-06.jpg" alt="portfolio work-06"></a>
-            <a href="work-07.html" class="tag-illustration"><img src="/img/thumb-07.jpg" alt="portfolio work-07"></a>
-            <a href="work-08.html" class="tag-illustration"><img src="/img/thumb-08.jpg" alt="portfolio work-08"></a>
-            <a href="work-09.html" class="tag-motion"><img src="/img/thumb-09.jpg" alt="portfolio work-09"></a>
-            <a href="work-10.html" class="tag-motion"><img src="/img/thumb-10.jpg" alt="portfolio work-10"></a>
-            <a href="work-11.html" class="tag-motion"><img src="/img/thumb-11.jpg" alt="portfolio work-11"></a>
-            <a href="work-12.html" class="tag-motion"><img src="/img/thumb-12.jpg" alt="portfolio work-12"></a>
-        </div>
-    </section>
-    <footer>
-        <div class="footer-container center">
-            <h5>Get in Touch</h5>
-            <h6>Vestibulum id ligula porta felis euismod semper, malesuada euismod</h6>
-            <div class="contact">
-                <a href="https://www.google.com.ua/maps/place/%D0%A3%D0%BB%D0%B8%D1%86%D0%B0+%D0%BF%D1%83%D1%88%D0%BA%D0%B8%D0%BD%D0%B0+%D0%B4%D0%BE%D0%BC+%D0%BA%D0%BE%D0%BB%D0%BE%D1%82%D1%83%D1%88%D0%BA%D0%B8%D0%BD%D0%B0/@55.8190893,37.4957068,17z/data=!3m1!4b1!4m2!3m1!1s0x46b5483b949ea495:0xc4ebcbe568aabe28?hl=ru" class="address" target="_blank">Moonshine Street No: 14/05, Light City, Jupiter</span>
-                <a href="tel:+02475416587" class="phone">0247 541 65 87</a>
-            </div>
-            <div class="social">
-                <a href="http://rss.example.com" class="social-icon rss" target="_blank"></a>
-                <a href="http://www.facebook.com" class="social-icon facebook" target="_blank"></a>
-                <a href="http://twitter.com" class="social-icon twitter" target="_blank"></a>
-                <a href="http://dribbble.com" class="social-icon dribbble" target="_blank"></a>
-                <a href="http://printerest.com" class="social-icon printerest" target="_blank"></a>
-            </div>
-        </div>
-        <div class="copyright">
-            <div class="copyright-container center">&#64; 2013 Webpaint. All Rights Reserved.</div>
-        </div>
-    </footer>
-</body>
-</html>
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
     strategy:
       matrix:
