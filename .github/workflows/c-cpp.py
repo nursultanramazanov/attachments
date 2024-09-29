@@ -1,6 +1,146 @@
 name: C/C++ CI
 
-on: <?php
+on: CC := gcc
+ifeq ($(USE_GPU),1)
+CUCC := nvcc
+endif
+
+# Select backend files based on selected backend
+# Supported values: naive, onednn
+BACKEND ?= onednn
+
+# Set to 1 to use accelerated matrix products when using naive backend
+USE_AVX ?= 0
+
+# The root directory of the oneDNN library, only needed when using
+# onednn backend
+ONEDNN_ROOT_DIR ?= lib/onednn
+ONEDNN_INCLUDE_DIR := $(ONEDNN_ROOT_DIR)/include
+ONEDNN_SHARED_DIR := $(ONEDNN_ROOT_DIR)/lib/
+
+# Can be set in case the directory where libcudart.so is located is not
+# in the default directories
+CUDA_LIB_DIR ?=
+
+# Select log level
+# Supported values: 1(error), 2(warn), 3(info), 4(trace)
+LOG_LEVEL ?= 3
+
+# Set to 1 to enable gdb support
+DEBUG ?= 0
+
+
+ifeq ($(DEBUG),1)
+ifeq ($(USE_AVX),1)
+$(error Can not have DEBUG=1 and USE_AVX=1 at the same time)
+endif
+endif
+
+
+CFLAGS :=
+CUFLAGS :=
+ifdef LOG_LEVEL
+CFLAGS += -DLOG_LEVEL=$(LOG_LEVEL)
+CUFLAGS += -DLOG_LEVEL=$(LOG_LEVEL)
+endif
+ifeq ($(USE_AVX),1)
+CFLAGS += -march=haswell -DUSE_AVX
+endif
+ifeq ($(USE_GPU),1)
+CFLAGS += -DUSE_GPU
+CUFLAGS += -DUSE_GPU
+endif
+ifeq ($(DEBUG),1)
+CFLAGS += -g -DDEBUG
+CUFLAGS += -g -DDEBUG
+else
+CFLAGS += -O3 -Ofast
+CUFLAGS += -O3
+endif
+
+
+# math library
+LDFLAGS := -lm
+
+
+SOURCEDIR := src
+
+# INCLUDE and SOURCE file located in the src directory
+INCLUDE := -I$(SOURCEDIR)/lib -I$(SOURCEDIR)/common
+SRC := $(shell find $(SOURCEDIR)/common -name '*.c')
+SRC += $(SOURCEDIR)/lib/log.c $(SOURCEDIR)/lib/config_info.c $(SOURCEDIR)/lib/random.c
+# Also add the target source file
+SRC += $(TARGET).c
+
+
+# Select backend files based on selected backend
+ifeq ($(BACKEND),naive)
+INCLUDE += -I$(SOURCEDIR)/naive -I$(SOURCEDIR)/include
+SRC += $(shell find $(SOURCEDIR)/naive -name '*.c')
+ifeq ($(USE_GPU),1)
+SRC += $(shell find $(SOURCEDIR)/naive -name '*.cu')
+ifneq ($(CUDA_LIB_DIR),)
+LDFLAGS += -L$(CUDA_LIB_DIR)
+endif
+LDFLAGS += -lcudart
+endif
+CFLAGS += -DBACKEND_NAIVE
+CUFLAGS += -DBACKEND_NAIVE
+else ifeq ($(BACKEND),onednn)
+INCLUDE += -I$(SOURCEDIR)/onednn -I$(ONEDNN_INCLUDE_DIR)
+SRC += $(shell find $(SOURCEDIR)/onednn -name '*.c')
+LDFLAGS += -L$(ONEDNN_SHARED_DIR) -ldnnl 
+CFLAGS += -DBACKEND_ONEDNN
+else
+$(error Only naive and onednn implementation available.)
+endif
+
+
+# Object files are placed in same directory as src files, just with different file extension
+OBJ := $(SRC:.c=.o)
+ifeq ($(USE_GPU),1)
+OBJ := $(OBJ:.cu=.o)
+endif
+  push: include config/defines.mk
+
+
+# Link all object files into a source file
+$(TARGET): $(OBJ)
+        $(CC) $^ -o $@ $(LDFLAGS)
+
+
+# Rule to compile a single translation unit
+%.o: %.c
+        $(CC) $(INCLUDE) $(CFLAGS) -c $< -o $@
+
+# Rule to compile a single cuda translation unit
+ifeq ($(USE_GPU),1)
+%.o: %.cu
+        $(CUCC) $(INCLUDE) $(CUFLAGS) -c $< -o $@
+endif
+
+
+clean:
+        @$(RM) -rv $(TARGET) $(OBJ)
+
+
+rebuild:
+        make clean && make
+
+
+run: $(TARGET)
+# since oneDNN is built as a shared library, need to add its location
+# to LD_LIBRARY_PATH so that the target executable can find it
+ifeq ($(BACKEND),onednn)
+run: export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$(ONEDNN_SHARED_DIR)
+endif
+run:
+        @$(TARGET)
+
+
+.PHONY: clean rebuild run
+    branches: [ "main" ]
+  pull_request: <?php
 
 namespace TestHub\Migrations;
 
@@ -53,7 +193,9 @@ class Version20160511181141 extends AbstractMigration
         $schema->dropTable('user');
     }
 }
-  push: <?php
+    branches: [ "main" ]
+
+jobs: <?php
 
 namespace TestHub\Migrations;
 
@@ -101,8 +243,7 @@ class Version20160511202416 extends AbstractMigration
         $schema->dropTable('test');
     }
 }
-    branches: [ "main" ]
-  pull_request: <?php
+  build: <?php
 
 namespace TestHub\Migrations;
 
@@ -152,9 +293,8 @@ class Version20160511212105 extends AbstractMigration
         $schema->dropTable('tag');
     }
 }
-    branches: [ "main" ]
 
-jobs: <?php
+    runs-on: <?php
 
 namespace TestHub\Migrations;
 
@@ -207,7 +347,8 @@ class Version20160512025516 extends AbstractMigration
         $schema->dropTable('question');
     }
 }
-  build: <?php
+
+    steps: <?php
 
 namespace TestHub\Migrations;
 
@@ -249,8 +390,7 @@ class Version20160512133552 extends AbstractMigration
         $schema->dropTable('variant');
     }
 }
-
-    runs-on: <?php
+    - uses: <?php
 
 namespace TestHub\Migrations;
 
@@ -291,8 +431,7 @@ class Version20160512135536 extends AbstractMigration
         $schema->dropTable('attempt');
     }
 }
-
-    steps: <?php
+    - name: <?php
 
 namespace TestHub\Migrations;
 
@@ -349,7 +488,7 @@ class Version20160512145224 extends AbstractMigration
         $schema->dropTable('answer');
     }
 }
-    - uses: <?php
+      run: ./<?php
 
 namespace TestHub\Migrations;
 
@@ -415,7 +554,7 @@ class Version20160518161400 extends AbstractMigration
         $attempt->dropColumn('status');
     }
 }
-      run: ./{% extends 'base.html.twig' %}
+      run: {% extends 'base.html.twig' %}
 
 {% block body %}
   <p class="alert alert-danger">
@@ -451,91 +590,4 @@ class Version20160518161400 extends AbstractMigration
     {% endblock message %}
   </p>
 {% endblock body %}
-      run:  #! /usr/bin/env python
-# encoding: utf-8
-
-import os
-from waflib import Errors, Utils
-from waflib import Context as mod
-
-class Context(mod.Context):
-        cmd = 'all'
-        def recurse(self, dirs, name=None, mandatory=True, once=True):
-                try:
-                        cache = self.recurse_cache
-                except:
-                        cache = self.recurse_cache = {}
-
-                for d in Utils.to_list(dirs):
-
-                        if not os.path.isabs(d):
-                                # absolute paths only
-                                d = os.path.join(self.path.abspath(), d)
-
-                        WSCRIPT     = os.path.join(d, 'wscript.py')
-                        WSCRIPT_FUN = 'wscript_' + (name or self.fun) + '.py'
-
-                        node = self.root.find_node(WSCRIPT_FUN)
-                        if node and (not once or node not in cache):
-                                cache[node] = True
-                                self.pre_recurse(node)
-                                try:
-                                        function_code = node.read('rU')
-                                        exec(compile(function_code, node.abspath(), 'exec'), self.exec_dict)
-                                finally:
-                                        self.post_recurse(node)
-                        elif not node:
-                                node = self.root.find_node(WSCRIPT)
-                                if node and (not once or node not in cache):
-                                        cache[node] = True
-                                        self.pre_recurse(node)
-                                        try:
-                                                wscript_module = mod.load_module(node.abspath())
-                                                user_function = getattr(wscript_module, (name or self.fun), None)
-                                                if not user_function:
-                                                        if not mandatory:
-                                                                continue
-                                                        raise Errors.WafError('No function %s defined in %s' % (name or self.fun, node.abspath()))
-                                                user_function(self)
-                                        finally:
-                                                self.post_recurse(node)
-                                elif not node:
-                                        if not mandatory:
-                                                continue
-                                        raise Errors.WafError('No wscript file in directory %s' % d)
-mod.Context = Context
-mod.WSCRIPT_FILE = 'wscript.py'
-    - name:  #! /usr/bin/env python
-# encoding: utf-8
-
-"""
-Create a waf file able to read wscript files ending in ".py"
-execute a small test to show that it works
-
-The waf file includes "extpy.py" which performs the required modifications
-"""
-
-import os, subprocess
-
-up = os.path.dirname
-join = os.path.join
-
-cwd = os.getcwd()
-extpy = join(cwd, 'extpy.py')
-args = 'python waf-light --tools=compat15,%s --prelude=$"\tfrom waflib.extras import extpy\n" ' % extpy
-root = up(up(cwd))
-
-subprocess.Popen(args, cwd=root, shell=True).wait()
-os.rename(join(root, 'waf'), join(cwd, 'waf.py'))
-
-env = dict(os.environ)
-if 'WAFDIR' in env:
-        del env['WAFDIR']
-
-subprocess.Popen('python waf.py configure', cwd=cwd, shell=True, env=env).wait()
-      run: #! /usr/bin/env python
-# encoding: utf-8
-
-def configure(conf):
-        print("test succeeded") 
-   
+      run: make distcheck
