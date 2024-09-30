@@ -2785,21 +2785,366 @@ test: native_and_emulated
 # ***** UPDATE THIS FOR MAINTENANCE BRANCHES ********************************
 upload_on_branch: main
         # Provide a unique ID to access the sarif output path
-        id: run-analysis
-        with:
-          cmakeBuildDirectory: ${{ env.build }}
+        id: imports:
+    - { resource: parameters.yml }
+    - { resource: security.yml }
+    - { resource: services.yml }
+
+# Put parameters here that don't need to change on each machine where the app is deployed
+# http://symfony.com/doc/current/best_practices/configuration.html#application-related-configuration
+parameters:
+    locale: en
+
+framework:
+    #esi:             ~
+    #translator:      { fallbacks: ["%locale%"] }
+    secret:          "%secret%"
+    router:
+        resource: "%kernel.root_dir%/config/routing.yml"
+        strict_requirements: ~
+    form:            ~
+    csrf_protection: ~
+    validation:      { enable_annotations: true }
+    #serializer:      { enable_annotations: true }
+    templating:
+        engines: ['twig']
+    default_locale:  "%locale%"
+    trusted_hosts:   ~
+    trusted_proxies: ~
+    session:
+        # http://symfony.com/doc/current/reference/configuration/framework.html#handler-id
+        handler_id:  session.handler.native_file
+        save_path:   "%kernel.root_dir%/../var/sessions/%kernel.environment%"
+    fragments:       ~
+    http_method_override: true
+    assets: ~
+
+# Twig Configuration
+twig:
+    debug:            "%kernel.debug%"
+    strict_variables: "%kernel.debug%"
+    form_themes:
+        - 'bootstrap_3_layout.html.twig'
+
+# Doctrine Configuration
+doctrine:
+    dbal:
+        driver:   pdo_mysql
+        host:     "%database_host%"
+        port:     "%database_port%"
+        dbname:   "%database_name%"
+        user:     "%database_user%"
+        password: "%database_password%"
+        charset:  UTF8
+        default_table_options:
+            charset: UTF8
+            collate: utf8_general_ci
+        # if using pdo_sqlite as your database driver:
+        #   1. add the path in parameters.yml
+        #     e.g. database_path: "%kernel.root_dir%/data/data.db3"
+        #   2. Uncomment database_path in parameters.yml.dist
+        #   3. Uncomment next line:
+        #     path:     "%database_path%"
+
+    orm:
+        auto_generate_proxy_classes: "%kernel.debug%"
+        naming_strategy: doctrine.orm.naming_strategy.underscore
+        auto_mapping: true
+
+# Swiftmailer Configuration
+swiftmailer:
+    transport: "%mailer_transport%"
+    host:      "%mailer_host%"
+    username:  "%mailer_user%"
+    password:  "%mailer_password%"
+    spool:     { type: memory }
+
+assetic:
+    debug:          '%kernel.debug%'
+    use_controller: '%kernel.debug%'
+    filters:
+        cssrewrite: ~
+
+doctrine_migrations:
+    dir_name: "%kernel.root_dir%/DoctrineMigrations"
+    namespace: TestHub\Migrations
+    table_name: migration_versions
+    name: Application Migrations
+        with: imports:
+    - { resource: config.yml }
+
+framework:
+    router:
+        resource: "%kernel.root_dir%/config/routing_dev.yml"
+        strict_requirements: true
+    profiler: { only_exceptions: false }
+
+web_profiler:
+    toolbar: true
+    intercept_redirects: false
+
+monolog:
+    handlers:
+        main:
+            type: stream
+            path: "%kernel.logs_dir%/%kernel.environment%.log"
+            level: debug
+            channels: [!event]
+        console:
+            type:   console
+            channels: [!event, !doctrine]
+        # uncomment to get logging in your browser
+        # you may have to allow bigger header sizes in your Web server configuration
+        #firephp:
+        #    type:   firephp
+        #    level:  info
+        #chromephp:
+        #    type:   chromephp
+        #    level:  info
+
+#swiftmailer:
+#    delivery_address: me@example.com
+          cmakeBuildDirectory: imports:
+    - { resource: config.yml }
+
+#framework:
+#    validation:
+#        cache: validator.mapping.cache.doctrine.apc
+#    serializer:
+#        cache: serializer.mapping.cache.doctrine.apc
+
+#doctrine:
+#    orm:
+#        metadata_cache_driver: apc
+#        result_cache_driver: apc
+#        query_cache_driver: apc
+
+monolog:
+    handlers:
+        main:
+            type:         fingers_crossed
+            action_level: error
+            handler:      nested
+        nested:
+            type:  stream
+            path:  "%kernel.logs_dir%/%kernel.environment%.log"
+            level: debug
+        console:
+            type:  console
           # Ruleset file that will determine what checks will be run
-          ruleset: NativeRecommendedRules.ruleset
+          ruleset: imports:
+    - { resource: config_dev.yml }
+
+framework:
+    test: ~
+    session:
+        storage_id: session.storage.mock_file
+    profiler:
+        collect: false
+
+web_profiler:
+    toolbar: false
+    intercept_redirects: false
+
+swiftmailer:
+    disable_delivery: true
+
+doctrine:
+    dbal:
+        driver_class: TestHubBundle\DBAL\Driver
+        host:     localhost
+        dbname:   testhub_test
+        user:     root
+        password: null
 
       # Upload SARIF file to GitHub Code Scanning Alerts
-      - name: Upload SARIF to GitHub
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: ${{ steps.run-analysis.outputs.sarif }}
+      - name: # This file is a "template" of what your parameters.yml file should look like
+# Set parameters here that may be different on each deployment target of the app, e.g. development, staging, production.
+# http://symfony.com/doc/current/best_practices/configuration.html#infrastructure-related-configuration
+parameters:
+    database_host:     127.0.0.1
+    database_port:     ~
+    database_name:     symfony
+    database_user:     root
+    database_password: ~
+    # You should uncomment this if you want use pdo_sqlite
+    # database_path: "%kernel.root_dir%/data.db3"
+
+    mailer_transport:  smtp
+    mailer_host:       127.0.0.1
+    mailer_user:       ~
+    mailer_password:   ~
+
+    # A secret key that's used to generate certain security-related tokens
+    secret:            ThisTokenIsNotSoSecretChangeIt
+        uses: homepage:
+    path: /
+    defaults: { _controller: TestHubBundle:Test:index }
+
+start:
+    path: /test/{testID}/start
+    defaults: { _controller: TestHubBundle:Test:start }
+    methods: [POST]
+
+preface:
+    path: /test/{testID}/preface
+    defaults: { _controller: TestHubBundle:Test:preface }
+
+question:
+    path: /attempt/{attemptID}/question/{questionNumber}
+    defaults: { _controller: TestHubBundle:Test:question }
+    requirements:
+        questionNumber: \d+
+        attemptID: \d+
+
+result:
+    path: /attempt/{attemptID}/result
+    defaults: { _controller: TestHubBundle:Test:result }
+
+confirm:
+    path: /attempt/{attemptID}/confirm
+    defaults: { _controller: TestHubBundle:Test:confirm }
+        with: _wdt:
+    resource: "@WebProfilerBundle/Resources/config/routing/wdt.xml"
+    prefix:   /_wdt
+
+_profiler:
+    resource: "@WebProfilerBundle/Resources/config/routing/profiler.xml"
+    prefix:   /_profiler
+
+_errors:
+    resource: "@TwigBundle/Resources/config/routing/errors.xml"
+    prefix:   /_error
+
+_main:
+    resource: routing.yml
+          sarif_file: # To get started with security, check out the documentation:
+# http://symfony.com/doc/current/book/security.html
+security:
+
+    # http://symfony.com/doc/current/book/security.html#where-do-users-come-from-user-providers
+    providers:
+        in_memory:
+            memory: ~
+
+    firewalls:
+        # disables authentication for assets and the profiler, adapt it according to your needs
+        dev:
+            pattern: ^/(_(profiler|wdt)|css|images|js)/
+            security: false
+
+        main:
+            anonymous: ~
+            # activate different ways to authenticate
+
+            # http_basic: ~
+            # http://symfony.com/doc/current/book/security.html#a-configuring-how-your-users-will-authenticate
+
+            # form_login: ~
+            # http://symfony.com/doc/current/cookbook/security/form_login_setup.html
 
       # Upload SARIF file as an Artifact to download and view
-      # - name: Upload SARIF as an Artifact
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     name: sarif-file
-      #     path: ${{ steps.run-analysis.outputs.sarif }}
+      # - name: # Learn more about services, parameters and containers at
+# http://symfony.com/doc/current/book/service_container.html
+parameters:
+#    parameter_name: value
+
+services:
+#    service_name:
+#        class: AppBundle\Directory\ClassName
+#        arguments: ["@another_service_name", "plain_value", "%parameter_name%"]
+    user_manager:
+        class: TestHubBundle\Service\DummyUserManager
+        arguments: ["@doctrine.orm.entity_manager"]
+    test_service:
+        class: TestHubBundle\Service\TestService
+        arguments: ["@doctrine.orm.entity_manager"]
+    calculator:
+        class: TestHubBundle\Service\Calculator
+    app.twig_extension:
+        class: TestHubBundle\Twig\AppExtension
+        public: false
+        tags:
+            - { name: twig.extension }
+      #   uses: <IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order deny,allow
+    Deny from all
+</IfModule>
+      #   with: <?php
+
+use Symfony\Bundle\FrameworkBundle\HttpCache\HttpCache;
+
+class AppCache extends HttpCache
+{
+}
+      #     name: <?php
+
+use Symfony\Component\HttpKernel\Kernel;
+use Symfony\Component\Config\Loader\LoaderInterface;
+
+mb_internal_encoding('utf8');
+
+class AppKernel extends Kernel
+{
+    public function registerBundles()
+    {
+        $bundles = [
+            new Symfony\Bundle\FrameworkBundle\FrameworkBundle(),
+            new Symfony\Bundle\SecurityBundle\SecurityBundle(),
+            new Symfony\Bundle\TwigBundle\TwigBundle(),
+            new Symfony\Bundle\MonologBundle\MonologBundle(),
+            new Symfony\Bundle\SwiftmailerBundle\SwiftmailerBundle(),
+            new Doctrine\Bundle\DoctrineBundle\DoctrineBundle(),
+            new Sensio\Bundle\FrameworkExtraBundle\SensioFrameworkExtraBundle(),
+            new TestHubBundle\TestHubBundle(),
+            new Symfony\Bundle\AsseticBundle\AsseticBundle(),
+            new Doctrine\Bundle\MigrationsBundle\DoctrineMigrationsBundle(),
+            new Doctrine\Bundle\FixturesBundle\DoctrineFixturesBundle(),
+        ];
+
+        if (in_array($this->getEnvironment(), ['dev', 'test'], true)) {
+            $bundles[] = new Symfony\Bundle\DebugBundle\DebugBundle();
+            $bundles[] = new Symfony\Bundle\WebProfilerBundle\WebProfilerBundle();
+            $bundles[] = new Sensio\Bundle\DistributionBundle\SensioDistributionBundle();
+            $bundles[] = new Sensio\Bundle\GeneratorBundle\SensioGeneratorBundle();
+        }
+
+        return $bundles;
+    }
+
+    public function getRootDir()
+    {
+        return __DIR__;
+    }
+
+    public function getCacheDir()
+    {
+        return dirname(__DIR__).'/var/cache/'.$this->getEnvironment();
+    }
+
+    public function getLogDir()
+    {
+        return dirname(__DIR__).'/var/logs';
+    }
+
+    public function registerContainerConfiguration(LoaderInterface $loader)
+    {
+        $loader->load($this->getRootDir().'/config/config_'.$this->getEnvironment().'.yml');
+    }
+}
+      #     path: <?php
+
+use Doctrine\Common\Annotations\AnnotationRegistry;
+use Composer\Autoload\ClassLoader;
+
+/**
+ * @var ClassLoader $loader
+ */
+$loader = require __DIR__.'/../vendor/autoload.php';
+
+AnnotationRegistry::registerLoader([$loader, 'loadClass']);
+
+return $loader;
