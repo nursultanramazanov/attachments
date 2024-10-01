@@ -908,5 +908,49 @@ ninja bundle
 ccache -s -v
 
 ctest -VV -C Release || echo "::error ::Test error occurred on Windows build"
-    - name: make distcheck
-      run: make distcheck
+    - name: <?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+        <key>CFBundleDevelopmentRegion</key>
+        <string>en</string>
+        <key>CFBundleExecutable</key>
+        <string>$(EXECUTABLE_NAME)</string>
+        <key>CFBundleIdentifier</key>
+        <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+        <key>CFBundleInfoDictionaryVersion</key>
+        <string>6.0</string>
+        <key>CFBundleName</key>
+        <string>$(PRODUCT_NAME)</string>
+        <key>CFBundlePackageType</key>
+        <string>FMWK</string>
+        <key>CFBundleShortVersionString</key>
+        <string>1.0</string>
+        <key>CFBundleSignature</key>
+        <string>????</string>
+        <key>CFBundleVersion</key>
+        <string>$(CURRENT_PROJECT_VERSION)</string>
+        <key>NSPrincipalClass</key>
+        <string></string>
+</dict>
+</plist>
+      run: //
+//  M A R S H A L
+//
+//       ()
+//       /\
+//  ()--'  '--()
+//    `.    .'
+//     / .. \
+//    ()'  '()
+//
+//
+
+
+#import <Foundation/Foundation.h>
+
+//! Project version number for Marshal.
+FOUNDATION_EXPORT double MarshalVersionNumber;
+
+//! Project version string for Marshal.
+FOUNDATION_EXPORT const unsigned char MarshalVersionString[];
