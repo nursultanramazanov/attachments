@@ -1,132 +1,7 @@
 imports:
-    - { resource: # This file is a "template" of what your parameters.yml file should look like
-# Set parameters here that may be different on each deployment target of the app, e.g. development, staging, production.
-# http://symfony.com/doc/current/best_practices/configuration.html#infrastructure-related-configuration
-parameters:
-    database_host:     127.0.0.1
-    database_port:     ~
-    database_name:     symfony
-    database_user:     root
-    database_password: ~
-    # You should uncomment this if you want use pdo_sqlite
-    # database_path: "%kernel.root_dir%/data.db3"
-
-    mailer_transport:  smtp
-    mailer_host:       127.0.0.1
-    mailer_user:       ~
-    mailer_password:   ~
-
-    # A secret key that's used to generate certain security-related tokens
-    secret:            ThisTokenIsNotSoSecretChangeIt }
-    - { resource: # To get started with security, check out the documentation:
-# http://symfony.com/doc/current/book/security.html
-security:
-
-    # http://symfony.com/doc/current/book/security.html#where-do-users-come-from-user-providers
-    providers:
-        in_memory:
-            memory: ~
-
-    firewalls:
-        # disables authentication for assets and the profiler, adapt it according to your needs
-        dev:
-            pattern: ^/(_(profiler|wdt)|css|images|js)/
-            security: false
-
-        main:
-            anonymous: ~
-            # activate different ways to authenticate
-
-            # http_basic: ~
-            # http://symfony.com/doc/current/book/security.html#a-configuring-how-your-users-will-authenticate
-
-            # form_login: ~
-            # http://symfony.com/doc/current/cookbook/security/form_login_setup.html }
-    - { resource: # Learn more about services, parameters and containers at
-# http://symfony.com/doc/current/book/service_container.html
-parameters:
-#    parameter_name: value
-
-services:
-#    service_name:
-#        class: AppBundle\Directory\ClassName
-#        arguments: ["@another_service_name", "plain_value", "%parameter_name%"]
-    user_manager:
-        class: TestHubBundle\Service\DummyUserManager
-        arguments: ["@doctrine.orm.entity_manager"]
-    test_service:
-        class: TestHubBundle\Service\TestService
-        arguments: ["@doctrine.orm.entity_manager"]
-    calculator:
-        class: TestHubBundle\Service\Calculator
-    app.twig_extension:
-        class: TestHubBundle\Twig\AppExtension
-        public: false
-        tags:
-            - { name: <?php
-namespace Tests\TestHubBundle\Twig;
-
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use TestHubBundle\Twig\AppExtension;
-
-class AppExtensionTest extends WebTestCase
-{
-    private $ext;
-
-    protected function setUp()
-    {
-        $this->ext = new AppExtension();
-    }
-
-    public function testWordCaseFilter()
-    {
-        $wordForms = ['день', 'дня', 'дней'];
-
-        $this->assertEquals('1 день', $this->ext->wordCase(1, $wordForms));
-        $this->assertEquals('3 дня', $this->ext->wordCase(3, $wordForms));
-        $this->assertEquals('5 дней', $this->ext->wordCase(5, $wordForms));
-        $this->assertEquals('17 дней', $this->ext->wordCase(17, $wordForms));
-        $this->assertEquals('22 дня', $this->ext->wordCase(22, $wordForms));
-        $this->assertEquals('113 дней', $this->ext->wordCase(113, $wordForms));
-        $this->assertEquals('269 дней', $this->ext->wordCase(269, $wordForms));
-
-        $wordForms = ['вопрос', 'вопроса', 'вопросов'];
-
-        $this->assertEquals('1 вопрос', $this->ext->wordCase(1, $wordForms));
-        $this->assertEquals('3 вопроса', $this->ext->wordCase(3, $wordForms));
-        $this->assertEquals('5 вопросов', $this->ext->wordCase(5, $wordForms));
-        $this->assertEquals('17 вопросов', $this->ext->wordCase(17, $wordForms));
-        $this->assertEquals('22 вопроса', $this->ext->wordCase(22, $wordForms));
-        $this->assertEquals('113 вопросов', $this->ext->wordCase(113, $wordForms));
-        $this->assertEquals('269 вопросов', $this->ext->wordCase(269, $wordForms));
-
-        $wordForms = ['минута', 'минуты', 'минут'];
-
-        $this->assertEquals('1 минута', $this->ext->wordCase(1, $wordForms));
-        $this->assertEquals('3 минуты', $this->ext->wordCase(3, $wordForms));
-        $this->assertEquals('5 минут', $this->ext->wordCase(5, $wordForms));
-        $this->assertEquals('17 минут', $this->ext->wordCase(17, $wordForms));
-        $this->assertEquals('22 минуты', $this->ext->wordCase(22, $wordForms));
-        $this->assertEquals('113 минут', $this->ext->wordCase(113, $wordForms));
-        $this->assertEquals('269 минут', $this->ext->wordCase(269, $wordForms));
-    }
-
-    public function testFormatTimeLeftFilter()
-    {
-        /*
-         * 1 day 4 hours 18 minutes 23 seconds
-         */
-        $time = 3600 * 24 + 4 * 3600 + 18 * 60 + 23;
-        $this->assertEquals('1 день 04:18:23', $this->ext->formatTimeLeftFilter($time));
-    }
-
-    public function testPercentage()
-    {
-        $this->assertEquals('66%', $this->ext->percentage(2, 3));
-        $this->assertEquals('0%', $this->ext->percentage(0, 3));
-        $this->assertEquals('100%', $this->ext->percentage(3, 3));
-    }
-} } }
+    - { resource: parameters.yml }
+    - { resource: security.yml }
+    - { resource: services.yml }
 
 # Put parameters here that don't need to change on each machine where the app is deployed
 # http://symfony.com/doc/current/best_practices/configuration.html#application-related-configuration
@@ -195,7 +70,7 @@ swiftmailer:
     host:      "%mailer_host%"
     username:  "%mailer_user%"
     password:  "%mailer_password%"
-    spool:     { type: memory } 
+    spool:     { type: memory }
 
 assetic:
     debug:          '%kernel.debug%'
