@@ -440,87 +440,269 @@ else
 fi
     branches: [ "main" ]
 
-env: <!-- HTML header for doxygen 1.8.16-->
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+env: <?php
+
+namespace VisitCounter\Db;
+
+interface DbAdapterInterface
+{
+    public function save(array $data);
+}
+  CARGO_TERM_COLOR: <?php
+
+namespace VisitCounter\Db;
+
+class PdoAdapter implements DbAdapterInterface
+{
+    private $connection;
+
+    protected $pk;
+    protected $tblName;
+    protected $colName;
+
+    public function __construct($connection, $tblName, $colName, $pk = 'id')
+    {
+        $this->connection = $connection;
+        $this->tblName = $tblName;
+        $this->colName = $colName;
+        $this->pk = $pk;
+    }
+
+    public function save(array $visitsPages)
+    {
+        if (!$this->tblName or !$this->colName) {
+            $message = "Properties tblName and colName are mandatory.";
+            throw new \VisitCounter\Exception\RedisException($message);
+        }
+        try {
+            foreach ($visitsPages as $visitCount => $pages) {
+                $pageList = implode(',', $pages);
+                $sql = "UPDATE {$this->tblName}
+                        SET {$this->colName} = {$this->colName} + $visitCount
+                        WHERE {$this->pk} IN ({$pageList})";
+                $sth = $this->connection->prepare($sql);
+                $sth->execute();
+            }
+        } catch (\PDOException $e) {
+            throw new \VisitCounter\Exception\DbException($e->getMessage(), 0, $e);
+        }
+    }
+}
+
+jobs: <?php
+
+namespace VisitCounter\Exception;
+
+class DbException extends \Exception
+{
+}
+  build: <?php
+
+namespace VisitCounter\Exception;
+
+class RedisException extends \Exception
+{
+}
+
+    runs-on: <?php
+
+namespace VisitCounter\Redis;
+
+interface RedisAdapterInterface
+{
+    public function setnx($keyName, $expire, $value = '');
+    public function rpush($listName, $value);
+    public function llen($listName);
+    public function lrange($listName, $start = 0, $end = -1);
+    public function ltrim($listName, $start, $end = -1);
+    public function hincrby($hashName, $field, $count = 1);
+    public function hmget($hashName, array $fields);
+}
+
+    steps: <?php
+
+namespace VisitCounter\Redis;
+
+class RediskaAdapter implements RedisAdapterInterface
+{
+    private $client;
+
+    public function __construct(\Rediska $client)
+    {
+        $this->client = $client;
+    }
+
+    public function setnx($keyName, $expire, $value = '')
+    {
+        $command = new \Rediska_Command_Set(
+            $this->client,
+            'Set',
+            array($keyName, $value, false)
+        );
+        try {
+            if ( !$command->execute() ) return false;
+            $key = new \Rediska_Key($keyName);
+            $key->expire($expire);
+        } catch (\Rediska_Exception $e) {
+            throw new \VisitCounter\Exception\RedisException($e->getMessage(), 0, $e);
+        }
+        return true;
+    }
+
+    public function rpush($listName, $value)
+    {
+        $key = new \Rediska_Key_List($listName);
+        try {
+            $key->append($value);
+        } catch (\Rediska_Exception $e) {
+            throw new \VisitCounter\Exception\RedisException($e->getMessage(), 0, $e);
+        }
+        return true;
+    }
+
+    public function llen($listName)
+    {
+        $key = new \Rediska_Key_List($listName);
+        try {
+            $length = $key->getLength();
+        } catch (\Rediska_Exception $e) {
+            throw new \VisitCounter\Exception\RedisException($e->getMessage(), 0, $e);
+        }
+        return $length;
+    }
+
+    public function lrange($listName, $start = 0, $end = -1)
+    {
+        $key = new \Rediska_Key_List($listName);
+        try {
+            $result = $key->getValues($start, $end);
+        } catch (\Rediska_Exception $e) {
+            throw new \VisitCounter\Exception\RedisException($e->getMessage(), 0, $e);
+        }
+        return $result;
+    }
+
+    public function ltrim($listName, $start = 0, $end = -1)
+    {
+        $key = new \Rediska_Key_List($listName);
+        try {
+            $key->truncate($start, $end);
+        } catch (\Rediska_Exception $e) {
+            throw new \VisitCounter\Exception\RedisException($e->getMessage(), 0, $e);
+        }
+        return true;
+    }
+
+    public function hincrby($hashName, $field, $count = 1)
+    {
+        $key = new \Rediska_Key_Hash($hashName);
+        try {
+            $key->increment($field, $count);
+        } catch (\Rediska_Exception $e) {
+            throw new \VisitCounter\Exception\RedisException($e->getMessage(), 0, $e);
+        }
+        return true;
+    }
+
+    public function hmget($hashName, array $fields)
+    {
+        $key = new \Rediska_Key_Hash($hashName);
+        try {
+            $result = $key->get($fields);
+        } catch (\Rediska_Exception $e) {
+            throw new \VisitCounter\Exception\RedisException($e->getMessage(), 0, $e);
+        }
+        return array_combine($fields, $result);
+    }
+}
+    - uses: <?php
+
+class Post
+{
+    public $id;
+    public $title;
+    public $message;
+    public $visits;
+}
+    - name: <!DOCTYPE html>
+<html lang="en">
 <head>
-<meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
-<meta http-equiv="X-UA-Compatible" content="IE=9"/>
-<meta name="generator" content="Doxygen $doxygenversion"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<!--BEGIN PROJECT_NAME--><title>$projectname: $title</title><!--END PROJECT_NAME-->
-<!--BEGIN !PROJECT_NAME--><title>$title</title><!--END !PROJECT_NAME-->
-<link href="$relpath^tabs.css" rel="stylesheet" type="text/css"/>
-<script type="text/javascript" src="$relpath^jquery.js"></script>
-<script type="text/javascript" src="$relpath^dynsections.js"></script>
-$treeview
-$search
-$mathjax
-<link href="$relpath^$stylesheet" rel="stylesheet" type="text/css" />
-$extrastylesheet
+    <meta charset="UTF-8">
+    <title>Document</title>
+    <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-<div id="top"><!-- do not remove this div, it is closed by doxygen! -->
+    <h1><?php echo $post->title;?></h1>
+    <p><?php echo $post->message;?></p>
+    <div class="counter">Unique visitors: <?php echo $totalVisits;?></div>
+    <form action="" method="POST">
+        <input type="submit" value="Save visits">
+    </form>
+    <p class="message"><?php echo $message;?></p>
+</body>
+</html>
+      run: body {
+    width: 400px;
+    margin: auto;
+}
+.counter {
+    border: 1px solid red;
+    padding: 4px;
+    float: left;
+}
+input {
+    padding: 4px;
+    float: left;
+    margin: 0 20px 20px;
+}
+.message {
+    clear: both;
+    font-style: italic;
+    color: 555;
+}
+    - name: <?php
 
-<!--BEGIN TITLEAREA-->
-<div id="titlearea">
-<table cellspacing="0" cellpadding="0">
- <tbody>
- <tr style="height: 56px;">
-  <!--BEGIN PROJECT_LOGO-->
-  <td id="projectlogo"><img alt="Logo" src="$relpath^$projectlogo" style="width:64px;height:64px;"/></td>
-  <!--END PROJECT_LOGO-->
-  <!--BEGIN PROJECT_NAME-->
-  <td id="projectalign" style="padding-left: 0.5em;">
-   <div style="font: 200% Tahoma, Arial,sans-serif; margin: 0px; padding: 2px 0px;">$projectname
-   <!--BEGIN PROJECT_NUMBER-->&#160;<span id="projectnumber">$projectnumber</span><!--END PROJECT_NUMBER-->
-   </div>
-   <!--BEGIN PROJECT_BRIEF--><div id="projectbrief">$projectbrief</div><!--END PROJECT_BRIEF-->
-  </td>
-  <!--END PROJECT_NAME-->
-  <!--BEGIN !PROJECT_NAME-->
-   <!--BEGIN PROJECT_BRIEF-->
-    <td style="padding-left: 0.5em;">
-    <div id="projectbrief">$projectbrief</div>
-    </td>
-   <!--END PROJECT_BRIEF-->
-  <!--END !PROJECT_NAME-->
-  <!--BEGIN DISABLE_INDEX-->
-   <!--BEGIN SEARCHENGINE-->
-   <td>$searchbox</td>
-   <!--END SEARCHENGINE-->
-  <!--END DISABLE_INDEX-->
- </tr>
- </tbody>
-</table>
-</div>
-<!--END TITLEAREA-->
-<!-- end header part -->
-  CARGO_TERM_COLOR: # Link Management
+require "../vendor/autoload.php";
 
-The LinkManager creates, configures and maintains communication links. Links are created either through the user
-interface or programmatically. The LinkConfiguration base classs defines the means to configure a given link
-while the LinkInterface exposes the link itself.
+$config = parse_ini_file('../config.ini');
 
-Link specializations such as UDPLink, TCPLink, SerialLink, etc. are implemented in their own derived classes as well
-as their equivalent configuration derivations such as UDPConfiguration, TCPConfiguration, SerialConfiguration, etc.
+$options = array(
+    'servers' => array(
+       array('host' => $config['redisHost'], 'port' => $config['redisPort']),
+    )
+);
 
-Links are primarily responsible to send and receive (MAVLink) data to and from a vehicle. When data arrives, the link will emit a
-LinkInterface::bytesReceived signal and when data needs to be sent back to a vehicle, the code uses its
-LinkInterface::writeBytesSafe method.
+$rediska = new Rediska($options);
+$rediskaAdapter = new \VisitCounter\Redis\RediskaAdapter($rediska);
+$vc = new \VisitCounter\VisitCounter($rediskaAdapter);
+$pageID = '1';
+$userIP = $_SERVER['REMOTE_ADDR'];
+$vc->countVisit($pageID, $userIP);
 
-<div align="center">
-<img src="../links.svg" style="width:80%; height=auto;">
-</div>
+$dbh = new PDO(
+    $config['dbDsn'],
+    $config['dbUser'],
+    $config['dbPass'], 
+    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+);
 
-jobs:
-  build:
+$sql = "SELECT id, title, message, visits FROM posts WHERE id=:id";
+$sth = $dbh->prepare($sql);
+$sth->bindValue(':id', $pageID, PDO::PARAM_INT);
+$sth->execute();
+$sth->setFetchMode(PDO::FETCH_CLASS, 'Post');
+$post = $sth->fetch();
 
-    runs-on: ubuntu-latest
+$recentVisits = $vc->getDeltaVisits([$pageID])[$pageID];
+$savedVisits = $post->visits;
+$totalVisits = intval($recentVisits) + intval($savedVisits);
 
-    steps:
-    - uses: actions/checkout@v4
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
+$message = '';
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $pdoAdapter = new \VisitCounter\Db\PdoAdapter($dbh, 'posts', 'visits');
+    $vc->moveToDb($pdoAdapter);
+    $message = 'Visits from redis was successfully transfered to database.';
+}
+
+require "../template/template.php";
       run: cargo test --verbose
