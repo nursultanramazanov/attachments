@@ -4,6 +4,7 @@ scipy
 tqdm
 docopt
 PyYAML
+bs4
 requests
 rich
 black
