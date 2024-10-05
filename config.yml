@@ -328,15 +328,211 @@ parameters:
 
 framework:
     #esi:             ~
-    #translator:      { fallbacks: ["%locale%"] }
+    #translator:      { fallbacks: ["% /*
+@author:t0pl
+This tool isn't affiliated to SchoolMouv in any way
+*/
+try { var browser = chrome } catch {}
+
+window.headers_ = {
+    'Accept': '*/*',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'DNT': '1',
+    'Referer': '',
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4130.0 Safari/537.36'
+}
+
+const clean_url = (url) => {
+    return url.replace('/eleves','').split("#")[0].split("?")[0]
+}
+
+const is_website_valid = (url) => {
+    return url.startsWith("https://www.schoolmouv.fr") && url.split('/').length >= 6;
+}
+
+const see_in_new_tab = (final_hidden_resource) => {
+    browser.tabs.create({ "url": final_hidden_resource })
+}
+
+const isFirefox = () => {
+    return typeof browser.webRequest.getSecurityInfo !== "undefined"
+}
+
+const resource_type = () => {
+    if (window.url.endsWith('cours-video')) return "video"
+    if (!window.url.includes("/qcm") && !window.url.includes("/exercice") && window.url.split('/').length) return "pdf"
+    return ""
+} %"] }
     secret:          "%secret%"
     router:
         resource: "%kernel.root_dir%/config/routing.yml"
         strict_requirements: ~
     form:            ~
     csrf_protection: ~
-    validation:      { enable_annotations: true }
-    #serializer:      { enable_annotations: true }
+    validation:      { enable_annotations: /*
+@author:t0pl
+This tool isn't affiliated to SchoolMouv in any way
+*/
+const get_pdf = () => {
+    see_in_new_tab(url_to_direct_pdf_link())
+}
+
+const url_to_direct_pdf_link = () => {
+    return window.url.replace("www.schoolmouv.fr", "pdf-schoolmouv.s3.eu-west-1.amazonaws.com") + ".pdf";
+} }
+    #serializer:      { enable_annotations: /*
+@author:t0pl
+This tool isn't affiliated to SchoolMouv in any way
+*/
+
+/* Error handling */
+
+function check_status_code(response) {
+
+    if (!response.ok) (console.warn(`${url} returned wrong status code: ${response.status}`));
+    return response.text();
+
+}
+
+/* Requests */
+const vimeo_player = (url) => {
+    if (url) {
+        set_listener();
+        fetch(url).then(check_status_code)
+            .then(function (res) {
+                //Locate part of response containing mp4s
+                for (const part of res.split('};')) {
+                    if (part.includes('.mp4')) {
+
+                        const cleared_JSON = vimeo_JSON(part);
+                        const all_mp4s_found = direct_links(cleared_JSON);
+
+                        console.log(all_mp4s_found);
+
+                        //Display results in new tab
+                        see_in_new_tab(all_mp4s_found[0])
+                    }
+                }
+            })
+            .catch(function (err) {
+                console.error(`${err} :: ${url}`);
+            }).finally(() => remove_listener());
+    }
+}
+
+const get_video = () => {
+    set_referer_in_headers()
+
+    //Fetch schoolmouv webpage
+    fetch(window.url)
+        .then(check_status_code)
+        .then(function (data) {
+
+            const clear_json = schoolmouv_JSON(data);
+            const urls = source_2_Vimeo_URL(clear_json);
+
+            console.log(urls);
+
+            //Fetch all vimeo webpages
+            for (const to_get of urls) {
+                vimeo_player(to_get)
+            }
+        }).catch(function (err) {
+            console.error('Error during request: ', err);
+        })
+}
+
+/* Parsing */
+const vimeo_JSON = (part) => {
+
+    //Locate JSON in response and Convert from Vimeo WebPage
+    let located_json = part.split('= {')[1];
+    let cleared_json = JSON.parse(`{${located_json}}`);
+
+    return cleared_json;
+}
+
+const schoolmouv_JSON = (res) => {
+
+    //Locate JSON in response and Convert from Schoolmouv WebPage
+    const to_json = `{${res.split('window.__INITIAL_STATE__={')[1].split('};(function(')[0]}}`;
+    const clear_json = JSON.parse(to_json);
+
+    return clear_json;
+}
+
+const source_2_Vimeo_URL = (clear_json) => {
+    var first_step_urls = [];
+    let parsed_data = clear_json.sheet.resources;
+
+    Object.keys(parsed_data).forEach(function (key) {
+
+        let source = parsed_data[key].source;
+        first_step_urls.push(`https://player.vimeo.com/video/${source}`);
+    })
+
+    if (first_step_urls === []) {
+        console.warn("'Source id' not found")
+        return []
+    }
+    return first_step_urls
+}
+
+const key_to_get_source_id = () => {
+    //Needed if registered user, to find right key in {}
+    return window.url.split('/').splice(-2).join('-'); //des-cartes-pour-comprendre-le-monde-cours-video
+}
+
+const direct_links = (cleared_JSON) => {
+    let direct_links = [];
+    for (var _ = 0; _ < cleared_JSON.request.files.progressive.length; _++) {
+        direct_links.push(cleared_JSON.request.files.progressive[_].url);
+    }
+    return direct_links;
+}
+
+/* Header stuff */
+const set_referer_in_headers = () => {
+    window.headers_['Referer'] = window.url;
+}
+
+const set_listener = () => {
+    browser.webRequest.onBeforeSendHeaders.addListener(
+        onBeforeSendHeaders_callback, { urls: ["https://player.vimeo.com/*"] }, OnBeforeRequestOptions()
+    );
+}
+
+const remove_listener = () => {
+    browser.webRequest.onBeforeSendHeaders.removeListener(onBeforeSendHeaders_callback);
+}
+
+const modify_headers = (header_array, _name, _value) => { // Credits: https://stackoverflow.com/a/11602753
+    var did_set = false;
+    for (var i in header_array) {
+        var header = header_array[i];
+        var name = header.name;
+        if (name == _name) {
+            header.value = _value;
+            did_set = true;
+        }
+    }
+    if (!did_set) header_array.push({ name: _name, value: _value })
+}
+
+const onBeforeSendHeaders_callback = (details) => {
+    //Fired to modify request
+    Object.keys(window.headers_).forEach(function (key) {
+        modify_headers(details.requestHeaders, key, window.headers_[key]);
+    });
+
+    return { requestHeaders: details.requestHeaders };
+}
+
+const OnBeforeRequestOptions = () => {
+    //Options differ in Chrome/Firefox
+    return isFirefox() ? ['blocking', 'requestHeaders'] : ['blocking', 'requestHeaders', 'extraHeaders']
+} }
     templating:
         engines: ['twig']
     default_locale:  "%locale%"
@@ -388,7 +584,213 @@ swiftmailer:
     host:      "%mailer_host%"
     username:  "%mailer_user%"
     password:  "%mailer_password%"
-    spool:     { type: memory }
+    spool:     { type: """
+@author:t0pl
+Warning: gibberish code
+This tool isn't affiliated to SchoolMouv in any way
+"""
+import requests
+from bs4 import BeautifulSoup
+import json
+import os
+import webbrowser
+
+
+class resource:
+    """Parent class
+    Argument : url (str)
+    Functions : validate -> bool : validation tests
+                download -> None : download 'url' into 'into' (folder) as 'save_as' (filename, default:None)
+                relevant_filename -> str : suggests a nice formatted filename
+    """
+
+    def __init__(self, url: str):
+        self.url = url.split("#")[0].split("?")[0]
+
+    def validate(self, url: str):
+        # no to be used for security improvement
+        pass
+
+    def download(self, url: str, into: str, save_as=None, overwrite=False):
+        if type(url) != str:
+            print(f'URL needs to be a string, not a {type(url).__name__}')
+            return False
+        if not os.path.exists(into):
+            print(
+                f'No such folder, consider changing the value passed in the \'into\' parameter')
+            return False
+        assert self.validate(url)
+        _ = requests.get(url)
+        assert _.status_code == 200
+        save_as = self.relevant_filename(url) if save_as == None else save_as
+        abs_path = os.path.abspath(os.path.join(into, save_as))
+        if os.path.exists(abs_path) and not overwrite:
+            print("File already exists, set overwrite to True to overwrite it anyway")
+            return False
+        with open(abs_path, 'wb') as file_to_write:
+            file_to_write.write(_.content)
+
+    def relevant_filename(self, url: str):
+        _ = ''
+        __ = url.split('/')[-2].capitalize().replace('-', ' ')
+        already_done = 0
+        for caract in __:
+            if already_done == 0 and caract.isnumeric():
+                _ += ' '+caract
+                already_done += 1
+            else:
+                _ += caract
+        _ = _.replace('  ', ' ')
+        return _+'.pdf' if url.endswith('.pdf') else _+'.mp4'
+
+    def see(self, url: str):
+        success = webbrowser.open_new_tab(url)
+        if not success:
+            return success
+
+
+class video(resource):
+    """
+    Argument : url (str), for eg: https://www.schoolmouv.fr/cours/little-red-riding-hood/cours-video
+    Functions : extract_json
+                get_source
+                get_direct_links
+                get_soup
+                ----------------
+                validate
+                download
+    """
+
+    def __init__(self, url: str):
+        super().__init__(url)
+        self.url = url
+        self.useful_headers = {
+            'Accept': '*/*',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Accept-Language': 'en-US,en;q=0.9,zh-CN;q=0.6,zh;q=0.5',
+            'DNT': '1',
+            'Referer': self.url,
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4130.0 Safari/537.36'
+        }
+        self.basic_headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4130.0 Safari/537.36 Edg/84.0.502.0'
+        }
+
+    def get_soup(self, url, headers={}):
+        headers = self.basic_headers if headers == {} else headers
+        for _ in range(5):
+            po = requests.get(url, headers=headers)
+            if po.status_code == 200:
+                break
+        return BeautifulSoup(po.content, 'html.parser')
+
+    def extract_json(self, mess_up):
+        mess_up = str(mess_up)
+        mess_up = mess_up.split('};')[0]+'}'
+        try:
+            mess_up = '{'+mess_up.split('= {')[1]
+        except IndexError:
+            mess_up = '{'+mess_up.split('={')[1]
+        mess_up = json.loads(mess_up)
+        return mess_up
+
+    def get_source(self, mess_up):
+        assert 'sheet' in mess_up.keys()
+        _r = []
+        for _ in mess_up['sheet']['resources']:
+            _source = mess_up['sheet']['resources'][_]['source']
+            _r.append(_source)
+        return list(set(_r))
+
+    def get_direct_links(self, json_):
+        # print(json_)
+        assert 'request' in json_.keys()
+        return list(set([i['url'] for i in json_['request']['files']['progressive']]))
+        #keys : ['profile', 'width', 'mime', 'fps', 'url', 'cdn', 'quality', 'id', 'origin', 'height']
+
+    def run(self):
+        # 1st part
+        # GET https://www.schoolmouv.fr/cours/little-red-riding-hood/cours-video
+        soup = self.get_soup(self.url)
+        script_tag_containing_json = [
+            i for i in soup.find_all('script') if str(i).count("{") > 9]
+        #assert len(script_tag_containing_json)==1
+        # parsing json from <script> tag
+        self.script_tag_containing_json = self.extract_json(
+            script_tag_containing_json[0])
+        # extract unique 9-digit id, different for each video
+        sources = self.get_source(self.script_tag_containing_json)
+
+        # 2nd part
+        for _source in sources:
+            assert len(_source) == 9 and _source.isalnum()
+            # GET https://player.vimeo.com/video/9-DIGIT_ID?app_id=schoolmouv_app_id
+            soup__ = self.get_soup(
+                f'https://player.vimeo.com/video/{_source}', headers=self.useful_headers)  # ?app_id=122963
+            script_tag_containing_mp4 = [
+                i for i in soup__.find_all('script') if '.mp4' in str(i)]
+            #assert len(script_tag_containing_mp4_content) == 1
+            self.script_tag_containing_mp4 = self.extract_json(
+                script_tag_containing_mp4)
+            self.result = self.get_direct_links(self.script_tag_containing_mp4)
+
+    def validate(self, url: str) -> bool:
+        return url.endswith('.mp4') and url.startswith('https://vod-progressive.akamaized.net')
+
+
+class pdf(resource):
+    """
+    Argument : url (str), for eg: https://www.schoolmouv.fr/cours/little-red-riding-hood/fiche-de-cours
+    Functions : run
+                download
+    """
+
+    def __init__(self, url):
+        super().__init__(url)
+        self.valids = [
+            'scientifique',
+            'mouvement-litteraire',
+            'schema-bilan',
+            'fiche-methode-bac',
+            'fiche-de-revision',
+            'demonstration',
+            'repere',
+            'personnages-historique',
+            'lecon',
+            'fiche-materiel',
+            'evenement-historique',
+            'savoir-faire',
+            'fiche-methode',
+            'bien-rediger',
+            'fiche-pratique',
+            'auteur',
+            'philosophe',
+            'formule-ses',
+            'figure-de-style',
+            'fiche-annale',
+            'definition',
+            'algorithme',
+            'fiche-calculatrice',
+            'courant-philosophique',
+            'fiche-methode-brevet',
+            'fiche-de-cours',
+            'genre-litteraire',
+            'registre-litteraire',
+            'carte',
+            'fiche-de-lecture',
+            'fiche-oeuvre',
+            'notion'
+        ]
+        self.url = url
+
+    def run(self):
+        if len([i for i in self.valids if i in self.url]) > 0:
+            if self.url.startswith("https://www.schoolmouv.fr/"):
+                TO_BE_REPLACED = "www.schoolmouv.fr/eleves" if "/eleves/" in self.url else "www.schoolmouv.fr"
+                self.result = f"{self.url.replace(TO_BE_REPLACED,'pdf-schoolmouv.s3.eu-west-1.amazonaws.com')}.pdf"
+
+    def validate(self, url: str) -> bool:
+        return url.endswith('.pdf') and url.startswith('https://pdf-schoolmouv.s3.eu-west-1.amazonaws.com/') }
 
 assetic:
     debug:          '%kernel.debug%'
