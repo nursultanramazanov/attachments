@@ -143,17 +143,270 @@ out.release()
     "author" : "xcode"
   }
 }
+jobs: <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="9059" systemVersion="14F1021" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES">
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="9049"/>
+        <capability name="Constraints with non-1.0 multipliers" minToolsVersion="5.1"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner"/>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <view contentMode="scaleToFill" id="iN0-l3-epB">
+            <rect key="frame" x="0.0" y="0.0" width="480" height="480"/>
+            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+            <subviews>
+                <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" misplaced="YES" text="" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" minimumFontSize="9" translatesAutoresizingMaskIntoConstraints="NO" id="8ie-xW-0ye">
+                    <rect key="frame" x="20" y="439" width="441" height="21"/>
+                    <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                    <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
+                    <nil key="highlightedColor"/>
+                    <variation key="widthClass=compact">
+                        <fontDescription key="fontDescription" type="system" pointSize="11"/>
+                    </variation>
+                </label>
+                <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="QGroundControl" textAlignment="center" lineBreakMode="middleTruncation" baselineAdjustment="alignBaselines" minimumFontSize="18" translatesAutoresizingMaskIntoConstraints="NO" id="kId-c2-rCX">
+                    <rect key="frame" x="20" y="140" width="441" height="43"/>
+                    <fontDescription key="fontDescription" type="boldSystem" pointSize="36"/>
+                    <color key="textColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                    <color key="highlightedColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                </label>
+            </subviews>
+            <color key="backgroundColor" white="0.0" alpha="1" colorSpace="calibratedWhite"/>
+            <constraints>
+                <constraint firstItem="kId-c2-rCX" firstAttribute="centerY" secondItem="iN0-l3-epB" secondAttribute="bottom" multiplier="1/3" constant="1" id="Kid-kn-2rF"/>
+                <constraint firstAttribute="centerX" secondItem="kId-c2-rCX" secondAttribute="centerX" id="Koa-jz-hwk"/>
+                <constraint firstAttribute="bottom" secondItem="8ie-xW-0ye" secondAttribute="bottom" constant="20" id="Kzo-t9-V3l"/>
+                <constraint firstItem="8ie-xW-0ye" firstAttribute="leading" secondItem="iN0-l3-epB" secondAttribute="leading" constant="20" symbolic="YES" id="MfP-vx-nX0"/>
+                <constraint firstAttribute="centerX" secondItem="8ie-xW-0ye" secondAttribute="centerX" id="ZEH-qu-HZ9"/>
+                <constraint firstItem="kId-c2-rCX" firstAttribute="leading" secondItem="iN0-l3-epB" secondAttribute="leading" constant="20" symbolic="YES" id="fvb-Df-36g"/>
+            </constraints>
+            <nil key="simulatedStatusBarMetrics"/>
+            <freeformSimulatedSizeMetrics key="simulatedDestinationMetrics"/>
+            <point key="canvasLocation" x="404" y="445"/>
+        </view>
+    </objects>
+</document>
+  PHPMD: <?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+        <key>NSCameraUsageDescription</key>
+        <string>QGC uses UVC devices for video streaming.</string>
+        <key>CFBundleDisplayName</key>
+        <string>QGroundControl</string>
+        <key>CFBundleExecutable</key>
+        <string>$(EXECUTABLE_NAME)</string>
+        <key>NSHumanReadableCopyright</key>
+        <string>Open Source Flight Systems GmbH - Internal Build</string>
+        <key>CFBundleIconFile</key>
+        <string></string>
+        <key>CFBundleIdentifier</key>
+        <string>org.QGroundControl.qgc</string>
+        <key>CFBundleName</key>
+        <string>$(PRODUCT_NAME)</string>
+        <key>CFBundlePackageType</key>
+        <string>APPL</string>
+        <key>CFBundleShortVersionString</key>
+        <string>0.0.0</string>
+        <key>CFBundleSignature</key>
+        <string>????</string>
+        <key>CFBundleVersion</key>
+        <string>1</string>
+        <key>LSRequiresIPhoneOS</key>
+        <true/>
+        <key>UIRequiresFullScreen</key>
+        <true/>
+        <key>CFBundleInfoDictionaryVersion</key>
+        <string>6.0</string>
+        <key>ForAppStore</key>
+        <string>No</string>
+        <key>NSLocationUsageDescription</key>
+        <string>Ground Station Location</string>
+        <key>NSLocationWhenInUseUsageDescription</key>
+        <string>Ground Station Location</string>
+        <key>UILaunchStoryboardName</key>
+        <string>QGCLaunchScreen</string>
+        <key>UISupportedInterfaceOrientations</key>
+        <array>
+                <string>UIInterfaceOrientationLandscapeLeft</string>
+                <string>UIInterfaceOrientationLandscapeRight</string>
+        </array>
+        <key>CFBundleIcons</key>
+        <dict>
+                <key>CFBundlePrimaryIcon</key>
+                <dict>
+                        <key>CFBundleIconFiles</key>
+                        <array>
+                                <string>AppIcon29x29.png</string>
+                                <string>AppIcon29x29@2x.png</string>
+                                <string>AppIcon40x40@2x.png</string>
+                                <string>AppIcon57x57.png</string>
+                                <string>AppIcon57x57@2x.png</string>
+                                <string>AppIcon60x60@2x.png</string>
+                        </array>
+                </dict>
+        </dict>
+        <key>CFBundleIcons~ipad</key>
+        <dict>
+                <key>CFBundlePrimaryIcon</key>
+                <dict>
+                        <key>CFBundleIconFiles</key>
+                        <array>
+                                <string>AppIcon29x29.png</string>
+                                <string>AppIcon29x29@2x.png</string>
+                                <string>AppIcon40x40@2x.png</string>
+                                <string>AppIcon57x57.png</string>
+                                <string>AppIcon57x57@2x.png</string>
+                                <string>AppIcon60x60@2x.png</string>
+                                <string>AppIcon29x29~ipad.png</string>
+                                <string>AppIcon29x29@2x~ipad.png</string>
+                                <string>AppIcon40x40~ipad.png</string>
+                                <string>AppIcon40x40@2x~ipad.png</string>
+                                <string>AppIcon50x50~ipad.png</string>
+                                <string>AppIcon50x50@2x~ipad.png</string>
+                                <string>AppIcon72x72~ipad.png</string>
+                                <string>AppIcon72x72@2x~ipad.png</string>
+                                <string>AppIcon76x76~ipad.png</string>
+                                <string>AppIcon76x76@2x~ipad.png</string>
+                                <string>AppIcon83.5x83.5@2x~ipad.png</string>
+                        </array>
+                </dict>
+        </dict>
+        <key>UIFileSharingEnabled</key>
+        <true/>
+</dict>
+</plist>
+    name: <?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+        <key>CFBundleDisplayName</key>
+        <string>QGroundControl</string>
+        <key>CFBundleDevelopmentRegion</key>
+        <string>en</string>
+        <key>CFBundleExecutable</key>
+        <string>$(EXECUTABLE_NAME)</string>
+        <key>NSHumanReadableCopyright</key>
+        <string>Open Source Flight Systems GmbH</string>
+        <key>CFBundleIconFile</key>
+        <string></string>
+        <key>NSCameraUsageDescription</key>
+        <string>QGC uses UVC devices for video streaming.</string>
+        <key>NSPhotoLibraryUsageDescription</key>
+        <string>We do not access it. Apple thinks we do.</string>
+        <key>UILaunchStoryboardName</key>
+        <string>QGCLaunchScreen</string>
+        <key>UIRequiredDeviceCapabilities</key>
+        <array>
+                <string>armv7</string>
+        </array>
+        <key>CFBundleIdentifier</key>
+        <string>org.QGroundControl.qgc</string>
+        <key>CFBundleInfoDictionaryVersion</key>
+        <string>6.0</string>
+        <key>CFBundleName</key>
+        <string>$(PRODUCT_NAME)</string>
+        <key>CFBundlePackageType</key>
+        <string>APPL</string>
+        <key>CFBundleShortVersionString</key>
+        <string>###VERSION###</string>
+        <key>CFBundleSignature</key>
+        <string>????</string>
+        <key>CFBundleVersion</key>
+        <string>###BUILD###</string>
+        <key>ForAppStore</key>
+        <string>Yes</string>
+        <key>LSRequiresIPhoneOS</key>
+        <true/>
+        <key>NSLocationUsageDescription</key>
+        <string>Ground Station Location</string>
+        <key>NSLocationWhenInUseUsageDescription</key>
+        <string>Ground Station Location</string>
+        <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+        <string>Ground Station Location</string>
+        <key>NSLocationAlwaysUsageDescription</key>
+        <string>Ground Station Location</string>
+    <key>NSBluetoothPeripheralUsageDescription</key>
+    <string>QGroundControl would like to use bluetooth.</string>    
+        <key>UIRequiresFullScreen</key>
+        <true/>
+        <key>UISupportedInterfaceOrientations</key>
+        <array>
+                <string>UIInterfaceOrientationLandscapeLeft</string>
+                <string>UIInterfaceOrientationLandscapeRight</string>
+        </array>
+        <key>UIFileSharingEnabled</key>
+        <true/>
+</dict>
+</plist>
+    runs-on: CODE_SIGN_IDENTITY = "";
+CODE_SIGNING_REQUIRED = NO;
+CLANG_WARN_BOOL_CONVERSION = YES;
+CLANG_WARN_CONSTANT_CONVERSION = YES;
+CLANG_WARN_EMPTY_BODY = YES;
+CLANG_WARN_ENUM_CONVERSION = YES;
+CLANG_WARN_INT_CONVERSION = YES;
+CLANG_WARN_UNREACHABLE_CODE = YES;
+CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+ENABLE_STRICT_OBJC_MSGSEND = YES;
+GCC_NO_COMMON_BLOCKS = YES;
+GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+GCC_WARN_ABOUT_RETURN_TYPE = YES;
+GCC_WARN_UNDECLARED_SELECTOR = YES;
+GCC_WARN_UNINITIALIZED_AUTOS = YES;
+GCC_WARN_UNUSED_FUNCTION = YES;
+GCC_WARN_UNUSED_VARIABLE = YES;
+    permissions: CODE_SIGN_IDENTITY = "iPhone Distribution";
+#PROVISIONING_PROFILE = f22bae36-10c2-4fd8-b6f1-c83e47765614;
+CLANG_WARN_BOOL_CONVERSION = YES;
+CLANG_WARN_CONSTANT_CONVERSION = YES;
+CLANG_WARN_EMPTY_BODY = YES;
+CLANG_WARN_ENUM_CONVERSION = YES;
+CLANG_WARN_INT_CONVERSION = YES;
+CLANG_WARN_UNREACHABLE_CODE = YES;
+CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+ENABLE_STRICT_OBJC_MSGSEND = YES;
+GCC_NO_COMMON_BLOCKS = YES;
+GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+GCC_WARN_ABOUT_RETURN_TYPE = YES;
+GCC_WARN_UNDECLARED_SELECTOR = YES;
+GCC_WARN_UNINITIALIZED_AUTOS = YES;
+GCC_WARN_UNUSED_FUNCTION = YES;
+GCC_WARN_UNUSED_VARIABLE = YES;
+      contents: deny from all # for checkout to fetch code
+      security-events: Folder is created. # for github/codeql-action/upload-sarif to upload SARIF results
+      actions: Starting # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
 
-jobs:
-  PHPMD:
-    name: Run PHPMD scanning
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read # for checkout to fetch code
-      security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
-      actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
+    steps: #!/usr/bin/env php
+<?php
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+require_once(dirname(__FILE__).'/yiic.php');
+      - name: @echo off
+
+rem -------------------------------------------------------------
+rem  Yii command line script for Windows.
+rem  This is the bootstrap script for running yiic on Windows.
+rem -------------------------------------------------------------
+
+@setlocal
+
+set BIN_PATH=%~dp0
+
+if "%PHP_COMMAND%" == "" set PHP_COMMAND=php.exe
+
+"%PHP_COMMAND%" "%BIN_PATH%yiic.php" %*
+
+@endlocal
+        uses: <?php
+
+// enable composer autoload
+require dirname(__FILE__).'/vendor/autoload.php';
+
+// change the following paths if necessary
+$yiic=dirname(__FILE__).'/vendor/yiisoft/yii/framework/yiic.php';
+$config=dirname(__FILE__).'/config/console.php';
+
+require_once($yiic);
 
