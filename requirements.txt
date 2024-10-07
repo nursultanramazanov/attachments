@@ -14,3 +14,6 @@ pytest
 pytest-clarity
 pytest-cov
 twine
+opencv-python-headless
+tqdm
+imageio
