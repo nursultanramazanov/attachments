@@ -3189,38 +3189,6 @@ class Main():
                                 print("Id: ", distribu[2])
                 print("")
                 print("|________________________________________________________________|")
-      run: {
-  "recommendations": [
-    "ms-python.python",
-    "charliermarsh.ruff",
-    "esbenp.prettier-vscode",
-    "littlefoxteam.vscode-python-test-adapter"
-  ]
-}
-    - name: {
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "Run auto-py-to-exe",
-      "type": "python",
-      "request": "launch",
-      "module": "auto_py_to_exe",
-      "justMyCode": false
-    }
-  ]
-}
-      run: {
-  "python.testing.pytestEnabled": true,
-  "python.testing.nosetestsEnabled": false,
-  "python.testing.unittestEnabled": false,
-  "python.testing.pytestArgs": ["tests"],
-  "editor.formatOnSave": true,
-  "editor.rulers": [120],
-  "[python]": {
-    "editor.defaultFormatter": "charliermarsh.ruff",
-    "editor.codeActionsOnSave": {
-      "source.organizeImports": "explicit",
-      "source.fixAll": "never"
-    }
-  }
-}
+      run: cargo build --verbose
+    - name: Run tests
+      run: cargo test --verbose
