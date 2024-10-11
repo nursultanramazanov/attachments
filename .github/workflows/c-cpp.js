@@ -15,771 +15,887 @@ cp vendor/select2/select2/select2.png ../css/select2.png;
 cp vendor/select2/select2/select2-spinner.gif ../css/select2-spinner.gif;
 
 cp vendor/silverfire/select2-bootstrap3-css/select2-bootstrap.min.css ../css/select2-bootstrap.min.css;
-  push: """
-Reuires a webbrowser and the helium module
-The hashlib module isn't needed basically as I had to find an easy way to get different a password for each account
-BUT, kartable.fr accepts pretty much every fuckin' email, name, password and birthdate without complaining
-so you could create an account with a non-existing email
+  push: // SPDX-License-Identifier: MIT
+/**
+ * Special build stage class. Because we need compiled java code to generate our open api file,
+ * the java api generation - which needs the open api file + a java compile - cannot happen 
+ * on same "stage".
+ * To provide this, we have introduced the term sechub build stage - when stage "api-necessary" is
+ * used (or no stage is set), the parts which need a generated open api file will be included
+ * as well. 
+ */
+class BuildStage{
 
-Most of the features are unstable and I'll certainly add a log file to handle errors
-"""
-import helium
-import hashlib
-import time
-from selenium.webdriver.support.ui import Select
+    private static final String STAGE_ALL = "all"; 
+    private static final String STAGE_WITHOUT_API = "without-api"; 
+    private static final String STAGE_API_NECESSARY = "api-necessary"; 
 
-class main:
-    def __init__(self, classe, firstname, lastname, email, password, birthdate=None, ecole="victor hugo", url="https://www.kartable.fr/inscription"):
-        # birthdate as follows : DD/MM/YYYY
-        self.url = url
-        self.classe = classe
-        self.firstname = firstname
-        self.lastname = lastname
-        self.email = email
-        self.password = password
-        self.ecole = ecole
-        self.birthdate = birthdate.split("/") if len(str(birthdate).split("/")) == 3 else None
-        self.driver = helium.start_chrome(self.url)
+    private String stage;
+    private boolean openApiFileMustExist;
+    private boolean acceptAll;
 
-    def register(self, sponso=False):
-        if sponso == False:
-            try:
-                helium.click("élève")
-                helium.click("élève")
-            except LookupError:
-                print("élève failed")
-        helium.click(self.classe)
-        helium.click("s'inscrire avec un e-mail")
-        helium.write(self.firstname, into="prénom")
-        helium.write(self.lastname, into="nom")
-        helium.write(self.email, into="adresse e-mail")
-        helium.write(self.password, into="mot de passe")
-        # Setting custom birthdate
-        self.set_birthdate()
-        helium.click("terminer")
-        # time.sleep(5)
-        try:
-            helium.click("plus tard")
-        except LookupError:
-            pass
-        time.sleep(5)
+    BuildStage(){
+        stage = System.getProperty("sechub.build.stage");
+        if(stage==null|| stage.isEmpty()){
+            // Per default we do not support API parts to avoid build life cycle problems
+            stage = STAGE_WITHOUT_API;
+        }
 
-    def log_out(self):
-        #!!!!!NOT TESTED YET!!!!!!
-        self.driver.get("https://www.kartable.fr/compte")
-        helium.click("Se déconnecter")
-        helium.click("SE DÉCONNECTER")
+        switch(stage){
+            case STAGE_ALL:
+                // We just do not define any constraints here
+                // Meaning: this stage can be imported by IDEs
+                acceptAll=true;
+                break;
+             case STAGE_WITHOUT_API:
+                openApiFileMustExist=false;
+                break;
+             case STAGE_API_NECESSARY:
+                openApiFileMustExist=true;
+                break;
+            default: 
+                throw new IllegalArgumentException("Unknown build stage: '"+ stage+"'");
+        }
 
-    def log_in(self):
-        self.driver.get("https://www.kartable.fr/connexion")
-        helium.write(self.email, into="adresse e-mail")
-        helium.write(self.password, into="mot de passe")
-        helium.click("se connecter")
+    }
 
-    def join_school(self):
-        #!!!!!NOT TESTED YET!!!!!!
-        self.driver.get(
-            "https://www.kartable.fr/classe?navigationOrigin=ruby-quest")
-        helium.write(self.ecole, into="Rechercher un établissement...")
-        select = Select(self.driver.find_element_by_tag_name('select'))
-        select.select_by_value('1')  # select the first
-        helium.click("rejoindre")
-        self.driver.find_element_by_class_name("icon-close").click()
+    public boolean providesGeneratedOpenApiFile(){
+        return acceptAll || openApiFileMustExist;                  
+    }
 
-    def delete_school(self):
-        return "Not implemented yet"
-
-    def change_email(self, new_email):
-        #!!!!!NOT TESTED YET!!!!!!
-        # https://www.kartable.fr/compte/informations-personnelles/modifier-adresse-email
-        for i in self.driver.find_element_by_tag_name("input"):
-            helium.write(new_email, into=i)
-        helium.click("mettre à jour")
-
-    def change_password(self, new_password):
-        #!!!!!NOT TESTED YET!!!!!!
-        # https://www.kartable.fr/compte/informations-personnelles/modifier-mot-de-passe
-        helium.write(self.password, into="Mot de passe actuel")
-        helium.write(new_password, into="Nouveau mot de passe")
-        helium.write(new_password, into="Ressaisir nouveau mot de passe")
-        helium.click("mettre à jour")
-
-    def is_locked(self, ressource):
-        return "Not implemented yet"
-        # self.driver.find_element_by_class_name("document__state")#if child has class icon-document-locked :True
-
-    @property
-    def current_email(self):
-        #!!!!!NOT TESTED YET!!!!!!
-        # https://www.kartable.fr/compte/informations-personnelles/modifier-adresse-email
-        return self.driver.find_element_by_tag_name("strong").text
-
-    def delete_account(self):
-        #!!!!!NOT TESTED YET!!!!!!
-        # https://www.kartable.fr/compte/informations-personnelles
-        helium.click("SUPPRIMER LE COMPTE")
-        helium.click("SUPPRIMER DÉFINITIVEMENT")
-
-    def levels_alternative(self):
-        return "Not implemented yet"
-        # requires status: not signed in
-        # requires url: https://www.kartable.fr/
-        tmp = self.driver.find_element_by_class_name("et_pb_text_inner")
-        for i in tmp:
-            if "Classes" == tmp.find_element_by_class_name("links-list__title"):
-                # tmp.find_element_by_tag_name("a").href +.text
-                pass
-
-    @property
-    def account_info(self):
-        #!!!!!NOT TESTED YET!!!!!!
-        # https://www.kartable.fr/compte/informations-personnelles
-        firstname = self.driver.find_element_by_xpath(
-            "//input[@name='firstName']")
-        lastname = self.driver.find_element_by_xpath(
-            "//input[@name='lastName']")
-        birthdate = ""
-        input__group = self.driver.find_element_by_class_name(
-            "input__group--date")  # includes a bunch of select tags
-        select = input__group.find_elements_by_tag_name('select')
-        for i in select:
-            birthdate += Select(i).first_selected_option.text+"/"
-        tmp = ""
-        for i in birthdate[:-1].split("/"):
-            tmp += "0"+i+"/" if len(i) == 1 else i + "/"
-        birthdate = tmp[:-1]
-        return {"firstname": firstname, "lastname": lastname, "birthdate": birthdate}
-
-    def set_birthdate(self):
-        #!!!!!NOT TESTED YET!!!!!!
-        if self.birthdate != None:
-            day_to_be_set = self.birthdate[0]
-            month_to_be_set = self.birthdate[1]
-            year_to_be_set = self.birthdate[2]
-            try:
-                input__group = self.driver.find_element_by_class_name(
-                    "input__group--date")  # includes a bunch of select tags
-                select = input__group.find_elements_by_tag_name('select')
-                for item in select:
-                    if item.get_attribute("name") == "birthDateDay":
-                        day = Select(item)
-                        day.select_by_value(day_to_be_set)
-                    elif item.get_attribute("name") == "birthDateMonth":
-                        month = Select(item)
-                        month.select_by_value(month_to_be_set)
-                    elif item.get_attribute("name") == "birthDateYear":
-                        year = Select(item)
-                        year.select_by_value(year_to_be_set)
-            except Exception as e:
-                print("Failed to set birthdate", e)
-
-    def subject_categories(self):
-        return "Not implemented yet"
-        #mm = [i for i in self.driver.find_elements_by_class_name("category__link")]
-
-    def delete_premium_ads(self):
-        #!!!!!NOT TESTED YET!!!!!!
-        self.driver.execute_script(
-            'try{document.getElementsByTagName("premium-link")[0].remove();}catch(error){console.error(error);}')
-        self.driver.execute_script(
-            'try{document.getElementsByClassName("cross-selling-ad")[0].parentElement.remove();}catch(error){console.error(error);}')
-
-    @property
-    def has_school(self):
-        return "Not implemented yet"
-
-    @property
-    def subjects(self, classe):
-        #!!!!!NOT TESTED YET!!!!!!
-        self.unavailable = []
-        self.courses_info = []
-        # let it redirect to homepage to avoid spelling mistakes (instead of get("https://www.kartable.fr/cinquieme") for eg)
-        self.driver.get("https://www.kartable.fr/")
-        try:
-            self.courses_info = [{i.text: i.get_attribute("href")} for i in self.driver.find_elements_by_class_name(
-                "course__link")]  # href is None if not available
-        except Exception as e:
-            print("Failed to get course titles", e)
-            self.courses_info = False
-
-        try:
-            for i in self.driver.find_elements_by_class_name("course--coming-soon"):
-                self.unavailable.append(
-                    i.find_element_by_class_name("course__link").text)
-        except Exception as e:
-            print("Failed to get name of future available subjects")
-            self.unavailable = False
-        return self.courses_info+self.unavailable
-
-    @property
-    def levels(self):
-        return "Not implemented yet"
-        """https://www.kartable.fr/{classe}"""
-        helium.click(self.current_level)
-        m = list(set(
-            [i.text for i in self.driver.find_elements_by_class_name("school-year__level")]))
-        self.driver.find_element_by_class_name("icon-close").click()
-
-    @property
-    def current_level(self):
-        try:
-            level = self.driver.find_element_by_class_name(
-                "school-year__level").text
-        except Exception as e:
-            print("Failed to get the level", e)
-            level = False
-        finally:
-            return level
-
-    @property
-    def sponso_url(self):
-        self.driver.get(
-            "https://www.kartable.fr/compte/parrainage?questIdentifier=sponsorship_fifth")
-        time.sleep(5)
-        self.driver.execute_script(
-            'try{document.getElementsByTagName("input")[0].removeAttribute("readonly");}catch(error){console.error(error);}')
-        self._sponso_url = self.driver.execute_script(
-            'return document.getElementsByTagName("input")[0].value;')
-        if not self._sponso_url.startswith("https://"):
-            return False
-        return self._sponso_url
-
-    @property
-    def ruby_amount(self):
-        """Works for https://www.kartable.fr/rubis, https://www.kartable.fr/cinquieme, https://www.kartable.fr/ (because redirects to .../{classe}"""
-        try:
-            rubies = self.driver.find_element_by_class_name(
-                "ruby-counter__total").text
-        except Exception as e:
-            print("Failed to get the amount of rubies", e)
-            rubies = False
-        finally:
-            return rubies
-
-
-"""
-Usage:
-    instance = main("6e","philotea","rotrions","manlymprinc1241478451ent@gmail.com","xfcgvhibu1457hoomskpjoihugyf")
-    time.sleep(5)
-    instance.register()
-    ...
-    url = instance.sponso_url
-    instance.log_out()
-
-"""
-    branches: [ "main" ]
-  pull_request: 
-#include "MoveCommand.h"
-
-static const std::string _name("move");
-static const std::string _description =
-    "Arguments: {column_index}{row_index}\n"
-    "Example: " +
-    _name + " e4\n"
-            "Description: Moves the selected piece to the specified square if legal.";
-
-MoveCommand::MoveCommand(Chess &chess)
-    : Command(chess, _name, _description)
-{
 }
+    branches: [ "main" ]
+  pull_request: // SPDX-License-Identifier: MIT
+import org.gradle.api.*
 
-Result MoveCommand::apply(const std::vector<std::string> &params)
-{
-    if (params.size() != 1 || params[0].length() != 2)
-        return {true, false};
+class CmdExecutor{
+    List<String> command = new ArrayList<String>();
+    int timeOutInSeconds=-1;
 
-    int row = params[0][1] - '1';
-    int column = params[0][0] - 'a';
 
-    Chess &chess = this->get_chess();
-    bool error = chess.move({row, column});
-    return {error, false};
+    /**
+    *  Executes given command list in given working directory. When started process
+    *  does not return 0 as exit code a gradle exception is thrown which will break the build.
+    *  The origin gradle exec process will always wait until no spawned processes are left.
+    *  For e.g. the test integratino start this is an unwanted behaviour, because the process shall
+    *  run and the next task (integration test execution) must proceed...
+    */
+    public void execute(File workingDir){
+        /* why next lines so extreme ugly code (for next .. and get(x) )?
+          becaus using just the list or converterting to array in standard
+          java way  ala "cmdArray= list.toArray(new String[list.size])" does
+          not work in groovy!!!! */
+          String[] cmdarray = new String[command.size()];
+          for (int i=0;i<cmdarray.length;i++) {
+              cmdarray[i]=command.get(i);
+          }
+          println( ">> execute:" + command)
+          /* create process */
+          ProcessBuilder pb = new ProcessBuilder();
+          pb.command(cmdarray);
+          pb.directory(workingDir);
+          pb.inheritIO();
+          /* start */
+          Process p = pb.start();
+          if (timeOutInSeconds >-1){
+              p.waitFor(timeOutInSeconds, java.util.concurrent.TimeUnit.SECONDS);
+          }else{
+              p.waitFor()
+          }
+
+          /* handle errors */
+          int result = p.exitValue();
+          if (result!=0) {
+                println("Exit value of script was not 0. Output was:\n")
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                String line = null;
+
+                while ( (line = reader.readLine()) != null) {
+                   println(line);
+                }
+
+                reader = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+
+                while ( (line = reader.readLine()) != null) {
+                   println("ERROR:" + line);
+                }
+
+              throw new GradleException("Script returned exit code:$result");
+          }
+    }
 }
     branches: [ "main" ]
 
-jobs: #pragma once
+jobs: // SPDX-License-Identifier: MIT
 
-#include "../Command.h"
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.io.IOException;
 
-// Moves the selected piece to a new square.
-// Params:
-//      1. string of format {char}{int} representing a
-//          field of the chessboard.
-class MoveCommand : public Command
-{
-public:
-    MoveCommand(Chess &chess);
+public class IOUtil {
 
-    Result apply(const std::vector<std::string> &params) override;
-};
-  build: 
-#include "QuitCommand.h"
+    /**
+     * Creates a backup copy for the given file (if the file does exist) which
+     * can be restored by IOUtil. The location of the backup is handled by IOUtil internally.
+     * 
+     * @param filePath the path for the file to backup
+     * @param backupPostFix a special post fix for the backup file, the backup file has
+     *        the same name as the origin one, but with the post fix.
+     */
+    public static final void createBackupFile(String filePath, String backupPostFix) throws IOException{
+        Path sourcePath = Paths.get(filePath);
+        Path targetPath = Paths.get(filePath + "_" + backupPostFix);
 
-static const std::string _name = "quit";
-static const std::string _description =
-    "Arguments: [None]\n"
-    "Description: Quits the game.";
-
-QuitCommand::QuitCommand(Chess &chess)
-    : Command(chess, _name, _description)
-{
-}
-
-Result QuitCommand::apply(const std::vector<std::string> &params)
-{
-    bool error = !params.empty();
-    bool quit = true;
-    return {error, quit};
-}
-
-    runs-on: #pragma once
-
-#include "../Command.h"
-
-// Sends a quit signal to the session.
-// No params.
-class QuitCommand : public Command
-{
-public:
-    QuitCommand(Chess &chess);
-
-    Result apply(const std::vector<std::string> &params) override;
-};
-
-    steps: 
-#include "SelectCommand.h"
-
-static const std::string _name("select");
-static const std::string _description =
-    "Arguments: {column_index}{row_index}\n"
-    "Example: " +
-    _name + " e2\n"
-            "Description: Selects the specified square.";
-
-SelectCommand::SelectCommand(Chess &chess)
-    : Command(chess, _name, _description)
-{
-}
-
-Result SelectCommand::apply(const std::vector<std::string> &params)
-{
-    if (params.size() != 1 || params[0].length() != 2)
-        return {true, false};
-
-    int row = params[0][1] - '1';
-    int column = params[0][0] - 'a';
-
-    Chess &chess = this->get_chess();
-    bool error = chess.select({row, column});
-    return {error, false};
-}
-    - uses: #pragma once
-
-#include "../Command.h"
-
-// Selects a square.
-// Params:
-//     1. row
-//     2. column
-class SelectCommand : public Command
-{
-public:
-    SelectCommand(Chess &chess);
-
-    Result apply(const std::vector<std::string> &params) override;
-};
-    - name: 
-#include "Command.h"
-
-Command::Command(Chess &chess, std::string name, std::string description)
-    : chess(chess), name(name), description(description) {}
-
-const std::string &Command::get_name() const
-{
-    return this->name;
-}
-
-const std::string &Command::get_description() const
-{
-    return this->description;
-}
-
-Chess &Command::get_chess()
-{
-    return this->chess;
-}
-      run: ./#pragma once
-
-#include <string>
-#include <vector>
-
-#include "Result.h"
-
-#include "../model/Chess.h"
-
-class Command
-{
-public:
-    Command(Chess &chess, std::string name, std::string description);
-    virtual ~Command() = default;
-
-    const std::string &get_name() const;
-    const std::string &get_description() const;
-
-    virtual Result apply(const std::vector<std::string> &params) = 0;
-
-protected:
-    Chess &get_chess();
-
-private:
-    Chess &chess;
-    std::string name;
-    std::string description;
-};
-    - name: #pragma once
-
-struct Result
-{
-    bool error;
-    bool quit;
-};
-      run: import sys
-
-print("")
-print("..............CONSIGNES.................")
-print("  Ce script va calculer votre moyenne pour vous!")
-print("Il faudra lui spécifier le nom de la matiere et le nombre de notes que vous avez eu pour cette matière")
-print("Ne taper que des nombres")
-print("..........................................")
-print("")
-print("")
-print("Voici le choix de la matière :")
-print("{1} Maths")
-print("{2} Français")
-print("{3} Anglais")
-print("{4} Espanol")
-print("{5} Sport")
-print("{6} Technologie")
-print("{7} Physique")
-print("{8} SVT")
-print("{9} Histoire-Géo")
-print("{10} Religion")
-try:
-        choice = int(input("Quel matière choisissez-vous?"))
-except ValueError:
-        print("Vous n'avez pas taper un nombre!")
-        print("Au revoir...")
-        input("Taper la touche Entrée pour quitter")
-        sys.exit(1)
-else:
-        if choice == 1:
-                choice = "Maths"
-        elif choice == 2:
-                choice = "Français"
-        elif choice == 3:
-                choice = "Anglais"
-        elif choice == 4:
-                choice = "Espagnol"
-        elif choice == 5:
-                choice = "Sport"
-        elif choice == 6:
-                choice = "Technologie"
-        elif choice == 7:
-                choice = "Physique"
-        elif choice == 8:
-                choice = "SVT"
-        elif choice == 9:
-                choice = "Histoire-Géo"
-        elif choice == 10:
-                choice = "Religion"
-        else:
-                print("Ceci ne correspond pas aux matières proposées!")
-                print("Au revoir")
-                input("Taper la touche Entrée pour quitter")
-                sys.exit(1)
-        print("Vous avez choisi de calculer votre moyenne pour:", choice)
-        print("")
-        print("..........................................")
-        print("")
-        try:
-                nbnot = int(input("Combien avez vous eu de notes ?"))
-        except ValueError:
-                print("Vous n'avez pas taper un nombre!")
-                print("Au revoir...")
-                input("Taper la touche Entrée pour quitter")
-                sys.exit(1)
-        else:
-                if nbnot == 1 or nbnot >= 50:
-                        print("Ce nombre de note est incorrect!")
-                        input("Appuyer sur la touche Entrée pour quitter")
-                        sys.exit(1)
-                note = []
-                coef = []
-                print("Appuyer sur la touche Entrée après chaque notes")
-                for i in range(nbnot):
-                        try:
-                                i =  float(input("Taper une note: "))
-                                p = float(input("Quel est son coefficient?"))
-                        except ValueError:
-                                print("Vous n'avez pas taper un nombre!")
-                                print("Au revoir...")
-                                input("Taper la touche Entrée pour quitter")
-                                sys.exit(1)
-                        else:
-                                coef.append(p)
-                                i = i * p
-                                note.append(i)
-                add = sum(note)#sum() additionne les valeurs de note entre elles
-                ad = sum(coef)# addtions des coefficients
-                calc = add/ad
-# Pour calculer une moyenne:
-# additionner les notes
-# additionner les coefficients
-# diviser le premier résultat avec le deuxième
-                if round(calc) == calc:
-                        calc = int(calc)
-                else:
-                        calc = float(calc)
-                print("")
-                print("[..........  ...........................]")
-                print("Votre moyenne en", choice,"est de", float(round(calc, 2)))
-                print("[.......................................]")
-                print("")
-                print("")
-                input("Appuyer sur la touche Entrée pour quitter")
-    - name: import java.util.Scanner;
-
-public class matutil {
-        public static void main(String[] args) {
-                Scanner reader = new Scanner(System.in);
-                System.out.println("Taper un nombre: ");
-                double nb = reader.nextDouble();
-            System.out.println("................................................................");
-                for (int i=1; i <= nb+1; i++) {
-                if (nb/i == Math.round(nb/i)){
-                        System.out.println(nb + " est divisible par " + i);
-                    System.out.println(nb + " divise par " + i + " vaut " + nb/i);
-                System.out.println(" ");
-                } else {
-                    continue; }
+        if (!Files.exists(sourcePath)) {
+            return;
         }
-            for (int x = 1; x <= 28; x++) {
-                System.out.println(x + " fois " + nb + "= " + x*nb);
+        System.out.println("Create backup file: "+targetPath + "\nfrom: "+sourcePath);
+
+        Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
     }
-    System.out.println(" ");
-    System.out.println("Carre: " + nb*nb);
-    System.out.println(" ");
-    if (Math.sqrt(nb) == Math.round(Math.sqrt(nb))){
-        System.out.println("La racine carree de " + nb + " tombe juste");
-        System.out.println(" ");
-    } else{
-        System.out.println("La racine carree de "  + nb + " ne tombe pas juste");
-            System.out.println("Racine carree: " + Math.sqrt(nb));
-        System.out.println(" ");
+
+    /**
+     * Restores a previously created backup to the wanted file path (if a backup exists).
+     * The location of the backup is handled by IOUtil internally.
+     * 
+     * @param filePath the path for the file to restore (not the backup file!)
+     * @backupPostFix a special post fix for the backup file
+     */
+    public static final void restoreBackupFile(String filePath, String backupPostFix) throws IOException{
+        Path targetPath = Paths.get(filePath);
+        Path sourcePath = Paths.get(filePath + "_" + backupPostFix);
+        if (!Files.exists(sourcePath)) {
+            return;
+        }
+        System.out.println("Restore: "+targetPath + "\nfrom backup file: "+sourcePath);
+        Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
     }
-    for (int v=1; v <= 11; v++) {
-        System.out.println("Exposant " + v +": " + Math.pow(nb, v));
-        }
-        }
+
+    /**
+     * Copy a file to another location
+     * @sourcePath source path as string
+     * @targetPath target path as string
+     */
+    public static final void copyFile(String sourcePath, String targetPath) throws IOException{
+
+        Path source = Paths.get(sourcePath);
+        Path target = Paths.get(targetPath);
+
+        target.toFile().getParentFile().mkdirs();
+
+        System.out.println("Copy: "+source + "\nto  : "+target);
+        Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+    }
 }
-      run: import sys
-from math import sqrt
+  build: // SPDX-License-Identifier: MIT
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.List;
 
 
-def main():
-    for i in range(1, nb+1):
-        if nb/i == round(nb/i):
-            print(nb, "est divisible par", i,)
-            print(nb, "divisé par", i, "vaut", nb/i)
-        else:
-            pass
-    for x in range(1, 21):
-        print(x, "×", nb, "=", x*nb)
-    print("Carré:", nb*nb)
-    if sqrt(nb) == round(sqrt(nb)):
-        print("La racine carrée de", nb, "tombe juste")
-    else:
-        print("La racine carrée de" , nb, "ne tombe pas juste")
-    print("Racine carrée:", round(sqrt(nb)))
-    for v in range(1,11):
-        print("Exposant",v,":", nb ** v)
-        v += 1
+public class JunitFilesToOneFileConverter {
 
-try:
-    nb = float(input("Taper un nombre =>"))
-    print("......................................")
-except ValueError:
-    print("Vous n'avez pas tapé un nombre")
-    sys.exit()
-else:
-    if nb == int(nb):
-        nb = int(nb)
-        main()
-    else:
-        nb = float(nb)
-        main()
-    - name: import sys
+    void combineFiles(String sourcePath, String targetFile) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+        sb.append("<testsuites>\n");
+        Path path = Paths.get(sourcePath);
+        try {
+            for (Path file : Files.newDirectoryStream(path)) {
+                if (Files.isRegularFile(file)) {
+                    try {
+                        List<String> x = Files.readAllLines(file);
+                        int lineNr = 0;
+                        for (String line : x) {
+                            lineNr++;
+                            if (lineNr == 1) {
+                                continue;
+                            }
+                            sb.append(line);
+                            sb.append("\n");
+                        }
+
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+            sb.append("\n</testsuites>");
+            Path targetPath = Paths.get(targetFile);
+            targetPath.getParent().toFile().mkdirs();
+            Files.deleteIfExists(targetPath);
+
+            BufferedWriter bw = Files.newBufferedWriter(targetPath, Charset.forName("UTF-8"), StandardOpenOption.CREATE_NEW)
+            bw.write(sb.toString());
+            bw.close();
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+}
+
+    runs-on: // SPDX-License-Identifier: MIT
+class MinGWConverter{
+    public String convert(String path){
+          if (path==null) {
+              return "";
+          }
+          String replaced = path.replaceAll("\\\\", "/");
+          if (replaced.indexOf(':')==1) {
+              StringBuilder sb = new StringBuilder();
+              sb.append('/');
+              sb.append(replaced.substring(0,1));
+              sb.append(replaced.substring(2));
+              return sb.toString();
+          }
+          return replaced;
+    }
+
+}
+
+    steps: // SPDX-License-Identifier: MIT
+class OSUtil{
+     public static final boolean isWindows(){
+          String osName = System.getProperty("os.name").toLowerCase();
+          return osName.contains("windows");
+     }
+}
+
+    - uses: // SPDX-License-Identifier: MIT
+class VersionData{
+
+    private static final String ID_CLIENT = "client"
+    private static final String ID_LIBRARIES = "libraries"
+    private static final String ID_PDS = "pds";
+    private static final String ID_PDS_TOOLS = "pds-tools"
+    private static final String ID_SERVER = "server"
+    private static final String ID_WEBUI = "webui"
+    private static final String ID_WRAPPER_CHECKMARX = "checkmarx wrapper"
+    private static final String ID_WRAPPER_OWASPZAP = "owasp-zap wrapper"
+    private static final String ID_WRAPPER_PREPARE= "prepare wrapper"
+    private static final String ID_WRAPPER_SECRETVALIDATION= "secretvalidation wrapper"
+    private static final String ID_WRAPPER_XRAY= "xray wrapper"
+
+    private StringBuilder debugInfo = new StringBuilder();
+
+    private Map<String,VersionInfo> map = new HashMap<>();
+
+    boolean containingAtLeastOneDirtyReleaseVersion
+    boolean containingAtLeastOneRealReleaseVersion
+
+    public VersionData(){
+
+        /* initialize */
+        initialize(ID_CLIENT,   "Client")
+        initialize(ID_LIBRARIES,"Libraries")
+        initialize(ID_PDS,      "PDS")
+        initialize(ID_PDS_TOOLS,"PDS-Tools")
+        initialize(ID_SERVER,   "Server")
+        initialize(ID_WEBUI,    "WebUI")
+        initialize(ID_WRAPPER_CHECKMARX,        "Checkmarx Wrapper")
+        initialize(ID_WRAPPER_OWASPZAP,         "OWASP-ZAP Wrapper")
+        initialize(ID_WRAPPER_PREPARE,          "Prepare Wrapper")
+        initialize(ID_WRAPPER_SECRETVALIDATION, "SecretValidation Wrapper")
+        initialize(ID_WRAPPER_XRAY,             "Xray Wrapper")
+    }
+
+    public class VersionInfo{
+
+        String id
+        String text
+        String fullVersion
+        String shortVersion
+        String shortVersionForDocs
+
+        public String describe(){
+            return text.padLeft(24)+": "+shortVersion+" ("+fullVersion+") docs: "+shortVersionForDocs
+        }
+
+    }
+
+    void initialize(String id,String text){
+
+        VersionInfo info = new VersionInfo()
+
+        info.id = id;
+        info.text = text;
+        info.fullVersion = "undefined-long-"+id+"version"
+        info.shortVersion = "undefined-"+id+"version"
+        info.shortVersionForDocs = info.shortVersion
+        map.put(id, info)
+    }
+
+    public VersionInfo defineVersion(String versionType, String fullVersion, String shortVersionForDocs){
+
+        VersionInfo info = map.get(versionType.toLowerCase());
+        if (info==null){
+            throw new IllegalArgumentException("unsupported version type:"+versionType);
+        }
+        inspectReleaseVersion(versionType, fullVersion);
+        info.shortVersion = simplifiedVersion(fullVersion);
+        info.fullVersion = fullVersion
+        info.shortVersionForDocs = shortVersionForDocs
+
+        return info;
+    }
+
+    /**
+     * Convenience methods: return short version
+     */
+
+    public String getCheckmarxWrapperVersion(){
+        return map.get(ID_WRAPPER_CHECKMARX).getShortVersion()
+    }
+
+    public String getClientVersion(){
+        return map.get(ID_CLIENT).getShortVersion()
+    }
+    public String getClientDocsVersion(){
+        return map.get(ID_CLIENT).getShortVersionForDocs()
+    }
+
+    public String getLibrariesVersion(){
+        return map.get(ID_LIBRARIES).getShortVersion()
+    }
+
+    public String getOwaspzapWrapperVersion(){
+        return map.get(ID_WRAPPER_OWASPZAP).getShortVersion()
+    }
+
+    public String getPdsVersion(){
+        return map.get(ID_PDS).getShortVersion()
+    }
+    public String getPdsDocsVersion(){
+        return map.get(ID_PDS).getShortVersionForDocs()
+    }
+
+    public String getPdsToolsVersion(){
+        return map.get(ID_PDS_TOOLS).getShortVersion()
+    }
+
+    public String getServerVersion(){
+        return map.get(ID_SERVER).getShortVersion()
+    }
+    public String getServerDocsVersion(){
+        return map.get(ID_SERVER).getShortVersionForDocs()
+    }
+
+    public String getWebuiVersion(){
+        return map.get(ID_WEBUI).getShortVersion()
+    }
+
+    public String getXrayWrapperVersion(){
+        return map.get(ID_WRAPPER_XRAY).getShortVersion()
+    }
+
+    public String getPrepareWrapperVersion(){
+        return map.get(ID_WRAPPER_PREPARE).getShortVersion()
+    }
+
+    public String getSecretvalidationWrapperVersion(){
+        return map.get(ID_WRAPPER_SECRETVALIDATION).getShortVersion()
+    }
+
+    public String getDebugInfo(){
+
+        return "Debug info:\ncontainingAtLeastOneDirtyReleaseVersion=$containingAtLeastOneDirtyReleaseVersion\ncontainingAtLeastOneRealReleaseVersion=$containingAtLeastOneRealReleaseVersion\n\n$debugInfo";
+    }
 
 
-nbpremiers = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 43, 59, 61, 67, 71]
-print("PGCD: Plus Grand Diviseur Commun")
+    /**
+     * Inspect version - if not starting with 0.0.0 this means it's a release, so
+     *                   a "dirty" may not be contained inside long version name
+     */
+    private void inspectReleaseVersion(String versionType, String longVersionName){
+        debugInfo.append("\ninspect $versionType release version: long version=$longVersionName\n")
+        debugInfo.append("- at least one release found : $containingAtLeastOneRealReleaseVersion, one release dirty: $containingAtLeastOneDirtyReleaseVersion\n")
 
-def Euclide(a, b):
-        while a%b != 0:
-                a, b = b, a%b
-                maxi = max(a, b)
-                mini = min(a, b)
-                reste = maxi%mini
-                div = int(maxi/mini)
-                print("{0} = {1}*{2} + {3}".format(maxi, mini, div, reste))
-                maxi = mini
-                mini = reste
-        Back()
+        if (longVersionName.startsWith("0.0.0")){
+            /* not a correct release version so ignore */
+            return
+        }
+        containingAtLeastOneDirtyReleaseVersion=containingAtLeastOneDirtyReleaseVersion || longVersionName.contains("dirty")
+        containingAtLeastOneRealReleaseVersion=true
 
-def Back():
-        print("................................................................................")
-        print()
-        print("1- Revenir au menu principal")
-        print("2- Quitter")
-        print()
-        try:
-                re = int(input("Taper le nombre de votre choix => "))
-        except ValueError:
-                print("Vous n'avez pas taper un nombre valable")
-                sys.exit()
-        if re == 1:
-                Menu()
-        elif re == 2:
-                print("Au revoir.")
-                sys.exit()
-        else:
-                print("Ce nombre ne correspond pas aux choix disponibles")
-                sys.exit()
+        debugInfo.append("- updated data")
+        debugInfo.append("- at least one release found : $containingAtLeastOneRealReleaseVersion, one release dirty: $containingAtLeastOneDirtyReleaseVersion\n")
+    }
 
-def PGCD(A, B):
-        if A <= 0 or B <= 0:
-                print("Les nombres ne peuvent pas être égaux ou inférieur à 0")
-                sys.exit()
-        elif A >= 100000000 or B >= 100000000:
-                print("Les nombres ne peuvent pas être au-dessus de 1000")
-                sys.exit()
-        divA = []
-        divB = []
-        divcom = []
-        for x in range(1, A+1):
-                calc = int(A)/x
-                if calc == int(round(calc)):
-                        if x in divA:
-                                pass
-                        else:
-                                divA.append(int(x))
-                else:
-                        pass
-        for i in range(1,B+1):
-                ca = int(B)/i
-                if ca == int(round(ca)):
-                        if i in divB:
-                                pass
-                        else:
-                                divB.append(i)
-                else:
-                        pass
-        for nb in range(max(A, B)+1):
-                if nb in divA and nb in divB:
-                        if nb in divcom:
-                                pass
-                        else:
-                                divcom.append(nb)
-                else:
-                        pass
-        print("................................................................................")
-        print("Liste des diviseurs de", A)
-        print(divA)
-        print("")
-        print("Liste des diviseurs de", B)
-        print(divB)
-        print("")
-        print("Liste des diviseurs communs")
-        print(divcom)
-        longueur = max(divcom)
-        print("D'où le plus grand diviseur commun de {0} et de {1} est:".format(A, B), longueur)
-        Back()
+    /**
+     * Simplifies given version string . e.g. 0.4.1-b74 will be reduced to 0.4.1
+     */
+    private String simplifiedVersion(String fullVersion){
+        if (fullVersion==null){
+            return "0.0.0";
+        }
+        int index = fullVersion.indexOf('-');
+        if (index==-1){
+            return fullVersion;
+        }
+        return fullVersion.substring(0,index);
+    }
 
-def View(a, b):
-        if a != int(a) and b != int(b):
-                print("Tape des entiers!")
-                sys.exit()
-        if a > b:
-                grand = a
-                g = b
-        elif b > a:
-                grand = b
-                g = a
-        print("PGCD({0}, {1})".format(a, b))
-        while True:
-                petit = max(a, b) - min(a, b)
-                print("= PGCD({0}, {1})".format(min(a, b), petit))
-                ok = min(a, b)
-                encor = max(ok, petit) - min(petit, ok)
-                print("= PGCD({0}, {1})".format(petit, encor))
-                a = petit
-                b = encor
-                if petit == encor:
-                        break
-                if max(a, b) <= 0 or min(a, b) <= 0 or petit <= 0:
-                        break
-        Back()
+}
+    - name: #Wed Apr 10 15:27:10 PDT 2013
+distributionBase=GRADLE_USER_HOME
+distributionPath=wrapper/dists
+zipStoreBase=GRADLE_USER_HOME
+zipStorePath=wrapper/dists
+distributionUrl=https\://services.gradle.org/distributions/gradle-2.2.1-all.zip
+      run: ./<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <array name="qt_sources">
+        <item>https://download.qt-project.org/ministro/android/qt5/qt-5.4</item>
+    </array>
 
-def Menu():
-        print()
-        print()
-        print("......................................MENU......................................")
-        print()
-        print("1- Methode d'Euclide")
-        print("2- Methode par soustractions successives")
-        print("3- Methode détaillée")
-        print()
-        try:
-                choix = int(input("Taper le nombre correspondant à votre choix => "))
-        except ValueError:
-                print("Vous n'avez pas taper un nombre valable")
-                sys.exit()
-        print("..................................................................................")
-        try:
-                if choix == 1:
-                        a = int(input("Taper A: "))
-                        b = int(input("Taper B: "))
-                        Euclide(a, b)
-                elif choix == 2:
-                        a = int(input("Taper A: "))
-                        b = int(input("Taper B: "))
-                        View(a, b)
-                elif choix == 3:
-                        A = int(input("Taper A: "))
-                        B = int(input("Taper B: "))
-                        PGCD(A, B)
-                else:
-                        print("Ce nombre ne correspond pas aux choix disponibles")
-        except ValueError:
-                print("Vous n'avez pas taper un nombre valable")
-                sys.exit()
-Menu()
-      run: u = {} # {0:1, 1:2, 2:5, 3:26,...}
+    <!-- The following is handled automatically by the deployment tool. It should
+         not be edited manually. -->
 
+    <array name="bundled_libs">
+        <!-- %%INSERT_EXTRA_LIBS%% -->
+    </array>
 
-def recurrence_sequence(first_n: int, first_u_n: int, n_seeked: int):
-    """
-    Parameters: first_n corresponds to the value of the initial term of the sequence whose image is known by Un.
-                first_u_n is the image of this initial term by Un
-                n_seeked is the value n searched for
-    Example: U0 = 1
-              0 would then be the value of the "first_n" parameter, and
-              1 the value of "first_u_n".
-    """
-    for n in range(first_n, n_seeked+1):
-        u[n] = u[n-1]*2 - 3 if n-1 in u.keys() else first_u_n
-        yield f"U{n} = {u[n]}"
+     <array name="qt_libs">
+         <!-- %%INSERT_QT_LIBS%% -->
+     </array>
 
+    <array name="bundled_in_lib">
+        <!-- %%INSERT_BUNDLED_IN_LIB%% -->
+    </array>
+    <array name="bundled_in_assets">
+        <!-- %%INSERT_BUNDLED_IN_ASSETS%% -->
+    </array>
 
-for i in recurrence_sequence(0, 1, int(input("n value seeked: "))):
-    print(i)
+</resources>
+    - name: package labs.mavlink.VideoReceiverApp;
+
+/* Copyright 2013 Google Inc.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
+ *
+ * Project home page: http://code.google.com/p/usb-serial-for-android/
+ */
+///////////////////////////////////////////////////////////////////////////////////////////
+//  Written by: Mike Goza April 2014
+//
+//  These routines interface with the Android USB Host devices for serial port communication.
+//  The code uses the usb-serial-for-android software library.  The QGCActivity class is the
+//  interface to the C++ routines through jni calls.  Do not change the functions without also
+//  changing the corresponding calls in the C++ routines or you will break the interface.
+//
+////////////////////////////////////////////////////////////////////////////////////////////
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.io.IOException;
+
+import android.app.Activity;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.hardware.usb.UsbAccessory;
+import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbDeviceConnection;
+import android.hardware.usb.UsbManager;
+import android.widget.Toast;
+import android.util.Log;
+import android.os.PowerManager;
+import android.os.Bundle;
+import android.app.PendingIntent;
+import android.view.WindowManager;
+import android.os.Bundle;
+import android.bluetooth.BluetoothDevice;
+
+import org.qtproject.qt5.android.bindings.QtActivity;
+import org.qtproject.qt5.android.bindings.QtApplication;
+
+public class QGLSinkActivity extends QtActivity
+{
+    public native void nativeInit();
+
+    // QGLSinkActivity singleton
+    public QGLSinkActivity() {
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        nativeInit();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+    }
+
+    public void onInit(int status) {
+    }
+
+    public void jniOnLoad() {
+        nativeInit();
+    }
+}
+      run: /*
+ * Copyright (C) 2012, Collabora Ltd.
+ *   Author: 
+ *
+ * Copyright (C) 2015, Collabora Ltd.
+ *   Author: >
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation
+ * version 2.1 of the License.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+ *
+ */
+
+package org.freedesktop.gstreamer.androidmedia;
+
+import android.hardware.Camera;
+
+public class GstAhcCallback implements Camera.PreviewCallback,
+                                       Camera.ErrorCallback,
+                                       Camera.AutoFocusCallback {
+    public long mUserData;
+    public long mCallback;
+
+    public static native void gst_ah_camera_on_preview_frame(byte[] data, Camera camera,
+                                                             long callback, long user_data);
+    public static native void gst_ah_camera_on_error(int error, Camera camera,
+                                                     long callback, long user_data);
+    public static native void gst_ah_camera_on_auto_focus(boolean success, Camera camera,
+                                                             long callback, long user_data);
+
+    public GstAhcCallback(long callback, long user_data) {
+        mCallback = callback;
+        mUserData = user_data;
+    }
+
+    @Override
+    public void onPreviewFrame(byte[] data, Camera camera) {
+        gst_ah_camera_on_preview_frame(data, camera, mCallback, mUserData);
+    }
+
+    @Override
+    public void onError(int error, Camera camera) {
+        gst_ah_camera_on_error(error, camera, mCallback, mUserData);
+    }
+
+    @Override
+    public void onAutoFocus(boolean success, Camera camera) {
+        gst_ah_camera_on_auto_focus(success, camera, mCallback, mUserData);
+    }
+}
+    - name: /*
+ * Copyright (C) 2016 SurroundIO
+ *   Author: >
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Library General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Library General Public License for more details.
+ *
+ * You should have received a copy of the GNU Library General Public
+ * License along with this library; if not, write to the
+ * Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
+ * Boston, MA 02110-1301, USA.
+ */
+
+package org.freedesktop.gstreamer.androidmedia;
+
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+
+public class GstAhsCallback implements SensorEventListener {
+    public long mUserData;
+    public long mSensorCallback;
+    public long mAccuracyCallback;
+
+    public static native void gst_ah_sensor_on_sensor_changed(SensorEvent event,
+                                                              long callback, long user_data);
+    public static native void gst_ah_sensor_on_accuracy_changed(Sensor sensor, int accuracy,
+                                                                long callback, long user_data);
+
+    public GstAhsCallback(long sensor_callback,
+        long accuracy_callback, long user_data) {
+        mSensorCallback = sensor_callback;
+        mAccuracyCallback = accuracy_callback;
+        mUserData = user_data;
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+      gst_ah_sensor_on_sensor_changed(event, mSensorCallback, mUserData);
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+      gst_ah_sensor_on_accuracy_changed(sensor, accuracy,
+          mAccuracyCallback, mUserData);
+    }
+}
+      run: /*
+ * Copyright (C) 2015, Collabora Ltd.
+ *   Author: >
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation
+ * version 2.1 of the License.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+ *
+ */
+
+package org.freedesktop.gstreamer.androidmedia;
+
+import android.graphics.SurfaceTexture;
+import android.graphics.SurfaceTexture.OnFrameAvailableListener;
+
+public class GstAmcOnFrameAvailableListener implements OnFrameAvailableListener
+{
+    private long context = 0;
+
+    public synchronized void onFrameAvailable (SurfaceTexture surfaceTexture) {
+        native_onFrameAvailable(context, surfaceTexture);
+    }
+
+    public synchronized long getContext () {
+        return context;
+    }
+
+    public synchronized void setContext (long c) {
+        context = c;
+    }
+
+    private native void native_onFrameAvailable (long context, SurfaceTexture surfaceTexture);
+}
+    - name: #!/usr/bin/env php
+<?php
+
+use Symfony\Bundle\FrameworkBundle\Console\Application;
+use Symfony\Component\Console\Input\ArgvInput;
+use Symfony\Component\Debug\Debug;
+
+// if you don't want to setup permissions the proper way, just uncomment the following PHP line
+// read http://symfony.com/doc/current/book/installation.html#configuration-and-setup for more information
+//umask(0000);
+
+set_time_limit(0);
+
+/**
+ * @var Composer\Autoload\ClassLoader $loader
+ */
+$loader = require __DIR__.'/../app/autoload.php';
+
+$input = new ArgvInput();
+$env = $input->getParameterOption(['--env', '-e'], getenv('SYMFONY_ENV') ?: 'dev');
+$debug = getenv('SYMFONY_DEBUG') !== '0' && !$input->hasParameterOption(['--no-debug', '']) && $env !== 'prod';
+
+if ($debug) {
+    Debug::enable();
+}
+
+$kernel = new AppKernel($env, $debug);
+$application = new Application($kernel);
+$application->run($input); 
+      run: #!/usr/bin/env php
+<?php
+
+require_once dirname(__FILE__).'/../var/SymfonyRequirements.php';
+
+$lineSize = 70;
+$symfonyRequirements = new SymfonyRequirements();
+$iniPath = $symfonyRequirements->getPhpIniConfigPath();
+
+echo_title('Symfony Requirements Checker');
+
+echo '> PHP is using the following php.ini file:'.PHP_EOL;
+if ($iniPath) {
+    echo_style('green', '  '.$iniPath);
+} else {
+    echo_style('warning', '  WARNING: No configuration file (php.ini) used by PHP!');
+}
+
+echo PHP_EOL.PHP_EOL;
+
+echo '> Checking Symfony requirements:'.PHP_EOL.'  ';
+
+$messages = array();
+foreach ($symfonyRequirements->getRequirements() as $req) {
+    /** @var $req Requirement */
+    if ($helpText = get_error_message($req, $lineSize)) {
+        echo_style('red', 'E');
+        $messages['error'][] = $helpText;
+    } else {
+        echo_style('green', '.');
+    }
+}
+
+$checkPassed = empty($messages['error']);
+
+foreach ($symfonyRequirements->getRecommendations() as $req) {
+    if ($helpText = get_error_message($req, $lineSize)) {
+        echo_style('yellow', 'W');
+        $messages['warning'][] = $helpText;
+    } else {
+        echo_style('green', '.');
+    }
+}
+
+if ($checkPassed) {
+    echo_block('success', 'OK', 'Your system is ready to run Symfony projects');
+} else {
+    echo_block('error', 'ERROR', 'Your system is not ready to run Symfony projects');
+
+    echo_title('Fix the following mandatory requirements', 'red');
+
+    foreach ($messages['error'] as $helpText) {
+        echo ' * '.$helpText.PHP_EOL;
+    }
+}
+
+if (!empty($messages['warning'])) {
+    echo_title('Optional recommendations to improve your setup', 'yellow');
+
+    foreach ($messages['warning'] as $helpText) {
+        echo ' * '.$helpText.PHP_EOL;
+    }
+}
+
+echo PHP_EOL;
+echo_style('title', 'Note');
+echo '  The command console could use a different php.ini file'.PHP_EOL;
+echo_style('title', '~~~~');
+echo '  than the one used with your web server. To be on the'.PHP_EOL;
+echo '      safe side, please check the requirements from your web'.PHP_EOL;
+echo '      server using the ';
+echo_style('yellow', 'web/config.php');
+echo ' script.'.PHP_EOL;
+echo PHP_EOL;
+
+exit($checkPassed ? 0 : 1);
+
+function get_error_message(Requirement $requirement, $lineSize)
+{
+    if ($requirement->isFulfilled()) {
+        return;
+    }
+
+    $errorMessage = wordwrap($requirement->getTestMessage(), $lineSize - 3, PHP_EOL.'   ').PHP_EOL;
+    $errorMessage .= '   > '.wordwrap($requirement->getHelpText(), $lineSize - 5, PHP_EOL.'   > ').PHP_EOL;
+
+    return $errorMessage;
+}
+
+function echo_title($title, $style = null)
+{
+    $style = $style ?: 'title';
+
+    echo PHP_EOL;
+    echo_style($style, $title.PHP_EOL);
+    echo_style($style, str_repeat('~', strlen($title)).PHP_EOL);
+    echo PHP_EOL;
+}
+
+function echo_style($style, $message)
+{
+    // ANSI color codes
+    $styles = array(
+        'reset' => "\033[0m",
+        'red' => "\033[31m",
+        'green' => "\033[32m",
+        'yellow' => "\033[33m",
+        'error' => "\033[37;41m",
+        'success' => "\033[37;42m",
+        'title' => "\033[34m",
+    );
+    $supports = has_color_support();
+
+    echo($supports ? $styles[$style] : '').$message.($supports ? $styles['reset'] : '');
+}
+
+function echo_block($style, $title, $message)
+{
+    $message = ' '.trim($message).' ';
+    $width = strlen($message);
+
+    echo PHP_EOL.PHP_EOL;
+
+    echo_style($style, str_repeat(' ', $width).PHP_EOL);
+    echo_style($style, str_pad(' ['.$title.']', $width, ' ', STR_PAD_RIGHT).PHP_EOL);
+    echo_style($style, str_pad($message, $width, ' ', STR_PAD_RIGHT).PHP_EOL);
+    echo_style($style, str_repeat(' ', $width).PHP_EOL);
+}
+
+function has_color_support()
+{
+    static $support;
+
+    if (null === $support) {
+        if (DIRECTORY_SEPARATOR == '\\') {
+            $support = false !== getenv('ANSICON') || 'ON' === getenv('ConEmuANSI');
+        } else {
+            $support = function_exists('posix_isatty') && @posix_isatty(STDOUT);
+        }
+    }
+
+    return $support;
+}
