@@ -1,6 +1,60 @@
 name: Rust
 
-on: extern crate clap;
+on: [target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
+
+[target.'cfg(all(windows, debug_assertions))']
+rustflags = [
+  "-C",
+  "target-feature=+crt-static",
+  "-C",
+  # increase the stack size to prevent overflowing the
+  # stack in debug when launching sub commands
+  "link-arg=/STACK:4194304",
+]
+
+[target.x86_64-apple-darwin]
+rustflags = [
+  "-C",
+  "link-args=-weak_framework Metal -weak_framework MetalPerformanceShaders -weak_framework QuartzCore -weak_framework CoreGraphics",
+]
+
+[target.aarch64-apple-darwin]
+rustflags = [
+  "-C",
+  "link-args=-fuse-ld=lld -weak_framework Metal -weak_framework MetalPerformanceShaders -weak_framework QuartzCore -weak_framework CoreGraphics",
+]
+
+[target.'cfg(all())']
+rustflags = [
+  "-D",
+  "clippy::all",
+  "-D",
+  "clippy::await_holding_refcell_ref",
+  "-D",
+  "clippy::missing_safety_doc",
+  "-D",
+  "clippy::undocumented_unsafe_blocks",
+  "--cfg",
+  "tokio_unstable",
+]
+  push: # To run a build using a local tree:
+#
+# 0. Check out these repositories as siblings:
+#
+#     - https://github.com/denoland/deno
+#     - https://github.com/denoland/deno_core
+#     - https://github.com/denoland/rusty_v8
+#
+# 1. From `deno`, run: cargo --config .cargo/local-build.toml build
+
+[patch.crates-io]
+deno_core = { path = "../deno_core/core" }
+deno_ops = { path = "../deno_core/ops" }
+serde_v8 = { path = "../deno_core/serde_v8" }
+v8 = { path = "../rusty_v8" }
+    branches: [ "main" ]
+  pull_request: extern crate clap;
 extern crate rand;
 
 use std::collections::LinkedList;
@@ -250,7 +304,9 @@ fn main() {
     }
 
 }
-  push: extern crate terminal;
+    branches: [ "main" ]
+
+env: extern crate terminal;
 
 use std::io::Write;
 use terminal::{error, TerminalLock, Clear, Action, Value, Retrieved, Event, KeyCode, KeyEvent};
@@ -358,11 +414,6 @@ impl Terminal {
     }
 
 }
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
-env:
   CARGO_TERM_COLOR: always
 
 jobs:
