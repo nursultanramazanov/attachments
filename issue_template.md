@@ -3,7 +3,7 @@
 
 ----
 # To post a bug report
-on: var _ = (function() {
+var _ = (function() {
 
   // Baseline setup
   // --------------
