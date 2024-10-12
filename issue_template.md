@@ -3,17 +3,96 @@
 
 ----
 # To post a bug report
-            <div class="contact">
-                <a href="https://www.google.com.ua/maps/place/%D0%A3%D0%BB%D0%B8%D1%86%D0%B0+%D0%BF%D1%83%D1%88%D0%BA%D0%B8%D0%BD%D0%B0+%D0%B4%D0%BE%D0%BC+%D0%BA%D0%BE%D0%BB%D0%BE%D1%82%D1%83%D1%88%D0%BA%D0%B8%D0%BD%D0%B0/@55.8190893,37.4957068,17z/data=!3m1!4b1!4m2!3m1!1s0x46b5483b949ea495:0xc4ebcbe568aabe28?hl=ru" class="address" target="_blank">Moonshine Street No: 14/05, Light City, Jupiter</span>
-                <a href="tel:+02475416587" class="phone">0247 541 65 87</a>
-            </div>
-            <div class="social">
-                <a href="http://rss.example.com" class="social-icon rss" target="_blank"></a>
-                <a href="http://www.facebook.com" class="social-icon facebook" target="_blank"></a>
-                <a href="http://twitter.com" class="social-icon twitter" target="_blank"></a>
-                <a href="http://dribbble.com" class="social-icon dribbble" target="_blank"></a>
-                <a href="http://printerest.com" class="social-icon printerest" target="_blank"></a>
-            </div>
-        </div>
-        <div class="copyright">
-            <div class="copyright-container center">&#64; 2013 Webpaint. All Rights Reserved.</div>
+on: var _ = (function() {
+
+  // Baseline setup
+  // --------------
+
+  // Establish the root object, `window` in the browser, or `global` on the server.
+  var root = this;
+
+  // Save the previous value of the `_` variable.
+  var previousUnderscore = root._;
+
+  // Establish the object that gets returned to break out of a loop iteration.
+  var breaker = {};
+
+  // Save bytes in the minified (but not gzipped) version:
+  var ArrayProto = Array.prototype, ObjProto = Object.prototype, FuncProto = Function.prototype;
+
+  // Create quick reference variables for speed access to core prototypes.
+  var slice            = ArrayProto.slice,
+      unshift          = ArrayProto.unshift,
+      toString         = ObjProto.toString,
+      hasOwnProperty   = ObjProto.hasOwnProperty;
+
+  // All **ECMAScript 5** native function implementations that we hope to use
+  // are declared here.
+  var
+    nativeForEach      = ArrayProto.forEach,
+    nativeMap          = ArrayProto.map,
+    nativeReduce       = ArrayProto.reduce,
+    nativeReduceRight  = ArrayProto.reduceRight,
+    nativeFilter       = ArrayProto.filter,
+    nativeEvery        = ArrayProto.every,
+    nativeSome         = ArrayProto.some,
+    nativeIndexOf      = ArrayProto.indexOf,
+    nativeLastIndexOf  = ArrayProto.lastIndexOf,
+    nativeIsArray      = Array.isArray,
+    nativeKeys         = Object.keys,
+    nativeBind         = FuncProto.bind;
+
+  // Create a safe reference to the Underscore object for use below.
+  var _ = function(obj) { return new wrapper(obj); };
+
+  // Export the Underscore object for **Node.js**, with
+  // backwards-compatibility for the old `require()` API. If we're in
+  // the browser, add `_` as a global object via a string identifier,
+  // for Closure Compiler "advanced" mode.
+  if (typeof exports !== 'undefined') {
+    if (typeof module !== 'undefined' && module.exports) {
+      exports = module.exports = _;
+    }
+    exports._ = _;
+  } else {
+    root['_'] = _;
+  }
+
+  // Current version.
+  _.VERSION = '1.3.3';
+
+  // Collection Functions
+  // --------------------
+
+  // The cornerstone, an `each` implementation, aka `forEach`.
+  // Handles objects with the built-in `forEach`, arrays, and raw objects.
+  // Delegates to **ECMAScript 5**'s native `forEach` if available.
+  var each = _.each = _.forEach = function(obj, iterator, context) {
+    if (obj == null) return;
+    if (nativeForEach && obj.forEach === nativeForEach) {
+      obj.forEach(iterator, context);
+    } else if (obj.length === +obj.length) {
+      for (var i = 0, l = obj.length; i < l; i++) {
+        if (i in obj && iterator.call(context, obj[i], i, obj) === breaker) return;
+      }
+    } else {
+      for (var key in obj) {
+        if (_.has(obj, key)) {
+          if (iterator.call(context, obj[key], key, obj) === breaker) return;
+        }
+      }
+    }
+  };
+
+  // Return the results of applying the iterator to each element.
+  // Delegates to **ECMAScript 5**'s native `map` if available.
+  _.map = _.collect = function(obj, iterator, context) {
+    var results = [];
+    if (obj == null) return results;
+    if (nativeMap && obj.map === nativeMap) return obj.map(iterator, context);
+    each(obj, function(value, index, list) {
+      results[results.length] = iterator.call(context, value, index, list);
+    });
+    if (obj.length === +obj.length) results.length = obj.length;
+    return results;
+  };
