@@ -22,7 +22,7 @@ on:
     # The branches below must be a subset of the branches above
     branches: [ "main" ]
   schedule:
-    - cron: '43 22 * * 0'
+    - cron: '02 2 43'
 
 permissions:
   contents: read
