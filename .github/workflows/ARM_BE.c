@@ -3,6 +3,118 @@
 name: CMake on multiple platforms
 
 on: import requests
+import base64
+
+a = requests.post("https://www.hackthebox.eu/api/invite/generate")
+b = a.json()
+print(b)
+if b["success"] == 1:
+	password = b["data"]["code"]
+	print(base64.b64decode(password).decode())
+else:
+	print("Failed")
+  push: import socket
+import platform
+from requests import get
+from lxml import etree
+import os
+from subprocess import Popen
+
+
+class Main():
+	mycostatus = False
+	ip = ''
+	if socket.gethostbyname(socket.gethostname()) != '127.0.0.1':
+		local_ip = socket.gethostbyname(socket.gethostname())
+	def __init__(self):
+		try:
+			moninstance = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+			moninstance.connect(("8.8.8.8", 80)) # Google DNS
+		except socket.error:
+			self.mycostatus = False
+		else:
+			self.ip = get('https://api.ipify.org').text
+			
+			self.mycostatus = True
+		finally:
+			moninstance.close()
+	def IpDetails(self, target=ip):
+		if self.mycostatus == True:
+			details = get('http://ip-api.com/xml/{}'.format(str(target))).text
+			nveaufichierxml = open("resultatip.xml", 'w')
+			nveaufichierxml.write(str(details))
+			nveaufichierxml.close()
+			tree = etree.parse("resultatip.xml")
+			for a in tree.xpath("/query/country"):
+				country = a.text
+			for b in tree.xpath("/query/countryCode"):
+				countrycode = b.text
+			for c in tree.xpath("/query/region"):
+				region = c.text
+			for d in tree.xpath("/query/regionName"):
+				regionName = d.text
+			for e in tree.xpath("/query/city"):
+				city = e.text
+			for f in tree.xpath("/query/zip"):
+				zipcode = f.text
+			for g in tree.xpath("/query/lat"):
+				latitude = g.text
+			for h in tree.xpath("/query/lon"):
+				longitude = h.text
+			for i in tree.xpath("/query/timezone"):
+				timezone = i.text
+			for j in tree.xpath("/query/isp"):
+				ispname = j.text
+			for k in tree.xpath("/query/org"):
+				organization = k.text
+			for l in tree.xpath("/query/as"):
+				As = l.text
+			for m in tree.xpath("/query/query"):
+				cible = m.text
+			print("   0000-----------------{}-----------------0000".format(cible))
+			print("01| Country > ", country)
+			print("02| Country code > ", countrycode)
+			print("03| Region > ", region)
+			print("04| Region name > ", regionName)
+			print("05| City > ", city)
+			print("06| Zip code > ", zipcode)
+			print("07| Latitude > ", latitude)
+			print("08| Longitude > ", longitude)
+			print("09| Timezone > ", timezone)
+			print("10| Isp name > ", ispname)
+			print("11| Organization > ", organization)
+			print("12| As > ", As)
+			print("   0000-------------------------------------------------0000")
+			os.remove("resultatip.xml")#FileNotFoundError
+	def PublicIpAddress(self):
+		if self.mycostatus == True:
+			self.ip = get('https://api.ipify.org').text
+			return self.ip
+	def MyPcDetails(self):
+		pc_details = platform.uname()
+		print("|________________________________________________________________|")
+		print("")
+		if self.mycostatus == True:
+			print("Internet access: OK")
+			print("Local ip: ", self.local_ip)
+			print("External ip: ", self.ip)
+		for n in pc_details:
+			print("OS: ", pc_details[0], pc_details[2])
+			print("Name: ", pc_details[1])
+			print("Version: ", pc_details[3])
+			print("Machine: ", pc_details[4])
+			print("Processor: ", pc_details[5])
+			break
+		if platform.system() == 'Linux':
+			distribu = platform.linux_distribution()
+			for o in distribu:
+				print("Distrib: ", distribu[0], distribu[1])
+				print("Id: ", distribu[2])
+				break
+		print("")
+		print("|________________________________________________________________|")
+    branches: [ "main" ]
+  pull_request: import requests
 from email.utils import parseaddr
 
 def Check(account):
@@ -31,19 +143,14 @@ for n in liste:
 	che = Check(str(n[1]))
 	if che != False:
 		print(" > Results for ",str(n[1]),": \n",che,"\n")
-  push: idf_component_register(SRCS main.c db_esp32_control.c globals.h sdkconfig.h msp_ltm_serial.c
-        msp_ltm_serial.h db_protocol.h http_server.c http_server.h db_esp32_comm.c
-        db_esp32_comm.h db_comm_protocol.h db_comm.c db_comm.h db_crc.c db_crc.h tcp_server.c tcp_server.h
-        INCLUDE_DIRS ".")
     branches: [ "main" ]
-  pull_request: #
+
+jobs: #
 # "main" pseudo-component makefile.
 #
 # (Uses default behaviour of compiling all source files in directory, adding 'include' to include path.)
 
-    branches: [ "main" ]
-
-jobs: /*
+  build: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2018 
@@ -167,7 +274,7 @@ int gen_db_comm_err_resp(uint8_t *message_buffer, int id, char error_message[MAX
     cJSON_AddNumberToObject(root, DB_COMM_KEY_ID, id);
     return finalize_message(message_buffer, cJSON_Print(root));
 }
-  build: /*
+    runs-on: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2018 
@@ -200,7 +307,8 @@ int gen_db_comm_err_resp(uint8_t *message_buffer, int id, char error_message[MAX
 int gen_db_comm_ping_resp(uint8_t *message_buffer, int id);
 
 #endif //DB_ESP32_DB_COMM_H
-    runs-on: /*
+
+    strategy: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2018 
@@ -262,8 +370,8 @@ int gen_db_comm_ping_resp(uint8_t *message_buffer, int id);
 #define DB_ESP32_FID 101
 
 #endif //DB_ESP32_DB_COMM_PROTOCOL_H
-
-    strategy: /*
+      # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
+      fail-fast: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2017 
@@ -323,8 +431,14 @@ uint8_t crc8_dvb_s2_table(uint8_t crc, unsigned char a)
 {
     return (uint8_t) (crc_dvb_s2_table[(crc ^ a)] & 0xff);
 }
-      # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
-      fail-fast: /*
+
+      # Set up a matrix to run the following 3 configurations:
+      # 1. <Windows, Release, latest MSVC compiler toolchain on the default runner image, default generator>
+      # 2. <Linux, Release, latest GCC compiler toolchain on the default runner image, default generator>
+      # 3. <Linux, Release, latest Clang compiler toolchain on the default runner image, default generator>
+      #
+      # To add more build types (Release, Debug, RelWithDebInfo, etc.) customize the build_type list.
+      matrix: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2017 
@@ -477,14 +591,7 @@ uint8_t crc8_dvb_s2_table(uint8_t crc, unsigned char a);
 #endif
 
 #endif      /* CRC_H */
-
-      # Set up a matrix to run the following 3 configurations:
-      # 1. <Windows, Release, latest MSVC compiler toolchain on the default runner image, default generator>
-      # 2. <Linux, Release, latest GCC compiler toolchain on the default runner image, default generator>
-      # 3. <Linux, Release, latest Clang compiler toolchain on the default runner image, default generator>
-      #
-      # To add more build types (Release, Debug, RelWithDebInfo, etc.) customize the build_type list.
-      matrix: /*
+        os: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2018 
@@ -588,7 +695,7 @@ void communication_module_server(void *parameters) {
 void communication_module() {
     xTaskCreate(&communication_module_server, "comm_server", 8192, NULL, 5, NULL);
 }
-        os: /*
+        build_type: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2018 
@@ -613,7 +720,7 @@ void communication_module() {
 void communication_module();
 
 #endif //DB_ESP32_DB_ESP32_COMM_H
-        build_type: /*
+        c_compiler: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2018 
@@ -982,7 +1089,7 @@ void control_module() {
     xEventGroupWaitBits(wifi_event_group, BIT2, false, true, portMAX_DELAY);
     xTaskCreate(&control_module_tcp, "control_tcp", 40960, NULL, 5, NULL);
 }
-        c_compiler: /*
+        include: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2018 
@@ -1007,7 +1114,7 @@ void control_module() {
 void control_module();
 
 #endif //DB_ESP32_DB_ESP32_CONTROL_H
-        include: /*
+          - os: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2018 
@@ -1030,7 +1137,7 @@ void control_module();
 #define DB_ESP32_DB_ESP32_SETTINGS_H
 
 #endif //DB_ESP32_DB_ESP32_SETTINGS_H
-          - os: /*
+            c_compiler: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2017 
@@ -1062,15 +1169,15 @@ void control_module();
 
 #define MSP_DATA_LENTH          34      // size of MSP v1
 #define MSP_V2_DATA_LENGTH      37      // size of MSP v2 frame
-#define DB_RC_DATA_LENGTH                16                // size of DB_RC frame
-#define DATA_UNI_LENGTH         2048        // max payload length for raw protocol
-#define DB_RAW_OFFSET                        14      // when adhering the 802.11 header the payload is offset to not be overwritten by SQN
-#define MAX_DB_DATA_LENGTH                (RADIOTAP_LENGTH + DB_RAW_V2_HEADER_LENGTH + DATA_UNI_LENGTH) // max length of a db raw packet
+#define DB_RC_DATA_LENGTH		16		// size of DB_RC frame
+#define DATA_UNI_LENGTH         2048	// max payload length for raw protocol
+#define DB_RAW_OFFSET			14      // when adhering the 802.11 header the payload is offset to not be overwritten by SQN
+#define MAX_DB_DATA_LENGTH		(RADIOTAP_LENGTH + DB_RAW_V2_HEADER_LENGTH + DATA_UNI_LENGTH) // max length of a db raw packet
 #define ETHER_TYPE              0x88ab
 
 #define DEFAULT_DB_MODE         'm'
 #define DEFAULT_DB_IF           "18a6f716a511"
-#define DEFAULT_V2_COMMID                0xc8
+#define DEFAULT_V2_COMMID		0xc8
 
 #define DB_FRAMETYPE_RTS        1
 #define DB_FRAMETYPE_DATA       2
@@ -1083,25 +1190,25 @@ void control_module();
 #define DB_PORT_CONTROLLER  0x01
 #define DB_PORT_TELEMETRY   0x02  // deprecated. Use proxy port for bidirectional telemetry
 #define DB_PORT_VIDEO       0x03
-#define DB_PORT_COMM                0x04
-#define DB_PORT_STATUS                0x05
-#define DB_PORT_PROXY                0x06
-#define DB_PORT_RC                        0x07
+#define DB_PORT_COMM		0x04
+#define DB_PORT_STATUS		0x05
+#define DB_PORT_PROXY		0x06
+#define DB_PORT_RC			0x07
 
 #define DB_DIREC_DRONE      0x01 // packet to/for drone
-#define DB_DIREC_GROUND           0x03 // packet to/for ground station
+#define DB_DIREC_GROUND   	0x03 // packet to/for ground station
 
 #define APP_PORT_STATUS     1602 // for all kinds of status protocol messages. Same port on ground station and app
 #define APP_PORT_COMM       1603
 #define APP_PORT_TELEMETRY  1604 // accepts MAVLink and LTM telemetry messages. Non MAVLink telemetry messages get rerouted internally to APP_PORT_PROXY
 #define PORT_TCP_SYSLOG_SERVER 1605
-#define APP_PORT_PROXY                 5760 // use this port for all MAVLink messages (TCP)
-#define APP_PORT_PROXY_UDP        14550 // use this port for all MAVLink messages (UDP)
+#define APP_PORT_PROXY 		5760 // use this port for all MAVLink messages (TCP)
+#define APP_PORT_PROXY_UDP	14550 // use this port for all MAVLink messages (UDP)
 #define APP_PORT_VIDEO      5000 // app accepts raw H.264 streams
 #define APP_PORT_VIDEO_FEC  5001 // app accepts raw DroneBridge video stream data, performs FEC on Android device
 
-#define DB_MAVLINK_SYS_ID        69
-#define        MAX_PENUMBRA_INTERFACES 8
+#define DB_MAVLINK_SYS_ID	69
+#define	MAX_PENUMBRA_INTERFACES 8
 
 #define DB_UNIX_DOMAIN_VIDEO_PATH   "/tmp/db_video_out"
 #define DB_AP_CLIENT_IP             "192.168.2.1"   // default IP address of GCS connected via WiFi AP
@@ -1109,7 +1216,7 @@ void control_module();
 #define DB_SYS_HID_ESP32 1
 
 #endif // DB_PROTOCOL_H_INCLUDED
-            c_compiler: /*
+            cpp_compiler: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2018 
@@ -1149,10 +1256,10 @@ extern uint8_t LTM_FRAME_NUM_BUFFER;    // Number of LTM frames per UDP packet (
 extern EventGroupHandle_t wifi_event_group;
 
 #endif //DB_ESP32_GLOBALS_H
-            cpp_compiler: /*
+          - os: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
- *   Copyright 2018 
+ *   Copyright 2018 Wolfgang Christl
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -1579,7 +1686,7 @@ void http_settings_server(void *parameter) {
 void start_tcp_server() {
     xTaskCreate(&http_settings_server, "http_settings_server", 10240, NULL, 5, NULL);
 }
-          - os: /*
+            c_compiler: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2018 
@@ -1605,7 +1712,7 @@ void start_tcp_server();
 void write_settings_to_nvs();
 
 #endif //DB_ESP32_HTTP_SERVER_H
-            c_compiler: /*
+            cpp_compiler: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2018 
@@ -1786,7 +1893,7 @@ void app_main()
     start_tcp_server();
     communication_module();
 }
-            cpp_compiler: /*
+          - os: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2018 Wolfgang Christl
@@ -1814,7 +1921,7 @@ void app_main()
  * This function is part of Cleanflight/iNAV.
  *
  * Optimized for crc performance in the DroneBridge project and ">" & "<" adjusted
- * LTM telemetry parsing added by 
+ * LTM telemetry parsing added by Wolfgang Christl
  *
  * Cleanflight is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -2064,7 +2171,7 @@ bool parse_msp_ltm_byte(msp_ltm_port_t *msp_ltm_port, uint8_t new_byte) {
     }
     return true;
 }
-          - os: /*
+            c_compiler: /*
  * This file contains code from Cleanflight & iNAV.
  *
  * Cleanflight is free software: you can redistribute it and/or modify
@@ -2204,7 +2311,7 @@ typedef struct mspPacket_s {
 bool parse_msp_ltm_byte(msp_ltm_port_t *msp_ltm_port, uint8_t new_byte);
 
 #endif //CONTROL_STATUS_MSP_SERIAL_H
-            c_compiler: HTTP/1.1 200 OK
+            cpp_compiler: HTTP/1.1 200 OK
 Server: DroneBridgeESP32
 Content-type: text/html, text, plain
 
@@ -2248,14 +2355,14 @@ table.DroneBridge td:nth-child(even) {
 <h1>DroneBridge for ESP32</h1>
 <form action="/settings.html" id="settings_form" method="get" target="_blank">
 <table class="DroneBridge">
-        <tbody>
-                <tr>
-                        <td>Wifi password</td>
-                        <td><input type="text" name="wifi_pass" value="dronebridge"></td>
-                </tr>
-                <tr>
-                        <td>UART baud rate</td>
-                        <td>
+	<tbody>
+		<tr>
+			<td>Wifi password</td>
+			<td><input type="text" name="wifi_pass" value="dronebridge"></td>
+		</tr>
+		<tr>
+			<td>UART baud rate</td>
+			<td>
         <select name="baud" form="settings_form">
           <option value="115200">115200</option>
           <option value="57600">57600</option>
@@ -2266,27 +2373,27 @@ table.DroneBridge td:nth-child(even) {
           <option value="2400">2400</option>
         </select>
 </td>
-                </tr>
-                <tr>
-                        <td>GPIO TX pin number</td>
-                        <td><input type="text" name="gpio_tx" value="17"></td>
-                </tr>
-                <tr>
-                        <td>GPIO RX pin number</td>
-                        <td><input type="text" name="gpio_rx" value="16"></td>
-                </tr>
-                <tr>
-                        <td>UART serial protocol</td>
-                        <td>
+		</tr>
+		<tr>
+			<td>GPIO TX pin number</td>
+			<td><input type="text" name="gpio_tx" value="17"></td>
+		</tr>
+		<tr>
+			<td>GPIO RX pin number</td>
+			<td><input type="text" name="gpio_rx" value="16"></td>
+		</tr>
+		<tr>
+			<td>UART serial protocol</td>
+			<td>
         <select name="proto" form="settings_form">
           <option value="msp_ltm">MSP/LTM</option>
           <option value="trans">Transparent/MAVLink</option>
         </select>
       </td>
-                </tr>
-                <tr>
-                        <td>Transparent packet size</td>
-                        <td>
+		</tr>
+		<tr>
+			<td>Transparent packet size</td>
+			<td>
         <select name="trans_pack_size" form="settings_form">
           <option value="16">16</option>
           <option value="32">32</option>
@@ -2295,10 +2402,10 @@ table.DroneBridge td:nth-child(even) {
           <option value="256">256</option>
         </select>
       </td>
-                </tr>
-                <tr>
-                        <td>LTM frames per packet</td>
-                        <td>
+		</tr>
+		<tr>
+			<td>LTM frames per packet</td>
+			<td>
         <select name="ltm_per_packet" form="settings_form">
           <option value="1">1</option>
           <option value="2">2</option>
@@ -2307,7 +2414,7 @@ table.DroneBridge td:nth-child(even) {
           <option value="5">5</option>
         </select>
       </td>
-                </tr>
+		</tr>
     <tr>
       <td>MSP & LTM to same port</td>
       <td>
@@ -2317,16 +2424,16 @@ table.DroneBridge td:nth-child(even) {
         </select>
       </td>
     </tr>
-        </tbody>
+	</tbody>
 </table>
 <p></p>
 <input target= "_self" type="submit" value="Save">
 </form>
 <p class="foot">v0.1</p>
-<p class="foot">© 2018 - Apache 2.0 License</p>
+<p class="foot">© Wolfgang Christl 2018 - Apache 2.0 License</p>
 </body>
 </html>
-            cpp_compiler: HTTP/1.1 200 OK
+        exclude: HTTP/1.1 200 OK
 Server: DroneBridgeESP32
 Content-type: text/html, text, plain
 
@@ -2352,7 +2459,7 @@ Content-type: text/html, text, plain
   <a class="mytext" href="/">Back to settings</a>
 </body>
 </html>
-        exclude: /*
+          - os: /*
  *
  * Automatically generated file; DO NOT EDIT.
  * Espressif IoT Development Framework Configuration
@@ -2575,7 +2682,7 @@ Content-type: text/html, text, plain
 #define CONFIG_ESPTOOLPY_PORT "/dev/ttyUSB0"
 #define CONFIG_SPI_FLASH_WRITING_DANGEROUS_REGIONS_ABORTS 1
 #define CONFIG_BLUEDROID_PINNED_TO_CORE 0
-          - os: <!DOCTYPE html>
+            c_compiler: <!DOCTYPE html>
 <html>
 <head>
 <title>DB for ESP32 Settings</title>
@@ -2621,14 +2728,14 @@ table.DroneBridge td:nth-child(even) {
 <h1>DroneBridge for ESP32</h1>
 <form action="/settings.html" id="settings_form" method="get" target="_blank">
 <table class="DroneBridge">
-        <tbody>
-                <tr>
-                        <td>Wifi password</td>
-                        <td><input type="text" name="wifi_pass" value="dronebridge"></td>
-                </tr>
-                <tr>
-                        <td>UART baud rate</td>
-                        <td>
+	<tbody>
+		<tr>
+			<td>Wifi password</td>
+			<td><input type="text" name="wifi_pass" value="dronebridge"></td>
+		</tr>
+		<tr>
+			<td>UART baud rate</td>
+			<td>
         <select name="baud" form="settings_form">
           <option value="115200">115200</option>
           <option value="57600">57600</option>
@@ -2639,28 +2746,28 @@ table.DroneBridge td:nth-child(even) {
           <option value="2400">2400</option>
         </select>
 </td>
-                </tr>
-                <tr>
-                        <td>GPIO TX pin number</td>
-                        <td><input type="text" name="gpio_tx" value="17"></td>
-                </tr>
-                <tr>
-                        <td>GPIO RX pin number</td>
-                        <td><input type="text" name="gpio_rx" value="16"></td>
-                </tr>
-                <tr>
-                        <td>UART serial protocol</td>
-                        <td>
+		</tr>
+		<tr>
+			<td>GPIO TX pin number</td>
+			<td><input type="text" name="gpio_tx" value="17"></td>
+		</tr>
+		<tr>
+			<td>GPIO RX pin number</td>
+			<td><input type="text" name="gpio_rx" value="16"></td>
+		</tr>
+		<tr>
+			<td>UART serial protocol</td>
+			<td>
         <select name="proto" form="settings_form">
           <option value="msp_ltm">MSP/LTM</option>
           <option value="trans">Transparent/MAVLink</option>
         </select>
 
       </td>
-                </tr>
-                <tr>
-                        <td>Transparent packet size</td>
-                        <td>
+		</tr>
+		<tr>
+			<td>Transparent packet size</td>
+			<td>
         <select name="trans_pack_size" form="settings_form">
           <option value="16">16</option>
           <option value="32">32</option>
@@ -2669,10 +2776,10 @@ table.DroneBridge td:nth-child(even) {
           <option value="256">256</option>
         </select>
       </td>
-                </tr>
-                <tr>
-                        <td>LTM frames per packet</td>
-                        <td>
+		</tr>
+		<tr>
+			<td>LTM frames per packet</td>
+			<td>
         <select name="ltm_per_packet" form="settings_form">
           <option value="1">1</option>
           <option value="2">2</option>
@@ -2681,7 +2788,7 @@ table.DroneBridge td:nth-child(even) {
           <option value="5">5</option>
         </select>
       </td>
-                </tr>
+		</tr>
     <tr>
       <td>MSP & LTM to same port</td>
       <td>
@@ -2691,16 +2798,16 @@ table.DroneBridge td:nth-child(even) {
         </select>
       </td>
     </tr>
-        </tbody>
+	</tbody>
 </table>
 <p></p>
 <input target= "_top" type="submit" value="Save">
 </form>
 <p class="foot">v0.1</p>
-<p class="foot">&copy; 2018 - Apache 2.0 License</p>
+<p class="foot">&copy; Wolfgang Christl 2018 - Apache 2.0 License</p>
 </body>
 </html>
-            c_compiler: /*
+          - os: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2019 
@@ -2770,7 +2877,7 @@ void send_to_all_tcp_clients(const int tcp_clients[], uint8_t data[], uint data_
     }
 
 }
-          - os: /*
+            c_compiler: /*
  *   This file is part of DroneBridge: https://github.com/seeul8er/DroneBridge
  *
  *   Copyright 2019 
@@ -2798,1249 +2905,35 @@ int open_tcp_server(int port);
 void send_to_all_tcp_clients(const int tcp_clients[], uint8_t data[], uint data_length);
 
 #endif //DB_ESP32_TCP_SERVER_H
-            c_compiler: migrator_ts: 1695775149
-__migrator:
-  kind: version
-  migration_number: 1
-  bump_number: 1
-  commit_message: "Rebuild for libboost 1.82"
-  # limit the number of prs for ramp-up
-  pr_limit: 10
-libboost_devel:
-  - 1.82
-# This migration is matched with a piggy-back migrator
-# (see https://github.com/regro/cf-scripts/pull/1668)
-# that will replace boost-cpp with libboost-devel
-boost_cpp:
-  - 1.82
-# same for boost -> libboost-python-devel
-libboost_python_devel:
-  - 1.82
-boost:
-  - 1.82
-          - os: __migrator:
-  build_number: 1
-  kind: version
-  migration_number: 1
-fmt:
-- '10'
-migrator_ts: 1683802784.4940007
-            c_compiler: __migrator:
-  build_number: 1
-  kind: version
-  migration_number: 1
-libthrift:
-- 0.19.0
-migrator_ts: 1693762377.7427814
+          - os: ubuntu-latest
+            c_compiler: cl
 
-    steps: migrator_ts: 1698047052
-__migrator:
-  kind: version
-  migration_number: 1
-  bump_number: 1
+    steps:
+    - uses: actions/checkout@v4
 
-zeromq:
-  - '4.3.5'
-    - uses: <?php
-namespace Memtext\Form;
-
-abstract class AbstractForm
-{
-    public $errorMessage;
-
-    public function validate()
-    {
-        $rules = $this->rules();
-        foreach ($rules as $field=>$list) {
-            foreach ($list as $rule=>$attributes) {
-                $validator = 'validate' . ucfirst($rule);
-                if ( !$this->$validator($field, $attributes) ) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    protected function validateNotEmpty($field, $flag = true)
-    {
-        if (empty($this->$field)) {
-            $this->errorMessage = "$field не может быть пустым";
-            return false;
-        }
-        return true;
-    }
-
-    protected function validateMaxLength($field, $maxLength)
-    {
-        if (mb_strlen($this->$field) > $maxLength) {
-            $this->errorMessage = "$field должен быть не длиннее $maxLength символов";
-            return false;
-        }
-        return true;
-    }
-
-    protected function validateMinLength($field, $minLength)
-    {
-        if (mb_strlen($this->$field) < $minLength) {
-            $this->errorMessage = "$field должен быть не короче $minLength символов";
-            return false;
-        }
-        return true;
-    }
-
-    protected function validateIsEmail($field, $flag = true)
-    {
-        $regExp = '/^[^@\s]+@[^@\s]+\.[^@\s]+$/ui';
-        if (!preg_match($regExp, $this->$field)) {
-            $this->errorMessage = 'Некорректный адрес электронной почты';
-            return false;
-        }
-        return true;
-    }
-}
-
-    - name: <?php
-namespace Memtext\Form;
-
-use Memtext\Model\User;
-use \Psr\Http\Message\ServerRequestInterface as Request;
-use \Memtext\Helper\HashGenerator;
-
-class LoginForm extends AbstractForm
-{
-    const USER_NOT_FOUND = 'Пользователь не найден';
-    const WRONG_PASSWORD = 'Неправильный пароль';
-
-    private $user;
-
-    public $email;
-    public $password;
-    public $remember;
-
-    public function __construct(Request $request)
-    {
-        $loginData = $request->getParsedBody()['loginForm'];
-        $this->email = isset($loginData['email']) ? $loginData['email'] : null;
-        $this->password =
-            isset($loginData['password']) ? $loginData['password'] : null;
-        $this->remember = isset($loginData['remember']);
-    }
-
-    public function validatePassword(User $user = null)
-    {
-        if ($user == null) {
-            $this->errorMessage = self::USER_NOT_FOUND;
-            return false;
-        } elseif (
-            $user->getSaltedHash() !==
-            HashGenerator::generateHash($user->getSalt(), $this->password)
-        ) {
-            $this->errorMessage = self::WRONG_PASSWORD;
-            return false;
-        }
-        $this->user = $user;
-        return true;
-    }
-
-    protected function rules()
-    {
-        return [
-            'email' =>
-                ['notEmpty' => true, 'isEmail' => true, 'maxLength' => 50],
-            'password' =>
-                ['notEmpty' => true, 'minLength' => 5, 'maxLength' => 50],
-        ];
-    }
-
-    public function getUser()
-    {
-        return $this->user;
-    }
-}
+    - name: Set reusable strings
       # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
-      id: <?php
-namespace Memtext\Form;
-
-use Psr\Http\Message\ServerRequestInterface as Request;
-
-class LogoutForm extends AbstractForm
-{
-    public $csrf_token;
-
-    public function __construct(Request $request)
-    {
-        $formData = $request->getParsedBody()['logoutForm'];
-        $this->csrf_token = isset($formData['csrf_token']) ?
-            $formData['csrf_token'] : null;
-    }
-}
-      shell: <?php
-namespace Memtext\Form;
-
-use Psr\Http\Message\ServerRequestInterface as Request;
-use Memtext\Model\User;
-use Memtext\Helper\HashGenerator;
-
-class RegisterForm extends AbstractForm
-{
-    const LOGIN_OCCUPIED = 'Имя занято, попробуйте другое';
-    const MAIL_OCCUPIED = 'С этой почты уже была регистрация';
-    const REPEAT_PASSWORD = 'Пароли не совпадают';
-
-    public $login;
-    public $email;
-    public $password;
-    public $repeatPassword;
-    public $remember;
-
-    private $user;
-
-    public function __construct(Request $request)
-    {
-        $regData = isset($request->getParsedBody()['registerForm'])
-                   ? $request->getParsedBody()['registerForm'] : null;
-        $this->login = isset($regData['login']) ? $regData['login'] : null;
-        $this->email = isset($regData['email']) ? $regData['email'] : null;
-        $this->password = isset($regData['password']) ? $regData['password'] : null;
-        $this->repeatPassword = 
-            isset($regData['repeatPassword']) ? $regData['repeatPassword'] : null;
-        $this->remember = isset($regData['remember']);
-
-        $this->createUser();
-    }
-
-    public function validateUniqueEmail($user = null)
-    {
-        if (!$user) {
-            return true;
-        }
-        $this->errorMessage = self::MAIL_OCCUPIED;
-        return false;
-    }
-
-    public function validateUniqueLogin($user = null)
-    {
-        if (!$user) {
-            return true;
-        }
-        $this->errorMessage = self::LOGIN_OCCUPIED;
-        return false;
-    }
-
-    public function getUser()
-    {
-        return $this->user;
-    }
-
-    protected function validateEquals($field, $toWhat)
-    {
-        if ($this->$field === $this->$toWhat) {
-            return true;
-        }
-        $this->errorMessage = self::REPEAT_PASSWORD;
-        return false;
-    }
-
-    private function createUser()
-    {
-        $user = new User;
-        $user->setLogin($this->login);
-        $user->setEmail($this->email);
-        $user->setSalt(HashGenerator::generateSalt());
-        $user->setSaltedHash(
-            HashGenerator::generateHash($user->getSalt(), $this->password)
-        );
-        $this->user = $user;
-    }
-
-    protected function rules()
-    {
-        return [
-            'login' =>
-                ['notEmpty'=>true, 'maxLength'=>30, 'minLength'=>4],
-            'email' =>
-                ['notEmpty'=>true, 'maxLength'=>255, 'isEmail'=>true],
-            'password' =>
-                ['notEmpty'=>true, 'maxLength'=>50, 'minLength'=>5],
-            'repeatPassword' =>
-                ['equals' => 'password'],
-        ];
-    }
-}
+      id: strings
+      shell: bash
       run: |
-        echo "build-output-dir=${{ <?php
-namespace Memtext\Form;
+        echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
 
-use \Psr\Http\Message\ServerRequestInterface as Request;
-
-class TextForm extends AbstractForm
-{
-    public $content;
-    public $title;
-
-    public function __construct(Request $request, \HTMLPurifier $purifier)
-    {
-        $textFormData = $request->getParsedBody()['textForm'];
-        $this->content = isset($textFormData['content'])
-                         ? $purifier->purify($textFormData['content']) : null;
-        $this->title = isset($textFormData['title'])
-                         ? $textFormData['title'] : null;
-    }
-
-    protected function rules()
-    {
-        return [
-            'content' => ['notEmpty' => true, 'maxLength' => 65000],
-            'title' => ['notEmpty' => true, 'maxLength' => 255],
-        ];
-    }
-} }}/build" >> "$GITHUB_OUTPUT"
-
-    - name: <?php
-namespace Memtext\Handler;
-
-use Slim\Handlers\NotFound; 
-use Slim\Views\Twig; 
-use Psr\Http\Message\ServerRequestInterface as Request; 
-use Psr\Http\Message\ResponseInterface as Response;
-
-class NotFoundHandler extends NotFound
-{
-    private $view;
-
-    public function __construct(Twig $view)
-    { 
-        $this->view = $view; 
-    }
-
-    public function __invoke(Request $request, Response $response)
-    {
-        $this->view->render($response, 'not_found.twig');
-        return $response->withStatus(404); 
-    }
-}
+    - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
       run: >
-        cmake -B ${{ <?php
-namespace Memtext\Helper;
+        cmake -B ${{ steps.strings.outputs.build-output-dir }}
+        -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
+        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -S ${{ github.workspace }}
 
-class Csrf
-{
-    public static function init()
-    {
-        if (!isset($_COOKIE['csrf_token'])) {
-            $token = HashGenerator::generateSalt();
-        } else {
-            $token = $_COOKIE['csrf_token'];
-        }
-        setcookie('csrf_token', $token, time() + 24*60*60, '/');
-        return $token;
-    }
-} output-dir }}
-        -DCMAKE_CXX_COMPILER=${{ <?php
-namespace Memtext\Helper;
-
-class HashGenerator
-{
-    const SALT_LENGTH = 40;
-
-    public static function getCharacters()
-    {
-        return '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-                . '~`!@#$%^&*()-=+_][{}|?><';
-    }
-
-    public static function generateSalt()
-    {
-        $salt = '';
-        $characters = self::getCharacters();
-        $charactersLength = strlen($characters);
-        for ($i = 0; $i < self::SALT_LENGTH; $i++) {
-            $salt .= $characters[rand(0, $charactersLength - 1)];
-        }
-        return $salt;
-    }
-
-    public static function generateHash($salt, $password)
-    {
-        return sha1($salt . $password);
-    }
-} }}
-        -DCMAKE_C_COMPILER=${{ <?php
-namespace Memtext\Helper;
-
-class Pager
-{
-    public $currentPage;
-    public $totalItemCount;
-    public $perPage;
-    public $linksCount;
-
-    private $maxLinksCount;
-
-    public function __construct(
-        $currentPage,
-        $totalItemCount,
-        $perPage = 15,
-        $maxLinksCount = 6
-    ) {
-        $this->currentPage = intval($currentPage);
-        $this->totalItemCount = intval($totalItemCount);
-        $this->perPage = $perPage;
-        $this->maxLinksCount = $maxLinksCount;
-        $pageCount = $this->getPageCount();
-        $this->linksCount = $this->getLinksCount($pageCount);
-    }
-
-    public function getPrevPage()
-    {
-        return $this->currentPage - 1;
-    }
-
-    public function getNextPage()
-    {
-        return $this->currentPage + 1;
-    }
-
-    public function getFirstPage()
-    {
-        return
-            $this->currentPage + $this->linksCount - 1 <= $this->getPageCount()
-            ? $this->currentPage
-            : $this->getPageCount() - $this->linksCount + 1;
-    }
-
-    public function getLastPage()
-    {
-        return
-            $this->currentPage + $this->linksCount - 1 <= $this->getPageCount()
-            ? $this->getFirstPage() + $this->linksCount - 1
-            : $this->getPageCount();
-    }
-
-    public function getOffset()
-    {
-        return ($this->currentPage - 1) * $this->perPage;
-    }
-
-    private function getPageCount()
-    {
-        return intval(ceil($this->totalItemCount / $this->perPage));
-    }
-
-    private function getLinksCount($pageCount)
-    {
-        return ($this->maxLinksCount > $pageCount)
-            ? $pageCount
-            : $this->maxLinksCount;
-    }
-} }}
-        -DCMAKE_BUILD_TYPE=${{ <?php
-namespace Memtext\Helper;
-
-class TextParser
-{
-    private $words;
-    private $text;
-
-    public function parse($text)
-    {
-        $this->text = $text;
-
-        $this
-            ->splitToWords()
-            ->deleteLongWords()
-            ->filterUnique()
-            ->toLowerCase();
-
-        return array_values($this->words);
-    }
-
-    private function splitToWords()
-    {
-        $this->words = preg_split(
-            '/(\'s|\'t)?\W+/ui',
-            $this->text,
-            -1,
-            \PREG_SPLIT_NO_EMPTY
-        );
-        return $this;
-    }
-
-    private function deleteLongWords($maxLength = 50)
-    {
-        $callback = function ($word) use ($maxLength) {
-            return mb_strlen($word, 'UTF-8') <= $maxLength;
-        };
-        $this->words = array_filter($this->words, $callback);
-        return $this;
-    }
-
-    private function filterUnique()
-    {
-        $this->words = array_unique($this->words);
-        return $this;
-    }
-
-    private function toLowerCase()
-    {
-        array_walk($this->words, function (&$word) {
-            $word = mb_convert_case($word, MB_CASE_LOWER);
-        });
-        return $this;
-    }
-} }}
-        -S ${{ <?php
-namespace Memtext\Mapper;
-
-use Doctrine\DBAL\Connection;
-
-class SphinxMapper
-{
-    private $connection;
-
-    public function __construct(Connection $connection)
-    {
-        $this->connection = $connection;
-    }
-
-    public function find(array $words, $indexName)
-    {
-        $sql = "SELECT id, word, type FROM {$indexName} WHERE MATCH(?) LIMIT 10000".
-                " OPTION ranker=sph04";
-        $conn = $this->connection;
-        $sth = $conn->prepare($sql);
-        $sth->execute([ join('|', $words) ]);
-        $ids = [];
-        return $sth->fetchAll();
-    }
-} }}
-
-    - name: <?php
-namespace Memtext\Model;
-
-use Doctrine\Common\Collections\ArrayCollection;
-
-/**
- * Class Text
- * @package Memtext\Model
- *
- * @Entity
- * @Table(name="text")
- */
-class Text
-{
-    /**
-     * @var int
-     *
-     * @Id @Column(type="integer")
-     * @GeneratedValue(strategy="AUTO")
-     */
-    private $id;
-
-    /**
-     * @var string
-     *
-     * @Column(type="text")
-     */
-    private $content;
-
-    /**
-     * @var string
-     *
-     * @Column(type="string")
-     */
-    private $title;
-
-    /**
-     * @var User
-     *
-     * @ManyToOne(targetEntity="User", inversedBy="texts")
-     */
-    private $author;
-
-    /**
-     * @var ArrayCollection
-     *
-     * @ManyToMany(targetEntity="Word")
-     * @JoinTable(
-     *   name="text_dictionary",
-     *   joinColumns={@JoinColumn(name="text_id", referencedColumnName="id")}),
-     *   inverseJoinColumns={@JoinColumn(name="word_id", referencedColumnName="id")}
-     * )
-     */
-    private $words;
-
-    /**
-     * @return int
-     */
-    public function getId()
-    {
-        return $this->id;
-    }
-
-    public function __construct()
-    {
-        $this->words = new ArrayCollection();
-    }
-
-    /**
-     * @return string
-     */
-    public function getContent()
-    {
-        return $this->content;
-    }
-
-    /**
-     * @param string $content
-     */
-    public function setContent($content)
-    {
-        $this->content = $content;
-    }
-
-    /**
-     * @return string
-     */
-    public function getTitle()
-    {
-        return $this->title;
-    }
-
-    /**
-     * @param string $title
-     */
-    public function setTitle($title)
-    {
-        $this->title = $title;
-    }
-
-    /**
-     * @return User
-     */
-    public function getAuthor()
-    {
-        return $this->author;
-    }
-
-    /**
-     * @param User $author
-     */
-    public function setAuthor(User $author)
-    {
-        $author->attachText($this);
-        $this->author = $author;
-    }
-
-    /**
-     * @return ArrayCollection
-     */
-    public function getWords()
-    {
-        return $this->words;
-    }
-
-    /**
-     * @return array
-     */
-    public function getShortWordsArray()
-    {
-        $entities = $this->words->toArray();
-        $words = [];
-        foreach ($entities as $entity) {
-            if ($entity->getType() != 'short') {
-                continue;
-            }
-            $words[$entity->getKeyword()] = $entity->getDefinition();
-        }
-        return $words;
-    }
-
-    /**
-     * @param array $words
-     */
-    public function setWords(array $words)
-    {
-        foreach ($words as $word) {
-            $this->words[] = $word;
-        }
-    }
-}
+    - name: Build
       # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
-      run: cmake --build ${{ <?php
-namespace Memtext\Model;
+      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
 
-use Doctrine\Common\Collections\ArrayCollection;
-
-/**
- * Class User
- * @package Memtext\Model
- *
- * @Entity
- * @Table(name="user")
- */
-class User
-{
-    /**
-     * @var int
-     *
-     * @Id @Column(type="integer")
-     * @GeneratedValue(strategy="AUTO")
-     */
-    private $id;
-
-    /**
-     * @var string
-     *
-     * @Column(type="string")
-     */
-    private $login;
-
-    /**
-     * @var string
-     *
-     * @Column(type="string")
-     */
-    private $email;
-
-    /**
-     * @var string
-     *
-     * @Column(name="salted_hash", type="string")
-     */
-    private $saltedHash;
-
-    /**
-     * @var string
-     *
-     * @Column(type="string")
-     */
-    private $salt;
-
-    /**
-     * @var ArrayCollection
-     *
-     * @OneToMany(targetEntity="Text", mappedBy="author")
-     */
-    private $texts;
-
-    /**
-     * @var ArrayCollection
-     *
-     * @ManyToMany(targetEntity="Word")
-     * @JoinTable(
-     *   name="user_dictionary",
-     *   joinColumns={@JoinColumn(name="user_id", referencedColumnName="id")},
-     *   inverseJoinColumns={@JoinColumn(name="word_id", referencedColumnName="id")}
-     * )
-     */
-    private $ignoredWords;
-
-    public function __construct()
-    {
-        $this->texts = new ArrayCollection();
-        $this->ignoredWords = new ArrayCollection();
-    }
-
-    /**
-     * @return ArrayCollection
-     */
-    public function getIgnoredWords()
-    {
-        return $this->ignoredWords;
-    }
-
-    /**
-     * @param array $words
-     */
-    public function ignore(array $words)
-    {
-        foreach ($words as $word) {
-            $this->ignoredWords[] = $word;
-        }
-    }
-
-    /**
-     * @param array $texts
-     */
-    public function attachTexts(array $texts)
-    {
-        foreach ($texts as $text) {
-            $this->texts[] = $text;
-        }
-    }
-
-    /**
-     * @param Text $text
-     */
-    public function attachText(Text $text)
-    {
-        $this->texts[] = $text;
-    }
-
-    /**
-     * @return ArrayCollection
-     */
-    public function getTexts()
-    {
-        return $this->texts;
-    }
-
-    /**
-     * @return int
-     */
-    public function getId()
-    {
-        return $this->id;
-    }
-
-    /**
-     * @return string
-     */
-    public function getLogin()
-    {
-        return $this->login;
-    }
-
-    /**
-     * @param $login
-     */
-    public function setLogin($login)
-    {
-        $this->login = $login;
-    }
-
-    /**
-     * @return string
-     */
-    public function getEmail()
-    {
-        return $this->email;
-    }
-
-    /**
-     * @param $email
-     */
-    public function setEmail($email)
-    {
-        $this->email = $email;
-    }
-
-    /**
-     * @return string
-     */
-    public function getSaltedHash()
-    {
-        return $this->saltedHash;
-    }
-
-    /**
-     * @param $saltedHash
-     */
-    public function setSaltedHash($saltedHash)
-    {
-        $this->saltedHash = $saltedHash;
-    }
-
-    /**
-     * @return string
-     */
-    public function getSalt()
-    {
-        return $this->salt;
-    }
-
-    /**
-     * @param $salt
-     */
-    public function setSalt($salt)
-    {
-        $this->salt = $salt;
-    }
-} output-dir }} --config ${{ <?php
-namespace Memtext\Model;
-
-/**
- * Class Dictionary
- * @package Memtext\Model
- *
- * @Entity
- * @Table(name="dictionary")
- */
-class Word
-{
-    /**
-     * @var int
-     *
-     * @Id @Column(type="integer")
-     * @GeneratedValue(strategy="AUTO")
-     */
-    private $id;
-
-    /**
-     * @var string
-     *
-     * @Column(type="string")
-     */
-    private $keyword;
-
-    /**
-     * @var string
-     *
-     * @Column(type="text")
-     */
-    private $definition;
-
-    /**
-     * @var string
-     *
-     * @Column(type="string")
-     */
-    private $type;
-
-
-
-    /**
-     * @return string
-     */
-    public function getType()
-    {
-        return $this->type;
-    }
-
-    /**
-     * @param string $type
-     */
-    public function setType($type)
-    {
-        $this->type = $type;
-    }
-
-    /**
-     * @return int
-     */
-    public function getId()
-    {
-        return $this->id;
-    }
-
-    /**
-     * @return string
-     */
-    public function getKeyword()
-    {
-        return $this->keyword;
-    }
-
-    /**
-     * @param string $keyword
-     */
-    public function setKeyword($keyword)
-    {
-        $this->keyword = $keyword;
-    }
-
-    /**
-     * @return string
-     */
-    public function getDefinition()
-    {
-        return $this->definition;
-    }
-
-    /**
-     * @param string $definition
-     */
-    public function setDefinition($definition)
-    {
-        $this->definition = $definition;
-    }
-} }}
-
-    - name: <?php
-namespace Memtext\Service;
-
-use Doctrine\ORM\EntityRepository;
-use Memtext\Form\LoginForm;
-use Memtext\Form\RegisterForm;
-use Memtext\Model\User;
-
-class LoginManager
-{
-    private $repo;
-    private $loggedUser;
-    private $token;
-
-    public function __construct(EntityRepository $repo, $token) {
-        $this->repo = $repo;
-        $this->loggedUser = $this->getLoggedUser();
-        $this->token = $token;
-    }
-
-    public function getLoggedUser()
-    {
-        $id = isset($_COOKIE['id']) ? intval($_COOKIE['id']) : null;
-        $hash = isset($_COOKIE['hash']) ? $_COOKIE['hash'] : null;
-        if (!$id or !$hash) {
-            return null;
-        }
-        $user = $this->repo->find($id);
-        if (!$user) {
-            return null;
-        } elseif ($user->getSaltedHash() != $hash) {
-            return null;
-        }
-        return $user;
-    }
-
-    public function validateLoginForm(LoginForm $form)
-    {
-        if (!$form->validate()) {
-            return false;
-        }
-        $user = $this->repo->findOneBy( ['email'=>$form->email] );
-        return $form->validatePassword($user);
-    }
-
-    public function validateRegisterForm(RegisterForm $form)
-    {
-        if (!$form->validate()) {
-            return false;
-        }
-        $foundedUser = $this->repo->findOneBy( ['email'=>$form->email] );
-        if (!$form->validateUniqueEmail($foundedUser)) {
-            return false;
-        }
-        $foundedUser = $this->repo->findOneBy( ['login'=>$form->login] );
-        return $form->validateUniqueLogin($foundedUser);
-    }
-
-    public function login(User $user, $remember = true, $time = 604800)
-    {
-        $expires = $remember ? time() + $time : 0;
-        $path = '/';
-        setcookie('id', $user->getId(), $expires, $path);
-        setcookie('hash', $user->getSaltedHash(), $expires, $path);
-        $this->loggedUser = $user;
-    }
-
-    public function logout()
-    {
-        setcookie('id', '', time() - 3600);
-        setcookie('hash', '', time() - 3600);
-        $this->loggedUser = null;
-    }
-
-    public function getUserID()
-    {
-        if ($this->isLogged()) {
-            return $this->loggedUser->getId();
-        }
-        return null;
-    }
-
-    public function getUserLogin()
-    {
-        if ($this->isLogged()) {
-            return $this->loggedUser->getLogin();
-        }
-        return null;
-    }
-
-    public function isLogged()
-    {
-        if ($this->loggedUser !== null) {
-            return true;
-        }
-        return false;
-    }
-
-    public function isOwner($textAuthorId)
-    {
-        if (intval($this->getUserId()) === intval($textAuthorId)) {
-            return true;
-        }
-        return false;
-    }
-
-    public function checkToken($formToken)
-    {
-        return $this->token === $formToken;
-    }
-
-    public function getToken()
-    {
-        return $this->token;
-    }
-}
-      working-directory: ${{ <?php
-namespace Memtext\Service;
-
-use Memtext\Mapper\SphinxMapper;
-
-/**
- * Class SphinxService
- * @package Memtext\Service
- */
-class SphinxService
-{
-    /**
-     * @var SphinxMapper
-     */
-    private $mapper;
-
-    /**
-     * @var string
-     */
-    private $indexName;
-
-    /**
-     * @param SphinxMapper $mapper
-     * @param string $indexName
-     */
-    public function __construct(
-        SphinxMapper $mapper,
-        $indexName
-    ) {
-        $this->mapper = $mapper;
-        $this->indexName = $indexName;
-    }
-
-    public function find(array $words)
-    {
-        return $this->mapper->find($words, $this->indexName);
-    }
-} output-dir }}
+    - name: Test
+      working-directory: ${{ steps.strings.outputs.build-output-dir }}
       # Execute tests defined by the CMake configuration. Note that --build-config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: ctest --build-config ${{ <?php
-namespace Memtext\Service;
-
-use Doctrine\ORM\EntityManager;
-use Doctrine\DBAL\Connection;
-use Memtext\Helper\TextParser;
-use Memtext\Model\Text;
-
-class TextService
-{
-    private $parser;
-    private $entityManager;
-    private $sphinxService;
-
-    public function __construct(
-        TextParser $parser,
-        EntityManager $entityManager,
-        SphinxService $sphinxService
-    ) {
-        $this->parser = $parser;
-        $this->entityManager = $entityManager;
-        $this->sphinxService = $sphinxService;
-    }
-
-    public function saveWithDictionary(Text $text)
-    {
-        $words = $this->parseText($text);
-        $references = $this->createDictionary($words, $text);
-
-        $text->setWords($references);
-        $this->entityManager->persist($text);
-        $this->entityManager->flush();
-    }
-
-    public function getUserTextCount($userId)
-    {
-        $em = $this->entityManager;
-        $qb = $em->createQueryBuilder();
-        $query = $qb->select('COUNT(t)')
-            ->from('Memtext:Text', 't')
-            ->where('t.author=:id')
-            ->setParameter('id', $userId)
-            ->getQuery();
-        return $query->getSingleScalarResult();
-    }
-
-    public function getTextWithWords($textId)
-    {
-        $dql = "SELECT t, w FROM Memtext:Text t JOIN t.words w WHERE t.id=?1";
-        $query = $this->entityManager->createQuery($dql);
-        $query->setParameter(1, $textId);
-        return $query->getResult()[0];
-    }
-
-    private function parseText(Text $text)
-    {
-        $textContent = strip_tags($text->getContent());
-        return $this->parser->parse($textContent);
-    }
-
-    private function findHits(array $words)
-    {
-        return $this->sphinxService->find($words);
-    }
-
-    private function filterHits(array $hits, $textContent)
-    {
-        $filter = function ($word) use ($textContent) {
-            if (strpos($textContent, $word['word']) === false) {
-                return false;
-            } else {
-                return true;
-            }
-        };
-
-        return array_filter($hits, $filter);
-    }
-
-    private function getReferences(array $ids)
-    {
-        $refs = [];
-        $em = $this->entityManager;
-        foreach ($ids as $id) {
-            $refs[] = $em->getReference('Memtext:Word', $id);
-        }
-        return $refs;
-    }
-
-    private function createDictionary(array $words, Text $text)
-    {
-        $references = [];
-        $stopWords = [];
-        $ids = [];
-
-        foreach ($words as $word) {
-            $hits = $this->findHits([$word]);
-            if (!$hits) {
-                $stopWords[] = $word;
-                continue;
-            }
-            $hits = $this->filterHits($hits, $text->getContent());
-            $ids = array_merge($ids, $this->getHitsIds($hits));
-        }
-        $references = $this->getReferences(array_unique($ids));
-        $fromDb = $this->findInDb($stopWords);
-
-        return array_merge($references, $fromDb);
-    }
-
-    private function getHitsIds(array $hits)
-    {
-        $ids = [];
-        foreach ($hits as $hit) {
-            $ids[] = $hit['id'];
-        }
-        return array_unique($ids);
-    }
-
-    private function findInDb(array $stopWords)
-    {
-        $dql = "SELECT w.id FROM dictionary w WHERE w.keyword IN (?)";
-        $conn = $this->entityManager->getConnection();
-        $stmt = $conn->executeQuery($dql, [$stopWords], [Connection::PARAM_STR_ARRAY]);
-        $hits = $stmt->fetchAll();
-        $ids = $this->getHitsIds($hits);
-        return $this->getReferences(array_unique($ids));
-    }
-} }}
+      run: ctest --build-config ${{ matrix.build_type }}
