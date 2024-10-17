@@ -249,10 +249,6 @@ class m150913_135853_add_column_attribute_unit extends CDbMigration
 
                                                           6
 
-
-Figure 1: Block diagram of DRAMSim2. The recv() functions are actually called receiveFromBus() but were
-abbreviated to save sapce.
-
 <?php
 
 class m150924_202359_drop_table_attr_variant extends CDbMigration
@@ -286,6 +282,9 @@ class m150924_202359_drop_table_attr_variant extends CDbMigration
         */
 }
 
+
+Figure 1: Block diagram of DRAMSim2. The recv() functions are actually called receiveFromBus() but were
+abbreviated to save sapce.
 
 
                                                  7
