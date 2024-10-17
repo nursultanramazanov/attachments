@@ -2220,283 +2220,213 @@ def build(bld):
         program_groups=['bin', 'rover'],
         use=vehicle + '_libs',
     )
-    permissions: imports:
-    - { resource: parameters.yml }
-    - { resource: security.yml }
-    - { resource: services.yml }
+    permissions: version: 2
 
-# Put parameters here that don't need to change on each machine where the app is deployed
-# http://symfony.com/doc/current/best_practices/configuration.html#application-related-configuration
-parameters:
-    locale: en
+aliases:
+  docker-cp: &docker-cp
+    run:
+      name: Create Docker Volume
+      command: |
+        docker create -v /${WORKING_DIR} --name ${VOLUME} --privileged tizenrt/tizenrt:${DOCKER_IMG_VERSION} /bin/bash
+        docker cp ./. ${VOLUME}:/${WORKING_DIR}
+        docker run -d --rm -it --name ${BUILDER} --volumes-from=${VOLUME} -w /${WORKING_DIR}/os --privileged tizenrt/tizenrt:${DOCKER_IMG_VERSION} /bin/bash
 
-framework:
-    #esi:             ~
-    #translator:      { fallbacks: ["%locale%"] }
-    secret:          "%secret%"
-    router:
-        resource: "%kernel.root_dir%/config/routing.yml"
-        strict_requirements: ~
-    form:            ~
-    csrf_protection: ~
-    validation:      { enable_annotations: true }
-    #serializer:      { enable_annotations: true }
-    templating:
-        engines: ['twig']
-    default_locale:  "%locale%"
-    trusted_hosts:   ~
-    trusted_proxies: ~
-    session:
-        # http://symfony.com/doc/current/reference/configuration/framework.html#handler-id
-        handler_id:  session.handler.native_file
-        save_path:   "%kernel.root_dir%/../var/sessions/%kernel.environment%"
-    fragments:       ~
-    http_method_override: true
-    assets: ~
+  arm-version: &arm-version
+      run: 
+      name: ARM GCC Version
+      command: |
+        docker exec ${BUILDER} arm-none-eabi-gcc --version
 
-# Twig Configuration
-twig:
-    debug:            "%kernel.debug%"
-    strict_variables: "%kernel.debug%"
-    form_themes:
-        - 'bootstrap_3_layout.html.twig'
+  build-job: &build-job
+    run:
+      name: TizenRT Build Test
+      command: |
+        docker exec -it ${BUILDER} bash -c "cd tools; ./configure.sh ${CIRCLE_JOB}"
+        docker exec -it ${BUILDER} bash -c "make"
 
-# Doctrine Configuration
-doctrine:
-    dbal:
-        driver:   pdo_mysql
-        host:     "%database_host%"
-        port:     "%database_port%"
-        dbname:   "%database_name%"
-        user:     "%database_user%"
-        password: "%database_password%"
-        charset:  UTF8
-        default_table_options:
-            charset: UTF8
-            collate: utf8_general_ci
-        # if using pdo_sqlite as your database driver:
-        #   1. add the path in parameters.yml
-        #     e.g. database_path: "%kernel.root_dir%/data/data.db3"
-        #   2. Uncomment database_path in parameters.yml.dist
-        #   3. Uncomment next line:
-        #     path:     "%database_path%"
 
-    orm:
-        auto_generate_proxy_classes: "%kernel.debug%"
-        naming_strategy: doctrine.orm.naming_strategy.underscore
-        auto_mapping: true
+jobs:
+  checkout_code:
+    machine: 
+      image: default
+    working_directory: ~/TizenRT
+    steps:
+      - checkout
+      - persist_to_workspace:
+          root: ~/TizenRT
+          paths:
+            - ./
 
-# Swiftmailer Configuration
-swiftmailer:
-    transport: "%mailer_transport%"
-    host:      "%mailer_host%"
-    username:  "%mailer_user%"
-    password:  "%mailer_password%"
-    spool:     { type: memory }
+  artik055s/audio:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
 
-assetic:
-    debug:          '%kernel.debug%'
-    use_controller: '%kernel.debug%'
-    filters:
-        cssrewrite: ~
+  artik053/tc:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
 
-doctrine_migrations:
-    dir_name: "%kernel.root_dir%/DoctrineMigrations"
-    namespace: TestHub\Migrations
-    table_name: migration_versions
-    name: Application Migrations
-      contents: imports:
-    - { resource: config.yml }
+  qemu/build_test:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
 
-framework:
-    router:
-        resource: "%kernel.root_dir%/config/routing_dev.yml"
-        strict_requirements: true
-    profiler: { only_exceptions: false }
+  esp_wrover_kit/hello_with_tash:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
 
-web_profiler:
-    toolbar: true
-    intercept_redirects: false
+  imxrt1020-evk/loadable_elf_apps:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
 
-monolog:
-    handlers:
-        main:
-            type: stream
-            path: "%kernel.logs_dir%/%kernel.environment%.log"
-            level: debug
-            channels: [!event]
-        console:
-            type:   console
-            channels: [!event, !doctrine]
-        # uncomment to get logging in your browser
-        # you may have to allow bigger header sizes in your Web server configuration
-        #firephp:
-        #    type:   firephp
-        #    level:  info
-        #chromephp:
-        #    type:   chromephp
-        #    level:  info
+  rtl8721csm/hello:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
 
-#swiftmailer:
-#    delivery_address: me@example.com # for actions/checkout to fetch code
-      security-events: imports:
-    - { resource: config.yml }
+  rtl8721csm/loadable_apps:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
 
-#framework:
-#    validation:
-#        cache: validator.mapping.cache.doctrine.apc
-#    serializer:
-#        cache: serializer.mapping.cache.doctrine.apc
+  rtl8720e/hello:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
 
-#doctrine:
-#    orm:
-#        metadata_cache_driver: apc
-#        result_cache_driver: apc
-#        query_cache_driver: apc
+  rtl8720e/loadable_apps:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
 
-monolog:
-    handlers:
-        main:
-            type:         fingers_crossed
-            action_level: error
-            handler:      nested
-        nested:
-            type:  stream
-            path:  "%kernel.logs_dir%/%kernel.environment%.log"
-            level: debug
-        console:
-            type:  console # for github/codeql-action/upload-sarif to upload SARIF results
-      actions: imports:
-    - { resource: config_dev.yml }
+  rtl8730e/flat_apps:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
 
-framework:
-    test: ~
-    session:
-        storage_id: session.storage.mock_file
-    profiler:
-        collect: false
+  rtl8730e/loadable_apps:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
 
-web_profiler:
-    toolbar: false
-    intercept_redirects: false
+  rtl8730e/flat_dev:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
 
-swiftmailer:
-    disable_delivery: true
+workflows:
+  version: 2
+  build-tizenrt:
+    jobs:
+      - checkout_code
+      - artik055s/audio:
+          requires:
+            - checkout_code
+      - artik053/tc:
+          requires:
+            - checkout_code
+      - qemu/build_test:
+          requires:
+            - checkout_code
+      - esp_wrover_kit/hello_with_tash:
+          requires:
+            - checkout_code
+      - imxrt1020-evk/loadable_elf_apps:
+          requires:
+            - checkout_code
+      - rtl8721csm/hello:
+          requires:
+            - checkout_code
+      - rtl8721csm/loadable_apps:
+          requires:
+            - checkout_code
+      - rtl8720e/hello:
+          requires:
+            - checkout_code
+      - rtl8720e/loadable_apps:
+          requires:
+            - checkout_code
+      - rtl8730e/flat_apps:
+          requires:
+            - checkout_code
+      - rtl8730e/loadable_apps:
+          requires:
+            - checkout_code
+      - rtl8730e/flat_dev:
+          requires:
+            - checkout_code
+      contents: read # for actions/checkout to fetch code
+      security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
+      actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
+    name: Analyze
+    runs-on: windows-latest
 
-doctrine:
-    dbal:
-        driver_class: TestHubBundle\DBAL\Driver
-        host:     localhost
-        dbname:   testhub_test
-        user:     root
-        password: null # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
-    name: # This file is a "template" of what your parameters.yml file should look like
-# Set parameters here that may be different on each deployment target of the app, e.g. development, staging, production.
-# http://symfony.com/doc/current/best_practices/configuration.html#infrastructure-related-configuration
-parameters:
-    database_host:     127.0.0.1
-    database_port:     ~
-    database_name:     symfony
-    database_user:     root
-    database_password: ~
-    # You should uncomment this if you want use pdo_sqlite
-    # database_path: "%kernel.root_dir%/data.db3"
-
-    mailer_transport:  smtp
-    mailer_host:       127.0.0.1
-    mailer_user:       ~
-    mailer_password:   ~
-
-    # A secret key that's used to generate certain security-related tokens
-    secret:            ThisTokenIsNotSoSecretChangeIt
-    runs-on: homepage:
-    path: /
-    defaults: { _controller: TestHubBundle:Test:index }
-
-start:
-    path: /test/{testID}/start
-    defaults: { _controller: TestHubBundle:Test:start }
-    methods: [POST]
-
-preface:
-    path: /test/{testID}/preface
-    defaults: { _controller: TestHubBundle:Test:preface }
-
-question:
-    path: /attempt/{attemptID}/question/{questionNumber}
-    defaults: { _controller: TestHubBundle:Test:question }
-    requirements:
-        questionNumber: \d+
-        attemptID: \d+
-
-result:
-    path: /attempt/{attemptID}/result
-    defaults: { _controller: TestHubBundle:Test:result }
-
-confirm:
-    path: /attempt/{attemptID}/confirm
-    defaults: { _controller: TestHubBundle:Test:confirm }
-
-    steps: _wdt:
-    resource: "@WebProfilerBundle/Resources/config/routing/wdt.xml"
-    prefix:   /_wdt
-
-_profiler:
-    resource: "@WebProfilerBundle/Resources/config/routing/profiler.xml"
-    prefix:   /_profiler
-
-_errors:
-    resource: "@TwigBundle/Resources/config/routing/errors.xml"
-    prefix:   /_error
-
-_main:
-    resource: routing.yml
-      - name: # To get started with security, check out the documentation:
-# http://symfony.com/doc/current/book/security.html
-security:
-
-    # http://symfony.com/doc/current/book/security.html#where-do-users-come-from-user-providers
-    providers:
-        in_memory:
-            memory: ~
-
-    firewalls:
-        # disables authentication for assets and the profiler, adapt it according to your needs
-        dev:
-            pattern: ^/(_(profiler|wdt)|css|images|js)/
-            security: false
-
-        main:
-            anonymous: ~
-            # activate different ways to authenticate
-
-            # http_basic: ~
-            # http://symfony.com/doc/current/book/security.html#a-configuring-how-your-users-will-authenticate
-
-            # form_login: ~
-            # http://symfony.com/doc/current/cookbook/security/form_login_setup.html
-        uses: # Learn more about services, parameters and containers at
-# http://symfony.com/doc/current/book/service_container.html
-parameters:
-#    parameter_name: value
-
-services:
-#    service_name:
-#        class: AppBundle\Directory\ClassName
-#        arguments: ["@another_service_name", "plain_value", "%parameter_name%"]
-    user_manager:
-        class: TestHubBundle\Service\DummyUserManager
-        arguments: ["@doctrine.orm.entity_manager"]
-    test_service:
-        class: TestHubBundle\Service\TestService
-        arguments: ["@doctrine.orm.entity_manager"]
-    calculator:
-        class: TestHubBundle\Service\Calculator
-    app.twig_extension:
-        class: TestHubBundle\Twig\AppExtension
-        public: false
-        tags:
-            - { name: twig.extension }
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Configure CMake
         run: cmake -B ${{ env.build }}
