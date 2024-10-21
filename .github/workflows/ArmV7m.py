@@ -1587,150 +1587,103 @@ gdb_flash_program disable
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 openocd -f interface/olimex-arm-usb-ocd-h.cfg -f $DIR/px4fmu-v1-board.cfg 
-    - name: RewriteEngine On
+    - name: // ---------------
+// Basic benchmark
+// ---------------
 
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteRule ^ index.php [QSA] 
-      run: <?php
+// Benchmark file's have to have <file_name>_test.go and use the Benchmark functions like below.
+// The goal is to know what perform better and what allocate more or less between Sprint and Sprintf.
 
-use PricklyNut\NoxChallenge\Application;
-use PricklyNut\NoxChallenge\Entity\User;
-use PricklyNut\NoxChallenge\Form\LoginForm;
-use PricklyNut\NoxChallenge\Form\RegisterForm;
-use PricklyNut\NoxChallenge\Helper\Generator;
-use PricklyNut\NoxChallenge\Mapper\UserMapper;
-use PricklyNut\NoxChallenge\Router\Router;
-use PricklyNut\NoxChallenge\Service\LoginManager;
-use PricklyNut\NoxChallenge\Validator\Validator;
+// Our guess is that Sprint is gonna be better because it doesn't have any overhead doing the
+// formatting. However, this is not true. Remember we have to optimize for correctness so we don't
+// want to guess.
 
-spl_autoload_register(function ($class) {
-    $class = str_replace('\\', DIRECTORY_SEPARATOR, $class);
-    require dirname(__DIR__) . DIRECTORY_SEPARATOR
-        . 'src' . DIRECTORY_SEPARATOR . $class . '.php';
-});
+// Run benchmark:
+// go test -run none -bench . -benchmem -benchtime 3s
 
-mb_internal_encoding('utf8');
+// Sample output:
+// BenchmarkSprintBasic-8       50000000                78.7 ns/op             5 B/op          1 allocs/op
+// BenchmarkSprintfBasic-8      100000000               60.5 ns/op             5 B/op          1 allocs/op
 
-$app = new Application(
-    array('templateDir' => dirname(__DIR__) . DIRECTORY_SEPARATOR . 'views')
-);
+package main
 
-$config = parse_ini_file(dirname(__DIR__) . DIRECTORY_SEPARATOR . "config.ini");
+import (
+        "fmt"
+        "testing"
+)
 
-$dic = $app->getContainer();
-$dic->lang = $app->getLang();
+var gs string
 
-$dic->connection = $dic->asShared(function ($c) use ($config) {
-    $dsn = $config['dsn'];
-    $user = $config['user'];
-    $password = $config['password'];
-    $connection = new \PDO($dsn, $user, $password);
-    $connection->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-    return $connection;
-});
+// BenchmarkSprint tests the performance of using Sprint.
+// All the code we want to benchmark need to be inside the b.N for loop.
+// The first time the tool call it, b.N is equal to 1. It will keep increasing the value of N and
+// run long enough based on our bench time.
+// fmt.Sprint returns a value and we want to capture this value so it doesn't look like dead code.
+// We assign it to the global variable gs.
+func BenchmarkSprintBasic(b *testing.B) {
+        var s string
 
-$dic->userMapper = $dic->asShared(function ($c) {
-    return new UserMapper($c->connection);
-});
+        for i := 0; i < b.N; i++ {
+                s = fmt.Sprint("hello")
+        }
 
-$dic->loginManager = $dic->asShared(function ($c) {
-    return new LoginManager($c->userMapper, $c->lang);
-});
+        gs = s
+}
 
-$dic->validator = $dic->asShared(function ($c) {
-    return new Validator($c->lang);
-});
+// BenchmarkSprint tests the performance of using Sprintf.
+func BenchmarkSprintfBasic(b *testing.B) {
+        var s string
 
-$app->addRoute('/login', function () use ($app) {
-    $loginManager = $app->getContainer()->loginManager;
-    $validator = $app->getContainer()->validator;
+        for i := 0; i < b.N; i++ {
+                s = fmt.Sprintf("hello")
+        }
 
-    $user = new User();
-    $user->disableFieldsValidation(array('name', 'surname'));
-    $form = new LoginForm($loginManager, $user);
+        gs = s
+}
+      run: // -------------
+// Sub benchmark
+// -------------
 
-    $form->handleRequest();
+// Like sub test, we can also do sub benchmark.
 
-    if ($form->isSubmitted() and $form->isValid($validator)) {
-        $loginManager->login($user, $form->getRememberMe());
-        header('Location: /profile');
-    }
+// Sample available commands:
+// go test -run none -bench . -benchtime 3s -benchmem
+// go test -run none -bench BenchmarkSprintSub/none -benchtime 3s -benchmem
+// go test -run none -bench BenchmarkSprintSub/format -benchtime 3s -benchmem
 
-    $app->render(
-        'login.tpl.php',
-        array(
-            'lang' => $app->getContainer()->lang,
-            'form' => $form,
-            'uri' => $_SERVER['REQUEST_URI'],
-        )
-    );
-});
+package main
 
-$app->addRoute('/register', function () use ($app) {
-    $loginManager = $app->getContainer()->loginManager;
-    $validator = $app->getContainer()->validator;
-    $mapper = $app->getContainer()->userMapper;
+import (
+        "fmt"
+        "testing"
+)
 
-    $user = new User();
-    $form = new RegisterForm($loginManager, $user);
+var gs string
 
-    $form->handleRequest();
+// BenchmarkSprint tests all the Sprint related benchmarks as sub benchmarks.
+func BenchmarkSprintSub(b *testing.B) {
+        b.Run("none", benchSprint)
+        b.Run("format", benchSprintf)
+}
 
-    if ($form->isSubmitted() and $form->isValid($validator)) {
-        $user->setSalt(Generator::generateString());
-        $hash = Generator::generateSaltedHash(
-            $user->getSalt(),
-            $form->getPassword()
-        );
-        $user->setHash($hash);
+// benchSprint tests the performance of using Sprint.
+func benchSprint(b *testing.B) {
+        var s string
 
-        $mapper->insert($user);
-        $loginManager->login($user, $form->getRememberMe());
-        header('Location: /profile');
-    }
+        for i := 0; i < b.N; i++ {
+                s = fmt.Sprint("hello")
+        }
 
-    $app->render(
-        'register.tpl.php',
-        array(
-            'lang' => $app->getContainer()->lang,
-            'form' => $form,
-            'uri' => $_SERVER['REQUEST_URI'],
-        )
-    );
-});
+        gs = s
+}
 
-$app->addRoute('/profile', function () use ($app) {
-    $loginManager = $app->getContainer()->loginManager;
-    $validator = $app->getContainer()->validator;
-    $mapper = $app->getContainer()->userMapper;
+// benchSprintf tests the performance of using Sprintf.
+func benchSprintf(b *testing.B) {
+        var s string
 
-    if (!$user = $loginManager->getLoggedUser()) {
-        header('HTTP/1.0 403 Forbidden');
-        echo "<h1>You have no permissions</h1>";
-        exit;
-    }
+        for i := 0; i < b.N; i++ {
+                s = fmt.Sprintf("hello")
+        }
 
-    $form = new RegisterForm($loginManager, $user);
-    $form->handleRequest();
-
-    if ($form->isSubmitted() and $form->isValid($validator)) {
-        $mapper->update($user);
-        header('Location: /profile');
-    }
-
-    $app->render('register.tpl.php',
-        array(
-            'lang' => $app->getContainer()->lang,
-            'form' => $form,
-            'uri' => $_SERVER['REQUEST_URI'],
-        )
-    );
-});
-
-$app->setNotFoundHandler(function () use ($app) {
-    header('HTTP/1.0 404 Not Found');
-    echo "<h1>Page not found</h1>";
-});
-
-$controller = Router::resolveController($app);
-$controller(); 
+        gs = s
+} 
