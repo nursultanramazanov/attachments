@@ -36,7 +36,7 @@ endif
 # This script inserts NAND simulator module to emulate NAND flash of specified
 # size.
 #
-# Author: Artem Bityutskiy
+# Author: 
 #
 
 fatal()
