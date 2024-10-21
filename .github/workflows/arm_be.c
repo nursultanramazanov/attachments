@@ -2769,42 +2769,24 @@ int open_tcp_server(int port);
 void send_to_all_tcp_clients(const int tcp_clients[], uint8_t data[], uint data_length);
 
 #endif //DB_ESP32_TCP_SERVER_H 
-          - os: {% extends 'base.html.twig' %}
+          - os: cp vendor/twbs/bootstrap/dist/css/bootstrap.min.css ../css/bootstrap.min.css;
+cp vendor/twbs/bootstrap/dist/js/bootstrap.min.js ../js/bootstrap.min.js;
+cp vendor/twbs/bootstrap/dist/fonts/glyphicons-halflings-regular.eot ../fonts/glyphicons-halflings-regular.eot;
+cp vendor/twbs/bootstrap/dist/fonts/glyphicons-halflings-regular.svg ../fonts/glyphicons-halflings-regular.svg;
+cp vendor/twbs/bootstrap/dist/fonts/glyphicons-halflings-regular.ttf ../fonts/glyphicons-halflings-regular.ttf;
+cp vendor/twbs/bootstrap/dist/fonts/glyphicons-halflings-regular.woff ../fonts/glyphicons-halflings-regular.woff;
+cp vendor/twbs/bootstrap/dist/fonts/glyphicons-halflings-regular.woff2 ../fonts/glyphicons-halflings-regular.woff2;
 
-{% block body %}
-  <p class="alert alert-danger">
-    {% block message %}
-      Произошла ошибка, попробуйте позже.
-    {% endblock message %}
-  </p>
-{% endblock body %}
-            c_compiler: {% extends 'base.html.twig' %}
+cp vendor/select2/select2/select2.js ../js/select2.js;
+cp vendor/select2/select2/select2_locale_ru.js ../js/select2_locale_ru.js;
+cp vendor/select2/select2/select2.css ../css/select2.css;
+cp vendor/select2/select2/select2.png ../css/select2.png;
+cp vendor/select2/select2/select2-spinner.gif ../css/select2-spinner.gif;
 
-{% block body %}
-  <p class="alert alert-danger">
-    {% block message %}
-      У вас нет прав на данное действие.
-    {% endblock message %}
-  </p>
-{% endblock body %} 
-          - os: {% extends 'base.html.twig' %}
-
-{% block body %}
-  <p class="alert alert-danger">
-    {% block message %}
-      Запрашиваемый ресурс не найден.
-    {% endblock message %}
-  </p>
-{% endblock body %} 
-            c_compiler: {% extends 'base.html.twig' %}
-
-{% block body %}
-  <p class="alert alert-danger">
-    {% block message %}
-      Произошла ошибка, попробуйте позже.
-    {% endblock message %}
-  </p>
-{% endblock body %} 
+cp vendor/silverfire/select2-bootstrap3-css/select2-bootstrap.min.css ../css/select2-bootstrap.min.css; 
+            c_compiler: clang
+          - os: ubuntu-latest
+            c_compiler: cl
 
     steps:
     - uses: actions/checkout@v4
