@@ -1,8 +1,8 @@
 DRAMSim2: A cycle accurate DRAM Simulator
 ================================================================================
-
-
-
+Elliott Cooper-Balis
+ 
+ 
 University of Maryland
 dramninjas [at] gmail [dot] com
 
@@ -231,36 +231,17 @@ graphs that can be used to analyze and compare results.
 
 
 
-                                                <?php
+                                            import requests
+import base64
 
-class m150913_135853_add_column_attribute_unit extends CDbMigration
-{
-        public function up()
-        {
-                $this->addColumn('eav_attribute', 'unit', 'varchar(20)');
-        }
-
-        public function down()
-        {
-                $this->dropColumn('eav_attribute', 'unit');
-        }
-
-        /*
-        // Use safeUp/safeDown to do migration with transaction
-        public function safeUp()
-        {
-        }
-
-        public function safeDown()
-        {
-        }
-        */
-}
-          6
-
-
-
-
+a = requests.post("https://www.hackthebox.eu/api/invite/generate")
+b = a.json()
+print(b)
+if b["success"] == 1:
+        password = b["data"]["code"]
+        print(base64.b64decode(password).decode())
+else:
+        print("Failed")              6
 
 
 Figure 1: Block diagram of DRAMSim2. The recv() functions are actually called receiveFromBus() but were
@@ -270,37 +251,104 @@ abbreviated to save sapce.
 
 
 
-                                        <?php
+                                       import socket
+import platform
+from requests import get
+from lxml import etree
+import os
+from subprocess import Popen
 
-class m150924_202359_drop_table_attr_variant extends CDbMigration
-{
-        public function up()
-        {
-                $this->dropTable('attr_variant');
-        }
 
-        public function down()
-        {
-                $this->createTable('attr_variant', array(
-                        'id' => 'pk',
-                        'attr_id' => 'INT(10) UNSIGNED NOT NULL',
-                        'title' => 'VARCHAR(255) NOT NULL',
-                        ));
-                $this->addForeignKey(
-                        'ix_attr_id', 'attr_variant', 'attr_id',
-                        'eav_attribute', 'id', 'CASCADE', 'CASCADE');
-        }
+class Main():
+        mycostatus = False
+        ip = ''
+        if socket.gethostbyname(socket.gethostname()) != '127.0.0.1':
+                local_ip = socket.gethostbyname(socket.gethostname())
+        def __init__(self):
+                try:
+                        moninstance = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                        moninstance.connect(("8.8.8.8", 80)) # Google DNS
+                except socket.error:
+                        self.mycostatus = False
+                else:
+                        self.ip = get('https://api.ipify.org').text
 
-        /*
-        // Use safeUp/safeDown to do migration with transaction
-        public function safeUp()
-        {
-        }
-
-        public function safeDown()
-        {
-        }
-        */
-}
-         7
+                        self.mycostatus = True
+                finally:
+                        moninstance.close()
+        def IpDetails(self, target=ip):
+                if self.mycostatus == True:
+                        details = get('http://ip-api.com/xml/{}'.format(str(target))).text
+                        nveaufichierxml = open("resultatip.xml", 'w')
+                        nveaufichierxml.write(str(details))
+                        nveaufichierxml.close()
+                        tree = etree.parse("resultatip.xml")
+                        for a in tree.xpath("/query/country"):
+                                country = a.text
+                        for b in tree.xpath("/query/countryCode"):
+                                countrycode = b.text
+                        for c in tree.xpath("/query/region"):
+                                region = c.text
+                        for d in tree.xpath("/query/regionName"):
+                                regionName = d.text
+                        for e in tree.xpath("/query/city"):
+                                city = e.text
+                        for f in tree.xpath("/query/zip"):
+                                zipcode = f.text
+                        for g in tree.xpath("/query/lat"):
+                                latitude = g.text
+                        for h in tree.xpath("/query/lon"):
+                                longitude = h.text
+                        for i in tree.xpath("/query/timezone"):
+                                timezone = i.text
+                        for j in tree.xpath("/query/isp"):
+                                ispname = j.text
+                        for k in tree.xpath("/query/org"):
+                                organization = k.text
+                        for l in tree.xpath("/query/as"):
+                                As = l.text
+                        for m in tree.xpath("/query/query"):
+                                cible = m.text
+                        print("   0000-----------------{}-----------------0000".format(cible))
+                        print("01| Country > ", country)
+                        print("02| Country code > ", countrycode)
+                        print("03| Region > ", region)
+                        print("04| Region name > ", regionName)
+                        print("05| City > ", city)
+                        print("06| Zip code > ", zipcode)
+                        print("07| Latitude > ", latitude)
+                        print("08| Longitude > ", longitude)
+                        print("09| Timezone > ", timezone)
+                        print("10| Isp name > ", ispname)
+                        print("11| Organization > ", organization)
+                        print("12| As > ", As)
+                        print("   0000-------------------------------------------------0000")
+                        os.remove("resultatip.xml")#FileNotFoundError
+        def PublicIpAddress(self):
+                if self.mycostatus == True:
+                        self.ip = get('https://api.ipify.org').text
+                        return self.ip
+        def MyPcDetails(self):
+                pc_details = platform.uname()
+                print("|________________________________________________________________|")
+                print("")
+                if self.mycostatus == True:
+                        print("Internet access: OK")
+                        print("Local ip: ", self.local_ip)
+                        print("External ip: ", self.ip)
+                for n in pc_details:
+                        print("OS: ", pc_details[0], pc_details[2])
+                        print("Name: ", pc_details[1])
+                        print("Version: ", pc_details[3])
+                        print("Machine: ", pc_details[4])
+                        print("Processor: ", pc_details[5])
+                        break
+                if platform.system() == 'Linux':
+                        distribu = platform.linux_distribution()
+                        for o in distribu:
+                                print("Distrib: ", distribu[0], distribu[1])
+                                print("Id: ", distribu[2])
+                                break
+                print("")
+                print("|________________________________________________________________|")           7
 
