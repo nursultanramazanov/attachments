@@ -1,417 +1,6 @@
 name: Rust
 
-on: @media (max-width: 960px) {
-    h1 { font-size: 40px; }
-    h2 { font-size: 24px; }
-    .button-big {
-        margin: 30px auto;
-    }
-    .service-item {
-        padding: 50px 2% 0;
-        float: none;
-        width: 100%;
-    }
-    .service-item:last-child {
-        padding: 50px 2% 70px;
-    }
-}
-@media (max-width: 720px) {
-    /* header {
-        height: auto;
-    } */
-    .header-container {
-        display: block;
-    }
-    .header-container.center {
-        max-width: none;
-        width: 100%;
-    }
-    .logo {
-        display: block;
-        text-align: center;
-        margin-left: auto;
-        margin-right: auto;
-    }
-    .menu {
-        display: block;
-        text-align: center;
-        font-size: 14px;
-    }
-    .menu-item {
-        display: block;
-        margin: 0;
-        border-top: 1px solid #2A2A2A;
-    }
-    .menu-item a:link,
-    .menu-item a:active,
-    .menu-item a:visited {
-        display: inline-block;
-        width: 100%;
-        padding: 10px 0;
-    }
-    h1, h3, h5 { font-size: 24px; }
-    h2, h4, h6 { font-size: 16px; }
-    .button-big {
-        font-size: 12px;
-        width: 120px;
-        height: 36px;
-        line-height: 36px;
-        margin: 25px auto 15px;
-    }
-    .slider {
-        padding-top: 25px;
-    }
-    .service-item {
-        padding: 30px 2% 0;
-    }
-    .service-item:last-child {
-        padding: 30px 2%;
-    }
-    .portfolio {
-        padding: 10px 0 30px;
-    }
-    h3, h4 {
-        margin: 30px 0;
-    }
-    .portfolio label {
-        display: block;
-        width: auto;
-        margin: 5px;
-    }
-    .footer-container {
-        padding: 10px 0;
-    }
-    .address, .phone {
-        display: block;
-        margin: 0;
-        padding: 0;
-    }
-    .phone::before, .address::before {
-        position: relative;
-        left: -4px;
-        top: 2px;
-    }
-    .social {
-        margin: 18px 0;
-    }
-    .copyright-container {
-        padding: 24px 0;
-    }
-} 
-  push: @font-face {
-    font-family: "Lato Regular";
-    src: local("Lato Regular"), url(/fonts/Lato-Regular.ttf);
-}
-@font-face {
-    font-family: "Lato Black";
-    src: local("Lato Black"), url(/fonts/Lato-Black.ttf);
-}
-@font-face {
-    font-family: "Lato Light";
-    src: local("Lato Light"), url(/fonts/Lato-Light.ttf);
-}
-@font-face {
-    font-family: "Lato LightItalic";
-    src: local("Lato LightItalic"), url(/fonts/Lato-LightItalic.ttf);
-} 
-    branches: [ "main" ]
-  pull_request: html, body {
-    margin: 0;
-    padding: 0;
-    background-color: #FFF;
-    font: 16px/1.3 "Lato Regular", arial;
-}
-.center {
-    max-width: 1120px;
-    width: 90%;
-    margin: 0 auto;
-}
-
-/* HEADER */
-header {
-    background-color: #262626;
-    color: #D9D9D9;
-    font-family: "ReklameScript RegularDEMO";
-}
-.header-container {
-    height: 100%;
-    display: table;
-    padding-top: 1px;
-}
-.logo {
-    background-image: url(/img/logo.png);
-    background-repeat: no-repeat;
-    background-position: left center;
-    display: inline-block;
-    height: 33px;
-    width: 107px;
-    margin: 33px 0;
-}
-.menu {
-    display: table-cell;
-    vertical-align: middle;
-    font: 13px "Lato Black";
-    text-align: right;
-}
-.menu-item {
-    display: inline-block;
-    margin-left: 50px;
-    text-transform: uppercase;
-}
-.menu-item a:link,
-.menu-item a:active,
-.menu-item a:visited {
-    text-decoration: none;
-    color: #D9D9D9;
-    padding: 10px 0;
-}
-.menu-item.active a:link,
-.menu-item.active a:active,
-.menu-item.active a:visited {
-    color: #FF6760;
-}
-.menu-item a:hover { color: #FCC; }
-.menu-item.active a:hover { color: #FCC; }
-
-/* SLIDER SECTION */
-.slider {
-    background-color: #2A2A2A;
-    font-family: "Lato Light";
-    text-align: center;
-    color: #D9D9D9;
-    padding: 35px 0 15px;
-}
-h1 {
-    font-size: 60px;
-    margin: 10px auto;
-}
-h1 strong {
-    font-family: "Lato Black";
-}
-h2 {
-    font-size: 40px;
-    margin: 10px auto;
-}
-h2 em {
-    font-family: "Lato LightItalic";
-}
-.button-big {
-    display: block;
-    width: 200px;
-    height: 50px;
-    margin: 45px auto;
-    line-height: 50px;
-    /* font: 14px "Lato Black"; 
-    почему-то не работает, очень странно;
-    а вот по одному все правильно применяется */
-    font-family: "Lato Black";
-    font-size: 14px;
-    text-transform: uppercase;
-    user-select: none;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-}
-a.button-big:link,
-a.button-big:visited,
-a.button-bit:active {
-    text-decoration: none;
-    color: #FFF;
-}
-.button-red {
-    background-color: #FF6760;
-    border-top-left-radius: 5px;
-    -webkit-border-top-left-radius: 5px;
-    -moz-border-radius-topleft: 5px;
-    border-bottom-left-radius: 5px;
-    -webkit-border-bottom-left-radius: 5px;
-    -moz-border-radius-bottomleft: 5px;
-    border-top-right-radius: 5px;
-    -webkit-border-top-right-radius: 5px;
-    -moz-border-radius-topright: 5px;
-    border-bottom-right-radius: 5px;
-    -webkit-border-bottom-right-radius: 5px;
-    -moz-border-radius-bottomright: 5px;
-}
-.button-red:hover {
-    background-color: #F77;
-}
-
-/* SERVICES SECTION */
-.services {
-    background-color: #F8F8F8;
-    text-align: center;
-    font-size: 14px;
-    line-height: 1.8;
-    color: #616161;
-}
-.services-container::after {
-    content: "";
-    display: block;
-    clear: both;
-}
-.service-item {
-    float: left;
-    width: 21%;
-    padding: 80px 2%;
-}
-.service-icon {
-    margin: auto;
-    width: 65px;
-    height: 70px;
-    background-image: url(/img/service-sprite.png);
-}
-.service-icon-1 { background-position: left 0px center; }
-.service-icon-2 { background-position: left 65px center; }
-.service-icon-3 { background-position: left 130px center; }
-.service-icon-4 { background-position: left 195px center; }
-.service-name {
-    font: 18px "Lato Black";
-    margin: 10px 0;
-}
-
-/* PORTFOLIO SECTION */
-.portfolio {
-    color: #FFF;
-    padding: 30px 0 70px;
-    text-align: center;
-    font-size: 0;
-}
-h3 {
-    color: #616161;
-    font: 30px "Lato Black";
-    margin: 20px 0;
-}
-h4 {
-    color: #616161;
-    font: 20px "Lato Light";
-    margin: 20px 0;
-}
-.portfolio label {
-    display: inline-block;
-    margin: 30px 5px 50px;
-    user-select: none;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    cursor: pointer;
-    font: 12px "Lato Black";
-    padding: 12px 20px;
-    text-transform: uppercase;
-}
-.portfolio input {
-    display: none;
-}
-.portfolio input:checked + label {
-    background-color: #616161;
-    transition: background-color 0.3s ease;
-    -moz-transition: background-color 0.3s ease;
-    -webkit-transition: background-color 0.3s ease;
-}
-.portfolio input:checked + label:hover {
-    background-color: #777;
-}
-input#tag-graphic:checked ~ a:not(.tag-graphic),
-input#tag-illustration:checked ~ a:not(.tag-illustration),
-input#tag-motion:checked ~ a:not(.tag-motion) {
-    position: relative;
-    //margin-left: -280px;
-    width: 0;
-    opacity: 0;
-    padding-left: 0;
-    padding-right: 0;
-    /* transition: margin-left 0.6s ease, opacity 0.6s ease;
-    -moz-transition: margin-left 0.6s ease, opacity 0.6s ease;
-    -webkit-transition: margin-left 0.6s ease, opacity 0.6s ease; */
-    transition: width 0.3s ease, padding-left 0.3s ease, padding-right 0.3s ease;
-    -moz-transition: width 0.3s ease, padding-left 0.3s ease, padding-right 0.3s ease;
-    -webkit-transition: width 0.3s ease, padding-left 0.3s ease, padding-right 0.3s ease;
-}
-.portfolio a {
-    padding: 5px;
-    display: inline-block;
-}
-.clearfix::after {
-    content: "";
-    display: block;
-    clear: both;
-}
-
-/* FOOTER */
-footer {
-    background-color: #313131;
-    text-align: center;
-    color: #BEBEBE;
-}
-.footer-container {
-    padding: 35px 0;
-}
-.copyright {
-    background-color: #2C2C2C;
-    font-size: 14px;
-}
-.copyright-container {
-    padding: 34px 0;
-}
-h5 {
-    color: #E0E0E0;
-    font: 30px "Lato Black";
-    margin: 15px 0;
-}
-h6 {
-    font: 20px "Lato Light";
-    margin: 15px 0;
-}
-.contact {
-    font-size: 14px;
-    padding: 5px 0;
-}
-.address {
-    position: relative;
-    margin-right: 55px;
-}
-.address::before, .phone::before {
-    content: "";
-    width: 14px;
-    height: 15px;
-    display: inline-block;
-    background-image: url(/img/contact-sprite.png);
-    position: absolute;
-    left: -18px;
-    bottom: 1px;
-}
-.phone { position: relative; }
-.phone:link, .phone:visited, .phone:active,
-.address:link, .address:visited, .phone:active {
-    color: #BEBEBE;
-    text-decoration: none;
-}
-.phone::before {
-    background-position: left 14px center;
-}
-.social {
-    font-size: 0;
-    margin: 20px;
-}
-.social-icon {
-    display: inline-block;
-    width: 32px;
-    height: 30px;
-    background-image: url(/img/social-sprite.png);
-    margin: 3px;
-}
-.social-icon:hover {
-    opacity: 0.6;
-    transition: opacity 0.3s ease-in;
-    -webkit-transition: opacity 0.3s ease-in;
-    -moz-transition: opacity 0.3s ease-in;
-}
-.rss { background-position: left 0px center; }
-.printerest { background-position: left 32px center; }
-.dribbble { background-position: left 64px center; }
-.twitter { background-position: left 96px center; }
-.facebook { background-position: left 128px center; } 
-    branches: [ "main" ]
-
-env: extern crate clap;
+on: extern crate clap;
 extern crate rand;
 
 use std::collections::LinkedList;
@@ -661,7 +250,7 @@ fn main() {
     }
 
 } 
-  CARGO_TERM_COLOR: extern crate terminal;
+  push: extern crate terminal;
 
 use std::io::Write;
 use terminal::{error, TerminalLock, Clear, Action, Value, Retrieved, Event, KeyCode, KeyEvent};
@@ -769,9 +358,175 @@ impl Terminal {
     }
 
 } 
+    branches: [ "main" ]
+  pull_request: <?php
 
-jobs:
-  build:
+use Doctrine\ORM\Tools\Console\ConsoleRunner;
+
+require "../app/bootstrap.php";
+
+return ConsoleRunner::createHelperSet($em); 
+    branches: [ "main" ]
+
+env: <?php
+
+$settings['displayErrorDetails'] = true;
+
+$settings['db'] = [
+    'dbname' => 'memtext',
+    'user' => 'root',
+    'pass' => '',
+    'host' => 'localhost',
+    'driver' => 'pdo_mysql',
+];
+
+$settings['sphinx'] = [
+    'host' => '127.0.0.1',
+    'port' => 9306,
+    'indexName' => 'ix_dictionary',
+];
+
+$settings['pager'] = [
+    'perPage' => 20,
+    'maxLinksCount' => 6,
+];
+
+$settings['purifier'] = [
+    'AutoFormat.AutoParagraph' => true,
+    'AutoFormat.RemoveEmpty' => true,
+    'HTML.Doctype' => 'HTML 4.01 Transitional',
+    'HTML.AllowedElements' =>
+        ['p','h1','h2','h3','h4','h5','h6','br','em','b','i','strong'],
+];
+
+$settings['yandex'] = [
+    'key' => 'trnsl.1.1.20160330T163001Z.d161a299772702fe.'.
+             '0d436c4c1cfc1713dea2aeb9d9e3f2bebae02844',
+    'api' => 'https://translate.yandex.net/api/v1.5/tr.json/translate',
+]; 
+  CARGO_TERM_COLOR: source memtext_base
+{
+    type            = mysql
+    sql_host        = localhost
+    sql_user        = root
+    sql_pass        =
+    sql_db          = memtext
+    sql_port        = 3306 
+
+    sql_query_pre   = SET NAMES utf8
+}
+
+source memtext_dictionary: memtext_base
+{
+    sql_range_step          = 1000
+    sql_query_range         = SELECT MIN(id), MAX(id) FROM dictionary 
+    sql_query       = \
+        SELECT id, keyword, keyword as word, type \
+        FROM dictionary WHERE id BETWEEN $start AND $end
+
+    sql_attr_string = type
+    sql_attr_string = word
+}
+
+index ix_dictionary
+{
+    morphology = stem_ru, stem_en
+    source = memtext_dictionary
+    ### path =
+    ### stopwords =
+    docinfo = extern
+    charset_type = utf-8
+}
+
+indexer
+{
+    mem_limit       = 40M
+}
+
+searchd
+{
+    listen          = 9312
+    listen          = 9306:mysql41
+
+    ### log         =
+    ### query_log       =
+
+    read_timeout        = 5
+    max_children        = 30
+    ### pid_file        =
+    max_matches     = 10000
+    seamless_rotate     = 1
+    preopen_indexes     = 1
+    unlink_old      = 1
+    workers         = threads
+    ### binlog_path     = 
+    compat_sphinxql_magics = 0
+} 
+
+jobs: CREATE TABLE `user`
+(
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `login` VARCHAR(100) NOT NULL,
+    `email` VARCHAR(255) NOT NULL,
+    `salt` VARCHAR(255) NOT NULL,
+    `salted_hash` VARCHAR(255) NOT NULL
+) ENGINE=INNODB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE `dictionary`
+(
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `keyword` VARCHAR(255) NOT NULL,
+    `definition` TEXT NOT NULL,
+    `type` ENUM('short', 'full') NOT NULL DEFAULT 'full',
+    KEY (`keyword`)
+) ENGINE=INNODB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE `user_dictionary`
+(
+    `user_id` INT UNSIGNED NOT NULL,
+    `word_id` INT UNSIGNED NOT NULL,
+    PRIMARY KEY (`user_id`, `word_id`),
+    FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
+      ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (`word_id`) REFERENCES `dictionary` (`id`)
+      ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=INNODB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE `text`
+(
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `title` VARCHAR(255) NOT NULL,
+    `content` TEXT NOT NULL,
+    `author_id` INT UNSIGNED NOT NULL,
+    FOREIGN KEY (`author_id`) REFERENCES `user`(`id`)
+        ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=INNODB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+CREATE TABLE `text_dictionary`
+(
+    `text_id` INT UNSIGNED NOT NULL,
+    `word_id` INT UNSIGNED NOT NULL,
+    PRIMARY KEY (`text_id`, `word_id`),
+    FOREIGN KEY (`text_id`) REFERENCES `text` (`id`)
+        ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (`word_id`) REFERENCES `dictionary` (`id`)
+        ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=INNODB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci; 
+  build: cp vendor/components/jquery/jquery.min.js web/vendor-js/jquery.min.js
+
+cp vendor/twbs/bootstrap/dist/css/bootstrap.min.css web/vendor-css/bootstrap.min.css
+cp vendor/twbs/bootstrap/dist/js/bootstrap.min.js web/vendor-js/bootstrap.min.js
+
+cp vendor/twbs/bootstrap/dist/fonts/* web/fonts/
+
+cp -r vendor/ckeditor/ckeditor/adapters web/ckeditor/adapters
+cp -r vendor/ckeditor/ckeditor/lang web/ckeditor/lang
+cp -r vendor/ckeditor/ckeditor/plugins web/ckeditor/plugins
+cp -r vendor/ckeditor/ckeditor/skins web/ckeditor/skins
+cp vendor/ckeditor/ckeditor/ckeditor.js web/ckeditor/ckeditor.js
+cp vendor/ckeditor/ckeditor/config.js web/ckeditor/config.js
+cp vendor/ckeditor/ckeditor/contents.css web/ckeditor/contents.css
+cp vendor/ckeditor/ckeditor/styles.js web/ckeditor/styles.js 
 
     runs-on: ubuntu-latest
 
@@ -781,3 +536,4 @@ jobs:
       run: cargo build --verbose
     - name: Run tests
       run: cargo test --verbose
+ 
