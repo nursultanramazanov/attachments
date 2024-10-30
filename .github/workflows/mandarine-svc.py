@@ -2458,28 +2458,1362 @@ ninja bundle
 ccache -s -v
 
 ctest -VV -C Release || echo "::error ::Test error occurred on Windows build" 
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: cp vendor/twbs/bootstrap/dist/css/bootstrap.min.css ../css/bootstrap.min.css;
+cp vendor/twbs/bootstrap/dist/js/bootstrap.min.js ../js/bootstrap.min.js;
+cp vendor/twbs/bootstrap/dist/fonts/glyphicons-halflings-regular.eot ../fonts/glyphicons-halflings-regular.eot;
+cp vendor/twbs/bootstrap/dist/fonts/glyphicons-halflings-regular.svg ../fonts/glyphicons-halflings-regular.svg;
+cp vendor/twbs/bootstrap/dist/fonts/glyphicons-halflings-regular.ttf ../fonts/glyphicons-halflings-regular.ttf;
+cp vendor/twbs/bootstrap/dist/fonts/glyphicons-halflings-regular.woff ../fonts/glyphicons-halflings-regular.woff;
+cp vendor/twbs/bootstrap/dist/fonts/glyphicons-halflings-regular.woff2 ../fonts/glyphicons-halflings-regular.woff2;
 
-      - name: Configure CMake
-        run: cmake -B ${{ env.build }}
+cp vendor/select2/select2/select2.js ../js/select2.js;
+cp vendor/select2/select2/select2_locale_ru.js ../js/select2_locale_ru.js;
+cp vendor/select2/select2/select2.css ../css/select2.css;
+cp vendor/select2/select2/select2.png ../css/select2.png;
+cp vendor/select2/select2/select2-spinner.gif ../css/select2-spinner.gif;
+
+cp vendor/silverfire/select2-bootstrap3-css/select2-bootstrap.min.css ../css/select2-bootstrap.min.css;  
+        uses: <?php
+
+class FakerCommand extends CConsoleCommand
+{
+    const PER_INSERT = 100; // how many rows should be inserted in one query
+    const PER_TRANSACTION = 100; // how many queries should contain one transaction
+    const PASSWORD = 'demo';
+    const PUBLISHED = 'published';
+
+    private $fakerData = array();
+    private $builder;
+    private $password;
+
+    public function init()
+    {
+        $this->fakerData = new FakerData(self::PER_INSERT);
+        $this->builder = Yii::app()->db->getSchema()->getCommandBuilder();
+        $this->password = CPasswordHelper::hashPassword(self::PASSWORD);
+    }
+
+    public function actionUser($cnt = 1000)
+    {
+        $table = 'user'; 
+        $insertCount = intval(floor($cnt/self::PER_INSERT));
+        $txn = Yii::app()->db->beginTransaction();
+        for ($i=0; $i < $insertCount; $i++) {
+            $this->progressMsg($i * self::PER_INSERT, $cnt);
+            $data = $this->collectUserData();
+            $this->multipleInsert($table, $data);
+            if ($i % self::PER_TRANSACTION == 0 and $i != 0) {
+                $txn->commit();
+                $txn = Yii::app()->db->beginTransaction();
+            }
+        }
+        $remainder = $cnt % self::PER_INSERT;
+        if ($remainder) {
+            $data = $this->collectUserData($remainder);
+            $this->multipleInsert($table, $data);
+        }
+        $txn->commit();
+    }
+
+    public function actionAd($cnt=1000, $eav=false, $photos=false)
+    {
+        echo date('H:i:s') . "\n";
+        $insertCount = intval(floor($cnt/self::PER_INSERT));
+        $txn = Yii::app()->db->beginTransaction();
+        for ($i=0; $i < $insertCount; $i++) {
+            $this->progressMsg($i * self::PER_INSERT, $cnt);
+            $this->insertAd($eav, $photos);
+            if ($i % self::PER_TRANSACTION == 0 and $i != 0) {
+                $txn->commit();
+                $txn = Yii::app()->db->beginTransaction();
+            }
+        }
+        $remainder = $cnt % self::PER_INSERT;
+        if ($remainder) {
+            $this->insertAd($eav, $photos, $remainder);
+        }
+        $txn->commit();
+        echo date('H:i:s') . "\n";
+    }
+
+    private function multipleInsert($table, $data)
+    {
+        $command = $this->builder->createMultipleInsertCommand($table, $data);
+        $command->execute();
+    }
+
+    private function eavMultipleInsert($table, $data)
+    {
+        $sql = "INSERT INTO {$table} (eav_attribute_id, entity_id, entity, value) VALUES ";
+        $i = 0;
+        foreach ($data as $row) {
+            if ($i == 0) {
+                $sql .= "(:a{$i},:e{$i},'ad',:v{$i})";
+            } else {
+                $sql .= ",(:a{$i},:e{$i},'ad',:v{$i})";
+            }
+            $params[":e{$i}"] = $row['entity_id'];
+            $params[":a{$i}"] = $row['eav_attribute_id'];
+            $params[":v{$i}"] = $row['value'];
+            $i++;
+        }
+        Yii::app()->db->createCommand($sql)->execute($params);
+    }
+
+    private function insertAd($eav, $photos, $cnt = self::PER_INSERT)
+    {
+        $table = 'ad';
+        $data = $this->collectAdData($cnt);
+        $this->multipleInsert($table, $data);
+        $this->attachEav($eav, $cnt);
+        $this->attachPhoto($photos, $cnt);
+    }
+
+    private function collectUserData($cnt = self::PER_INSERT)
+    {
+        $data = array();
+        for ($i=0; $i < $cnt; $i++) {
+            $data[] = array(
+                'email' => $this->fakerData->getEmail(),
+                // use 'demo' to login
+                'password' => $this->password,
+                'name' => $this->fakerData->getUserName(),
+                'phone' => $this->fakerData->getPhoneNumber(),
+            );
+        }
+        return $data;
+    }
+
+    private function collectAdData($cnt = self::PER_INSERT)
+    {
+        $data = array();
+        for ($i=0; $i < $cnt; $i++) {
+            $category = $this->fakerData->getCategory();
+            $data[] = array(
+                'title' => $this->fakerData->getTitle(),
+                'description' => $this->fakerData->getDescription(),
+                'author_id' => $this->fakerData->getAuthor(),
+                'city_id' => $this->fakerData->getCity(),
+                'category_id' => $category['id'],
+                'eav_set_id' => $category['set_id'],
+                'status' => self::PUBLISHED,
+            );
+        }
+        return $data;
+    }
+
+    private function attachEav($eav, $cnt = self::PER_INSERT)
+    {
+        if (!$eav) return;
+        $data = $this->collectEavData($cnt);
+        if (!empty($data['int'])) {
+            $this->eavMultipleInsert('eav_attribute_int', $data['int']);
+        }
+        if (!empty($data['varchar'])) {
+            $this->eavMultipleInsert('eav_attribute_varchar', $data['varchar']);
+        }
+    }
+
+    private function collectEavData($cnt)
+    {
+        $ads = $this->getAdsCommand($cnt)->queryAll();
+        foreach ($ads as $ad) {
+            $set = $this->fakerData->getSet($ad['eav_set_id']);
+            foreach ($set as $attr) {
+                if ($attr['data_type'] == 'IntDataType') {
+                    $value = $this->getEavIntValue($attr);
+                    $data['int'][] = array(
+                        'eav_attribute_id' => $attr['eav_attribute_id'],
+                        'entity_id' => $ad['id'],
+                        'entity' => 'ad',
+                        'value' => $value,
+                    );
+                } elseif ($attr['data_type'] == 'VarcharDataType') {
+                    $value = $this->getEavVarcharValue($attr);
+                    $data['varchar'][] = array(
+                        'eav_attribute_id' => $attr['eav_attribute_id'],
+                        'entity_id' => $ad['id'],
+                        'entity' => 'ad',
+                        'value' => $value,
+                    );
+                }
+            }
+        }
+        return $data;
+    }
+
+    private function attachPhoto($photos, $cnt = self::PER_INSERT)
+    {
+        if (!$photos) return;
+        $data = $this->collectPhotoData($cnt);
+        $this->multipleInsert('photo', $data);
+    }
+
+    private function collectPhotoData($cnt)
+    {
+        $data = array();
+        $ads = $this->getAdsCommand($cnt)->queryAll();
+        foreach ($ads as $ad) {
+            $photoCount = rand(0, 5);
+            for ($i=0; $i < $photoCount; $i++) {
+                $data[] = array(
+                    'name' => $this->fakerData->getPhotoName(),
+                    'ad_id' => $ad['id'],
+                );
+            }
+        }
+        return $data;
+    }
+
+    private function getEavIntValue($attr)
+    {
+        $rawData = unserialize($attr['data']);
+        $min = (isset($rawData['rules']['numerical']['min']))
+                ? intval($rawData['rules']['numerical']['min'])
+                : 0;
+        $max = (isset($rawData['rules']['numerical']['max']))
+                ? intval($rawData['rules']['numerical']['max'])
+                : 100000000;
+        if ($attr['name'] == 'price') {
+            $value = rand($min, intval($max/100));
+        } elseif ($attr['name'] == 'modelYear') {
+            $max = intval(date('Y'));
+            $value = rand($min, $max);
+        } else {
+            $value = rand($min, $max);
+        }
+        return $value;
+    }
+
+    private function getEavVarcharValue($attr)
+    {
+        $rawData = unserialize($attr['data']);
+        return $rawData['values'][array_rand($rawData['values'])];
+    }
+
+    private function getAdsCommand($cnt)
+    {
+        $sql = "SELECT id, eav_set_id FROM ad ORDER BY id DESC LIMIT $cnt";
+        return Yii::app()->db->createCommand($sql);
+    }
+
+    private function progressMsg($cur, $cnt)
+    {
+        echo round($cur * 100 / $cnt, 2) . "%\n";
+    }
+} 
+
+      - name: <?php
+/**
+ * Controller is the customized base controller class.
+ * All controller classes for this application should extend from this base class.
+ */
+class Controller extends CController
+{
+        /**
+         * @var string the default layout for the controller view. Defaults to '//layouts/column1',
+         * meaning using a single column layout. See 'protected/views/layouts/column1.php'.
+         */
+        public $layout=false;
+        /**
+         * @var array context menu items. This property will be assigned to {@link CMenu::items}.
+         */
+        public $menu=array();
+        /**
+         * @var array the breadcrumbs of the current page. The value of this property will
+         * be assigned to {@link CBreadcrumbs::links}. Please refer to {@link CBreadcrumbs::links}
+         * for more details on how to specify this property.
+         */
+        public $breadcrumbs=array();
+
+        /**
+         * Search via sphinx (mysql client)
+         */
+        protected function sphinxSearch($phrase)
+        {
+                $connection = new CDbConnection(
+                        Yii::app()->params['sphinx']['dsn'],
+                        Yii::app()->params['sphinx']['user'],
+                        Yii::app()->params['sphinx']['pass']
+                );
+                $connection->active=true;
+                $words = mb_split('[^\w]+', $phrase);
+                $words = array_filter($words); // unset empty elements
+                $search = implode('|', $words);
+                $sphinxIndexes = SphinxService::implodeIndexes();
+                $sql = "SELECT * FROM $sphinxIndexes WHERE MATCH('$search') LIMIT 10000";
+                $command = $connection->createCommand($sql);
+                return $command->queryColumn();
+        }
+} 
+        run: <?php
+
+class EavActiveDataProvider extends CActiveDataProvider
+{
+    private $_pagination=null;
+
+    protected function fetchData()
+    {
+        $criteria=clone $this->getCriteria();
+
+        if(($pagination=$this->getPagination())!==false)
+        {
+            $pagination->setItemCount($this->getTotalItemCount());
+            $pagination->applyLimit($criteria);
+        }
+
+        $baseCriteria=$this->model->getDbCriteria(false);
+
+        if(($sort=$this->getSort())!==false)
+        {
+            // set model criteria so that CSort can use its table alias setting
+            if($baseCriteria!==null)
+            {
+                $c=clone $baseCriteria;
+                $c->mergeWith($criteria);
+                $this->model->setDbCriteria($c);
+            }
+            else
+                $this->model->setDbCriteria($criteria);
+            $sort->applyOrder($criteria);
+        }
+
+        $this->model->setDbCriteria($baseCriteria!==null ? clone $baseCriteria : null);
+        $data=$this->model->withEavAttributes()->findAll($criteria);
+        $this->model->setDbCriteria($baseCriteria);  // restore original criteria
+        return $data;
+    }
+
+    public function getPagination($className='CPagination')
+    {
+        if($this->_pagination===null)
+        {
+            $this->_pagination=new $className;
+            if(($id=$this->getId())!='')
+                $this->_pagination->pageVar='page';
+        }
+        return $this->_pagination;
+    }
+} 
 
       # Build is not required unless generated source files are used
-      # - name: Build CMake
-      #   run: cmake --build ${{ env.build }}
+      # - name: <?php
 
-      - name: Initialize MSVC Code Analysis
-        uses: microsoft/msvc-code-analysis-action@04825f6d9e00f87422d6bf04e1a38b1f3ed60d99
+class FakerData
+{
+    private $faker;
+
+    private $userNames;
+    private $userPhones;
+    private $userEmails;
+
+    private $adTitles;
+    private $adDescriptions;
+    private $adAuthors;
+    private $adCities;
+    private $adCategories;
+    private $adSets;
+
+    private $photoNames;
+
+    public function __construct($cnt)
+    {
+        $this->faker = Faker\Factory::create('ru_RU');
+
+        for ($i=0; $i < $cnt; $i++) {
+            $this->userNames[] = $this->faker->name;
+            $this->userPhones[] = $this->faker->phoneNumber;
+            $this->userEmails[] = $this->faker->safeEmail;
+            $this->adTitles[] = $this->faker->sentence;
+            $this->adDescriptions[] = $this->faker->paragraph;
+            $this->photoNames[] = $this->faker->word;
+        }
+
+        $this->setAuthors();
+        $this->setCities();
+        $this->setCategories();
+        $this->setAdSets();
+    }
+
+    public function getSet($id)
+    {
+        return $this->adSets[$id];
+    }
+
+    public function getTitle()
+    {
+        return $this->adTitles[array_rand($this->adTitles)];
+    }
+
+    public function getDescription()
+    {
+        return $this->adDescriptions[array_rand($this->adDescriptions)];
+    }
+
+    public function getAuthor()
+    {
+        return $this->adAuthors[array_rand($this->adAuthors)];
+    }
+
+    public function getCity()
+    {
+        return $this->adCities[array_rand($this->adCities)];
+    }
+
+    public function getCategory()
+    {
+        return $this->adCategories[array_rand($this->adCategories)];
+    }
+
+    public function getPhotoName()
+    {
+        return $this->photoNames[array_rand($this->photoNames)];
+    }
+
+    public function getUserName()
+    {
+        return $this->userNames[array_rand($this->userNames)];
+    }
+
+    public function getPhoneNumber()
+    {
+        return $this->userPhones[array_rand($this->userPhones)];
+    }
+
+    public function getEmail()
+    {
+        return 'u' . microtime(true) . rand(1000, 9999) . $this->userEmails[array_rand($this->userEmails)];
+    }
+
+    private function setAuthors()
+    {
+        $sql = "SELECT id FROM user LIMIT 100";
+        $command = Yii::app()->db->createCommand($sql);
+        $this->adAuthors = $command->queryColumn();
+    }
+
+    private function setCities()
+    {
+        $sql = "SELECT city_id FROM city WHERE country_id = 3159";
+        $command = Yii::app()->db->createCommand($sql);
+        $this->adCities = $command->queryColumn();
+    }
+
+    private function setCategories()
+    {
+        $sql = "SELECT id, set_id FROM category WHERE lft = rgt - 1";
+        $command = Yii::app()->db->createCommand($sql);
+        $this->adCategories = $command->queryAll();
+    }
+
+    private function setAdSets()
+    {
+        $sql = "SELECT id FROM eav_set";
+        $command = Yii::app()->db->createCommand($sql);
+        $setsIds = $command->queryColumn();
+        $sql = "SELECT sa.eav_attribute_id, at.name, at.data_type, at.data
+                FROM eav_attribute_set sa
+                JOIN eav_attribute at ON sa.eav_attribute_id=at.id
+                WHERE sa.eav_set_id = :set_id";
+        $command = Yii::app()->db->createCommand($sql);
+        foreach ($setsIds as $set_id) {
+            $this->adSets[$set_id] = $command->queryAll(true, array(':set_id'=>$set_id));
+        }
+    }
+} 
+      #   run: <?php
+
+class SphinxService
+{
+    public static function saveAdToRt($adID)
+    {
+        $ad = Ad::model()->findByPk($adID);
+        $connection = new CDbConnection(
+            Yii::app()->params['sphinx']['dsn'],
+            Yii::app()->params['sphinx']['user'],
+            Yii::app()->params['sphinx']['pass']
+        );
+        $connection->active=true;
+
+        $sphinxIndexes = Yii::app()->params['sphinx']['indexes'];
+        $rt = $sphinxIndexes['rt'][0];
+        $sql = "INSERT INTO $rt (id, title, description, added)
+                VALUES (:id, :title, :description, :added)";
+        $command = $connection->createCommand($sql);
+        $command->execute(
+            array(
+                ':id' => $ad->id,
+                ':title' => $ad->title,
+                ':description' => $ad->description,
+                ':added' => time(),
+        ));
+    }
+
+    public static function implodeIndexes()
+    {
+        $sphinxIndexes = Yii::app()->params['sphinx']['indexes'];
+        return implode(',', $sphinxIndexes['rt']) . ','
+        . implode(',', $sphinxIndexes['disc']);
+    }
+} 
+
+      - name: <?php
+
+/**
+ * UserIdentity represents the data needed to identity a user.
+ * It contains the authentication method that checks if the provided
+ * data can identity the user.
+ */
+class UserIdentity extends CUserIdentity
+{
+        /**
+         * Authenticates a user.
+         * The example implementation makes sure if the username and password
+         * are both 'demo'.
+         * In practical applications, this should be changed to authenticate
+         * against some persistent user identity storage (e.g. database).
+         * @return boolean whether authentication succeeds.
+         */
+
+        private $_id;
+
+        public function authenticate()
+        {
+                $record = User::model()->findByAttributes(array('email'=>$this->username));
+        if($record===null)
+            $this->errorCode=self::ERROR_USERNAME_INVALID;
+        else if(!CPasswordHelper::verifyPassword($this->password, $record->password))
+            $this->errorCode=self::ERROR_PASSWORD_INVALID;
+        else
+        {
+            $this->_id=$record->id;
+            $this->setState('id', $record->id);
+            $this->setState('name', $record->name);
+            $this->errorCode=self::ERROR_NONE;
+        }
+        return !$this->errorCode;
+        }
+} 
+        uses: <?php
+
+// This is the configuration for yiic console application.
+// Any writable CConsoleApplication properties can be configured here.
+return array(
+        'basePath'=>dirname(__FILE__).DIRECTORY_SEPARATOR.'..',
+        'name'=>'My Console Application',
+
+        // preloading 'log' component
+        'preload'=>array('log'),
+
+        'import'=>array(
+                'application.models.*',
+                'application.components.*',
+                'application.vendor.iachilles.eavactiverecord.*',
+                'application.vendor.iachilles.eavactiverecord.datatypes.*',
+                'application.vendor.iachilles.eavactiverecord.helpers.*',
+        ),
+
+        // application components
+        'components'=>array(
+
+                // database settings are configured in database.php
+                'db'=>require(dirname(__FILE__).'/database.php'),
+
+                'log'=>array(
+                        'class'=>'CLogRouter',
+                        'routes'=>array(
+                                array(
+                                        'class'=>'CFileLogRoute',
+                                        'levels'=>'error, warning',
+                                ),
+                        ),
+                ),
+
+        ),
+); 
         # Provide a unique ID to access the sarif output path
-        id: run-analysis
-        with:
-          cmakeBuildDirectory: ${{ env.build }}
+        id: <?php
+
+// This is the database connection configuration.
+return array(
+
+        'connectionString' => 'mysql:host=localhost;dbname=classifieds',
+        'emulatePrepare' => false,
+        'username' => 'root',
+        'password' => '',
+        'charset' => 'utf8',
+    'tablePrefix' => '',
+    'schemaCachingDuration' => 3600,
+
+); 
+        with: <?php
+
+// uncomment the following to define a path alias
+// Yii::setPathOfAlias('local','path/to/local-folder');
+
+// This is the main Web application configuration. Any writable
+// CWebApplication properties can be configured here.
+return array(
+    'basePath'=>dirname(dirname(__FILE__)),
+        'name'=>'Доска объявлений',
+        'language'=>'ru',
+
+        // preloading 'log' component
+        'preload'=>array('log'),
+
+        // autoloading model and component classes
+        'import'=>array(
+                'application.models.*',
+                'application.components.*',
+                'application.vendor.iachilles.eavactiverecord.*',
+                'application.vendor.iachilles.eavactiverecord.datatypes.*',
+                'application.vendor.iachilles.eavactiverecord.helpers.*',
+        ),
+
+        'modules'=>array(
+                // uncomment the following to enable the Gii tool
+                /*
+                'gii'=>array(
+                        'class'=>'system.gii.GiiModule',
+                        'password'=>'Enter Your Password Here',
+                        // If removed, Gii defaults to localhost only. Edit carefully to taste.
+                        'ipFilters'=>array('127.0.0.1','::1'),
+                ),
+                */
+        ),
+
+        // application components
+        'components'=>array(
+
+                'user'=>array(
+                        // enable cookie-based authentication
+                        'allowAutoLogin'=>true,
+                ),
+
+                'viewRenderer' => array(
+                        'class' => 'application.vendor.yiiext.twig-renderer.ETwigViewRenderer',
+                        'twigPathAlias' => 'application.vendor.twig.twig.lib.Twig',
+                        'fileExtension' => '.twig',
+                ),
+
+                'eavCache' => array(
+                        'class' => 'system.caching.CRedisCache'
+                ),
+
+                'cache' => array(
+                        'class' => 'system.caching.CRedisCache',
+                        'hostname' => '127.0.0.1',
+                        'port' => 6379,
+                        'database' => 0,
+                ),
+
+                // uncomment the following to enable URLs in path-format
+
+                'urlManager'=>array(
+                        'urlFormat'=>'path',
+                        'showScriptName'=>false,
+                        'rules'=>array(
+                                '<controller:\w+>/<id:\d+>'=>'<controller>/view',
+                                '<controller:\w+>/<action:\w+>/<id:\d+>'=>'<controller>/<action>',
+                                '<controller:\w+>/<action:\w+>'=>'<controller>/<action>',
+                        ),
+                ),
+
+
+                // database settings are configured in database.php
+                'db'=>require(dirname(__FILE__).'/database.php'),
+
+                'authManager'=>array(
+            'class'=>'CDbAuthManager',
+            'connectionID'=>'db',
+        ),
+
+                'errorHandler'=>array(
+                        // use 'site/error' action to display errors
+                        'errorAction'=>YII_DEBUG ? null : 'site/error',
+                ),
+
+                'log'=>array(
+                        'class'=>'CLogRouter',
+                        'routes'=>array(
+                                array(
+                                        'class'=>'CFileLogRoute',
+                                        'levels'=>'error, warning',
+                                ),
+                                // uncomment the following to show log messages on web pages
+
+                                /*array(
+                                        'class'=>'CWebLogRoute',
+                                ),*/
+
+                        ),
+                ),
+
+        ),
+
+        // application-level parameters that can be accessed
+        // using Yii::app()->params['paramName']
+        'params'=>array(
+                // this is used in contact page
+                'adminEmail'=>'webmaster@example.com',
+                // configure to match your sphinx configuration,
+                // or comment to disable sphinxsearch
+                'sphinx'=>array(
+                        'dsn'=>'mysql:host=127.0.0.1;port=9306',
+                        'user'=>'root',
+                        'pass'=>'',
+                        'indexes'=>array('rt'=>['rt_ad'], 'disc'=>['ix_ad']),
+                ),
+        ),
+); 
+          cmakeBuildDirectory: <?php
+
+return CMap::mergeArray(
+        require(dirname(__FILE__).'/main.php'),
+        array(
+                'components'=>array(
+                        'fixture'=>array(
+                                'class'=>'system.test.CDbFixtureManager',
+                        ),
+                        /* uncomment the following to provide test database connection
+                        'db'=>array(
+                                'connectionString'=>'DSN for test database',
+                        ),
+                        */
+                ),
+        )
+); 
           # Ruleset file that will determine what checks will be run
-          ruleset: NativeRecommendedRules.ruleset
+          ruleset: <?php
+
+class AdController extends Controller
+{
+        /**
+         * @return array action filters
+         */
+        public function filters()
+        {
+                return array(
+                        'accessControl', // perform access control for CRUD operations
+                        'postOnly + delete', // we only allow deletion via POST request
+                );
+        }
+
+        /**
+         * Specifies the access control rules.
+         * This method is used by the 'accessControl' filter.
+         * @return array access control rules
+         */
+        public function accessRules()
+        {
+                return array(
+                        array('allow',  // allow all users to perform 'index' and 'view' actions
+                                'actions'=>array('index','view'),
+                                'users'=>array('*'),
+                        ),
+                        array('allow', // allow authenticated user to perform 'create' and 'update' actions
+                                'actions'=>array('update','new','getcategories','create'),
+                                'users'=>array('@'),
+                        ),
+                        array('allow', // allow admin user to perform 'admin' and 'delete' actions
+                                'actions'=>array('admin','delete'),
+                                'users'=>array('admin'),
+                        ),
+                        array('deny',  // deny all users
+                                'users'=>array('*'),
+                        ),
+                );
+        }
+
+        /**
+         * Displays a particular model.
+         * @param integer $id the ID of the model to be displayed
+         */
+        public function actionView($id)
+        {
+                $this->render('view',array(
+                        'model'=>$this->loadModel($id),
+                ));
+        }
+
+        /**
+         * Displays the page with category selection. When user choose category, redirect
+         * to the 'create' page.
+         */
+        public function actionNew()
+        {
+                $criteria = new CDbCriteria;
+                $criteria->condition = 'level=:level';
+                $criteria->params = array('level'=>1);
+                $models = Category::model()->findAll($criteria);
+                $this->render('new', array('models'=>$models));
+        }
+
+        /*
+         * Responds to ajax request from ad/new page
+         */
+        public function actionGetcategories()
+        {
+                if (!isset($_POST['id'])) {
+                        echo json_encode(array());
+                        Yii::app()->end();
+                }
+                $id = intval($_POST['id']);
+                $parent_cat = Category::model()->findByPk($id);
+                $children = $parent_cat->children()->findAll();
+                if (!$children) {
+                        echo json_encode(array());
+                        Yii::app()->end();
+                }
+                foreach ($children as $child) {
+                        $res[$child->id] = $child->title;
+                }
+                echo json_encode($res);
+        }
+
+        /**
+         * Creates a new model.
+         * If creation is successful, the browser will be redirected to the 'view' page.
+         */
+        public function actionCreate($id)
+        {
+                $regions = Region::getRegionList();
+                $model = new Ad;
+                $model->attachEavSet(Category::model()->findByPk($id)->set_id);
+                $model->category_id = $id;
+
+                $photo = new Photo;
+                if (isset($_POST['Ad'])) {
+                        $model->attributes = $_POST['Ad'];
+                        $model->author_id = Yii::app()->user->id;
+                        $transaction = Yii::app()->db->beginTransaction();
+                        if ($model->saveWithEavAttributes()) {
+                                $images = CUploadedFile::getInstancesByName('images');
+                                if ($images) {
+                                        $wrongImage = Photo::validateMultiple($images, $model->id);
+                                        if (!$wrongImage) {
+                                                foreach ($images as $image) {
+                                                        $photo = new Photo;
+                                                        $photo->image = $image;
+                                                        $photo->name = $photo->image->getName();
+                                                        $photo->ad_id = $model->id;
+                                                        $photo->save(false);
+                                                }
+                                                $transaction->commit();
+                                                $this->redirect(array('view','id'=>$model->id));
+                                        } else {
+                                                $photo = $wrongImage;
+                                                $transaction->rollback();
+                                        }
+                                } else {
+                                        $transaction->commit();
+                                        SphinxService::saveAdToRt($model->id);
+                                        $this->redirect(array('view','id'=>$model->id));
+                                }
+                        }
+                }
+
+                $this->render('create', array(
+                        'model'=>$model,
+                        'photo'=>$photo,
+                        'regions'=>$regions,
+                ));
+        }
+
+
+
+        /**
+         * Updates a particular model.
+         * If update is successful, the browser will be redirected to the 'view' page.
+         * @param integer $id the ID of the model to be updated
+         */
+        /*public function actionUpdate($id)
+        {
+                $model=$this->loadModel($id);
+
+                // Uncomment the following line if AJAX validation is needed
+                // $this->performAjaxValidation($model);
+
+                if(isset($_POST['Ad']))
+                {
+                        $model->attributes=$_POST['Ad'];
+                        if($model->save())
+                                $this->redirect(array('view','id'=>$model->id));
+                }
+
+                $this->render('update',array(
+                        'model'=>$model,
+                ));
+        }*/
+
+        /**
+         * Deletes a particular model.
+         * If deletion is successful, the browser will be redirected to the 'admin' page.
+         * @param integer $id the ID of the model to be deleted
+         */
+        /*public function actionDelete($id)
+        {
+                $this->loadModel($id)->delete();
+
+                // if AJAX request (triggered by deletion via admin grid view), we should not redirect the browser
+                if(!isset($_GET['ajax']))
+                        $this->redirect(isset($_POST['returnUrl']) ? $_POST['returnUrl'] : array('admin'));
+        }*/
+
+        /**
+         * Lists all models.
+         */
+        /*public function actionIndex()
+        {
+                $dataProvider=new CActiveDataProvider('Ad');
+                $this->render('index',array(
+                        'dataProvider'=>$dataProvider,
+                ));
+        }*/
+
+        /**
+         * Manages all models.
+         */
+        /*public function actionAdmin()
+        {
+                $model=new Ad('search');
+                $model->unsetAttributes();  // clear any default values
+                if(isset($_GET['Ad']))
+                        $model->attributes=$_GET['Ad'];
+
+                $this->render('admin',array(
+                        'model'=>$model,
+                ));
+        }*/
+
+        /**
+         * Returns the data model based on the primary key given in the GET variable.
+         * If the data model is not found, an HTTP exception will be raised.
+         * @param integer $id the ID of the model to be loaded
+         * @return Ad the loaded model
+         * @throws CHttpException
+         */
+        public function loadModel($id)
+        {
+                $model = Ad::model()->withEavAttributes()->with(
+                                'author', 'category', 'city', 'photos'
+                        )->findByPk($id);
+                if($model===null)
+                        throw new CHttpException(404,'The requested page does not exist.');
+                return $model;
+        }
+
+        /**
+         * Performs the AJAX validation.
+         * @param Ad $model the model to be validated
+         */
+        protected function performAjaxValidation($model)
+        {
+                if(isset($_POST['ajax']) && $_POST['ajax']==='ad-form')
+                {
+                        echo CActiveForm::validate($model);
+                        Yii::app()->end();
+                }
+        }
+}  
 
       # Upload SARIF file to GitHub Code Scanning Alerts
-      - name: Upload SARIF to GitHub
-        uses: github/codeql-action/upload-sarif@v3
+      - name: <?php
+
+class SiteController extends Controller
+{
+    /**
+     * Declares class-based actions.
+     */
+    public function actions()
+    {
+        return array(
+            // captcha action renders the CAPTCHA image displayed on the contact page
+            /*'captcha'=>array(
+                'class'=>'CCaptchaAction',
+                'backColor'=>0xFFFFFF,
+            ),*/
+            // page action renders "static" pages stored under 'protected/views/site/pages'
+            // They can be accessed via: index.php?r=site/page&view=FileName
+            /*'page'=>array(
+                'class'=>'CViewAction',
+            ),*/
+        );
+    }
+
+    public function filters()
+    {
+        return array('accessControl');
+    }
+
+    public function accessRules()
+    {
+        return array(
+            array('allow',
+                'actions'=>array('index','view','search', 'error', 'contact',
+                    'login', 'logout', 'cityData', 'getcities'),
+                'users'=>array('*'),
+            ),
+            array('allow',
+                'actions'=>array('logout'),
+                'users'=>array('@'),
+            ),
+            array('deny',
+                'actions'=>array('admin'),
+                'users'=>array('*'),
+            ),
+            array('deny',  // deny all users
+                'users'=>array('*'),
+            ),
+        );
+    }
+
+    /**
+     * This is the default 'index' action that is invoked
+     * when an action is not explicitly requested by users.
+     */
+    public function actionIndex()
+    {
+        $criteria = new CDbCriteria;
+        $criteria->addInCondition('level', array(1,2));
+        $criteria->order = 'root, lft';
+        $categories = Category::model()->findAll($criteria);
+        $form = new SearchForm;
+        $criteria = new CDbCriteria(array(
+            'condition' => 'status="published"',
+            'order' => 'added DESC',
+            'with' => array('photos'),
+            'limit' => 20,
+        ));
+        $models = Ad::model()->withEavAttributes()->findAll($criteria);
+        $dp = new CActiveDataProvider('Ad', array(
+            'data' => $models,
+            'pagination' => false
+        ));
+        $regionList = Region::model()->getRegionList();
+
+        $this->render(
+            'index',
+            array(
+                'categories' => $categories,
+                'form' => $form,
+                'dataProvider' => $dp,
+                'regionList' => $regionList,
+            )
+        );
+    }
+
+    /**
+     * Action to search ads by key words
+     */
+    public function actionSearch($id=null,$word=null,$city_id=null,$page=null)
+    {
+        $criteria = new CDbCriteria;
+        $criteria->condition = "status='published'";
+        $criteria->order = 'added DESC';
+
+        $form = new EavSearchForm();
+        if ($id) {
+            $category = Category::model()->findByPk($id);
+            $childrenIds = ($category) ? $category->getDescendantIds() : null;
+            if ($childrenIds) {
+                $criteria->addInCondition('category_id', $childrenIds);
+            } else {
+                $criteria->addCondition('category_id=:category_id');
+                $criteria->params[':category_id'] = intval($id);
+            }
+            $form->model->attachEavSet($category->set_id);
+            $form->eav = $form->model->getEavAttributes();
+            if (isset($_GET['search'])) {
+                $form->fill();
+                $this->buildEavCriteria($criteria);
+            }
+        }
+        if ($word) {
+            try {
+                $ids = $this->sphinxSearch($word);
+                $criteria->addInCondition('t.id', $ids);
+            } catch(Exception $e) {
+                $criteria->addCondition('title LIKE :word1 OR description LIKE :word2');
+                $criteria->params[':word1'] = "%{$word}%";
+                $criteria->params[':word2'] = "%{$word}%";
+            }
+        }
+        if ($city_id) {
+            $criteria->addCondition('city_id=:city_id');
+            $criteria->params[':city_id'] = intval($city_id);
+        }
+        $regions = Region::model()->getRegionList();
+
+        $dp = new EavActiveDataProvider('Ad', array(
+            'criteria'=>$criteria,
+            'countCriteria'=>array(
+                'condition'=>$criteria->condition,
+                'params'=>$criteria->params),
+            'pagination'=>array('pageSize'=>10),
+            ));
+
+        $this->render(
+            'search',
+            array(
+                'dataProvider'=>$dp,
+                'form'=>$form,
+                'regions'=>$regions,
+            )
+        );
+    }
+
+    /**
+     * This is the action to handle external exceptions.
+     */
+    public function actionError()
+    {
+        if($error=Yii::app()->errorHandler->error)
+        {
+            if(Yii::app()->request->isAjaxRequest)
+                echo $error['message'];
+            else
+                $this->render('error', $error);
+        }
+    }
+
+    /**
+     * Displays the login page
+     */
+    public function actionLogin()
+    {
+        $model=new LoginForm;
+
+        // if it is ajax validation request
+        if(isset($_POST['ajax']) && $_POST['ajax']==='login-form')
+        {
+            echo CActiveForm::validate($model);
+            Yii::app()->end();
+        }
+
+        // collect user input data
+        if(isset($_POST['LoginForm']))
+        {
+            $model->attributes=$_POST['LoginForm'];
+            // validate user input and redirect to the previous page if valid
+            if($model->validate() && $model->login())
+                $this->redirect(Yii::app()->user->returnUrl);
+        }
+        // display the login form
+        $this->render('login',array('model'=>$model));
+    }
+
+    /**
+     * Logs out the current user and redirect to homepage.
+     */
+    public function actionLogout()
+    {
+        Yii::app()->user->logout();
+        $this->redirect(Yii::app()->homeUrl);
+    }
+
+    public function actionGetcities()
+    {
+        if (!isset($_POST['id']) or empty($_POST['id'])) {
+            echo json_encode(false);
+            Yii::app()->end();
+        }
+        $regionId = intval($_POST['id']);
+        $cities = City::model()->findAllByAttributes(array('region_id'=>$regionId));
+        foreach ($cities as $city) {
+            $res[$city->city_id] = $city->name;
+        }
+        echo json_encode($res);
+    }
+
+    protected function buildEavCriteria(CDbCriteria $criteria, $getParam = 'search')
+    {
+        $attributes = Ad::getEavList();
+        foreach ($_GET[$getParam] as $key=>$value) {
+            if (!in_array($key, $attributes)) continue;
+            if (is_array($value)) {
+                if (isset($value['min']) and !empty($value['min'])) {
+                    $criteria->addCondition("::{$key} >= :min_{$key}");
+                    $criteria->params[":min_{$key}"] = $value['min'];
+                }
+                if (isset($value['max']) and !empty($value['max'])) {
+                    $criteria->addCondition("::{$key} <= :max_{$key}");
+                    $criteria->params[":max_{$key}"] = $value['max'];
+                }
+            } else {
+                if (!$value) continue;
+                $criteria->addCondition("::{$key} = :{$key}");
+                $criteria->params[":{$key}"] = $value;
+            }
+        }
+    }
+} 
+        uses: <?php
+
+class UserController extends Controller
+{
+        /**
+         * @return array action filters
+         */
+        public function filters()
+        {
+                return array(
+                        'accessControl', // perform access control for CRUD operations
+                        'postOnly + delete', // we only allow deletion via POST request
+                );
+        }
+
+        /**
+         * Specifies the access control rules.
+         * This method is used by the 'accessControl' filter.
+         * @return array access control rules
+         */
+        public function accessRules()
+        {
+                return array(
+                        array('allow',  // allow all users to perform 'index' and 'view' actions
+                                'actions'=>array('register'),
+                                'users'=>array('*'),
+                        ),
+                        array('allow', // allow authenticated user to perform 'create' and 'update' actions
+                                'actions'=>array('update','view'),
+                                'users'=>array('@'),
+                        ),
+                        array('allow', // allow admin user to perform 'admin' and 'delete' actions
+                                'actions'=>array('admin','delete', 'index'),
+                                'users'=>array('admin'),
+                        ),
+                        array('deny',  // deny all users
+                                'users'=>array('*'),
+                        ),
+                );
+        }
+
+        /**
+         * Displays a particular model.
+         * @param integer $id the ID of the model to be displayed
+         */
+        public function actionView($id)
+        {
+                $this->render('view',array(
+                        'model'=>$this->loadModel($id),
+                ));
+        }
+
+        /**
+         * Creates a new model.
+         * If creation is successful, the browser will be redirected to the 'view' page.
+         */
+        public function actionRegister()
+        {
+                $model = new User;
+                $this->performAjaxValidation($model);
+
+                if(isset($_POST['User']))
+                {
+                        $model->attributes = $_POST['User'];
+                        $model->password = CPasswordHelper::hashPassword($model->password);
+                        if($model->save())
+                                $this->redirect(array('site/login'));
+                }
+
+                $this->render('register',array(
+                        'model'=>$model,
+                ));
+        }
+
+        /**
+         * Updates a particular model.
+         * If update is successful, the browser will be redirected to the 'view' page.
+         * @param integer $id the ID of the model to be updated
+         */
+        /*public function actionUpdate($id)
+        {
+                $model=$this->loadModel($id);
+
+                // Uncomment the following line if AJAX validation is needed
+                // $this->performAjaxValidation($model);
+
+                if(isset($_POST['User']))
+                {
+                        $model->attributes=$_POST['User'];
+                        if($model->save())
+                                $this->redirect(array('view','id'=>$model->id));
+                }
+
+                $this->render('update',array(
+                        'model'=>$model,
+                ));
+        }*/
+
+        /**
+         * Deletes a particular model.
+         * If deletion is successful, the browser will be redirected to the 'admin' page.
+         * @param integer $id the ID of the model to be deleted
+         */
+        /*public function actionDelete($id)
+        {
+                $this->loadModel($id)->delete();
+
+                // if AJAX request (triggered by deletion via admin grid view), we should not redirect the browser
+                if(!isset($_GET['ajax']))
+                        $this->redirect(isset($_POST['returnUrl']) ? $_POST['returnUrl'] : array('admin'));
+        }*/
+
+        /**
+         * Lists all models.
+         */
+        /*public function actionIndex()
+        {
+                $dataProvider=new CActiveDataProvider('User');
+                $this->render('index',array(
+                        'dataProvider'=>$dataProvider,
+                ));
+        }*/
+
+        /**
+         * Manages all models.
+         */
+        /*public function actionAdmin()
+        {
+                $model=new User('search');
+                $model->unsetAttributes();  // clear any default values
+                if(isset($_GET['User']))
+                        $model->attributes=$_GET['User'];
+
+                $this->render('admin',array(
+                        'model'=>$model,
+                ));
+        }*/
+
+        /**
+         * Returns the data model based on the primary key given in the GET variable.
+         * If the data model is not found, an HTTP exception will be raised.
+         * @param integer $id the ID of the model to be loaded
+         * @return User the loaded model
+         * @throws CHttpException
+         */
+        public function loadModel($id)
+        {
+                $model=User::model()->findByPk($id);
+                if($model===null)
+                        throw new CHttpException(404,'The requested page does not exist.');
+                return $model;
+        }
+
+        /**
+         * Performs the AJAX validation.
+         * @param User $model the model to be validated
+         */
+        protected function performAjaxValidation($model)
+        {
+                if(isset($_POST['ajax']) && $_POST['ajax']==='user-form')
+                {
+                        echo CActiveForm::validate($model);
+                        Yii::app()->end();
+                }
+        }
+} 
         with:
           sarif_file: ${{ steps.run-analysis.outputs.sarif }}
 
