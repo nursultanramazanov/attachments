@@ -17,6 +17,3 @@ twine
 opencv-python-headless
 tqdm
 imageio
-mesa-libGL
-mesa-dri-drivers
-xorg-x11-server-Xvfb
