@@ -1,6 +1,7 @@
 # Workflow derived from https://github.com/r-lib/actions/tree/master/examples
 # Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
-on: # Doxyfile 1.8.10
+on:
+  push: # Doxyfile 1.8.10
 
 # This file describes the settings to be used by the documentation system
 # doxygen (www.doxygen.org) for a project.
@@ -2402,8 +2403,9 @@ GENERATE_LEGEND        = YES
 # The default value is: YES.
 # This tag requires that the tag HAVE_DOT is set to YES.
 
-DOT_CLEANUP            = YES  
-  push: # Doxyfile 1.6.1
+DOT_CLEANUP            = YES    
+    branches: [main, master, dev]
+  pull_request: # Doxyfile 1.6.1
 
 # This file describes the settings to be used by the documentation system
 # doxygen (www.doxygen.org) for a project
@@ -3920,7 +3922,8 @@ GENERATE_LEGEND        = YES
 
 DOT_CLEANUP            = YES    
     branches: [main, master, dev]
-  pull_request: Linux/Mac OS X
+
+name: Linux/Mac OS X
 ==============
 To install doxygen: 
 $sudo apt-get install doxygen
@@ -3956,17 +3959,288 @@ http://www.stack.nl/~dimitri/doxygen/doxywizard_usage.html
 Doxygen Manual
 ==============
 http://www.stack.nl/~dimitri/doxygen/
-  
-    branches: [main, master, dev]
+    
 
-name: R-CMD-check
+jobs: <?php
+namespace Tests\TestHubBundle\Controller;
 
-jobs:
-  R-CMD-check:
-    runs-on: ubuntu-20.04
-    env:
-      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
-      R_KEEP_PKG_SOURCE: yes
+use Tests\TestHubBundle\TestCase;
+
+class TestControllerTest extends TestCase
+{
+    public function testIndex()
+    {
+        $client = static::createClient();
+
+        $crawler = $client->request('GET', '/');
+
+        $this->assertEquals(200, $client->getResponse()->getStatusCode());
+        $this->assertGreaterThan(0, $crawler->filter('.test-container')->count());
+    }
+
+    public function testPreface()
+    {
+        $client = static::createClient();
+
+        $crawler = $client->request('GET', '/test/1/preface');
+
+        $this->assertEquals(200, $client->getResponse()->getStatusCode());
+        $this->assertEquals(1, $crawler->filter('.test-container')->count());
+        $this->assertEquals(1, $crawler->filter('.test-start-button')->count());
+
+        $client->request('GET', '/test/0/preface');
+        $this->assertEquals(404, $client->getResponse()->getStatusCode());
+    }
+}  
+  R-CMD-check: <?php
+namespace Tests\TestHubBundle\Helper;
+
+use TestHubBundle\Helper\StringGenerator;
+use Tests\TestHubBundle\TestCase;
+
+class StringGeneratorTest extends TestCase
+{
+    /**
+     * What to test:
+     *
+     * return value type
+     * return value length (between 10 and 100 chars)
+     * return value uniqueness (at least 2 must differ)
+     */
+    public function testGenerateString()
+    {
+        $string = StringGenerator::generateString();
+        $this->assertInternalType('string', $string);
+
+        $iterations = 5;
+        $randoms = [];
+        for ($i = 0; $i < $iterations; $i++) {
+            $randoms[] = StringGenerator::generateString();
+        }
+        $this->assertTrue(count(array_unique($randoms)) > 1);
+
+        $string = StringGenerator::generateString();
+        $this->assertGreaterThan(10, mb_strlen($string));
+        $this->assertLessThan(100, mb_strlen($string));
+    }
+
+}   
+    runs-on: <?php
+namespace Tests\TestHubBundle\Service;
+
+use Symfony\Bundle\FrameworkBundle\Console\Application;
+use TestHubBundle\Service\Calculator;
+use Tests\TestHubBundle\TestCase;
+
+class CalculatorTest extends TestCase
+{
+    protected $em;
+
+    protected function setUp()
+    {
+        parent::setUp();
+
+        $container = self::getApplication()->getKernel()->getContainer();
+        $this->em = $container->get('doctrine')->getManager();
+    }
+
+    public function testCountCorrectAnswers()
+    {
+        $attempt = $this->em->find('TestHubBundle:Attempt', 1);
+
+        $calculator = new Calculator();
+        $correctAnswersCount = $calculator->countCorrectAnswers($attempt);
+        $this->assertInternalType('integer', $correctAnswersCount);
+        $this->assertEquals(2, $correctAnswersCount);
+    }
+
+    public function testCalculateMark()
+    {
+        $attempt = $this->em->find('TestHubBundle:Attempt', 1);
+
+        $calculator = new Calculator();
+        $mark = $calculator->calculateMark($attempt);
+        $this->assertInternalType('integer', $mark);
+        $this->assertEquals(15, $mark);
+    }
+
+    public function testCalculateMaxMark()
+    {
+        $test = $this->em->find('TestHubBundle:Test', 1);
+
+        $calculator = new Calculator();
+        $maxMark = $calculator->calculateMaxMark($test);
+        $this->assertInternalType('integer', $maxMark);
+        $this->assertEquals(30, $maxMark);
+    }
+}   
+    env: <?php
+namespace Tests\TestHubBundle\Service;
+
+use Tests\TestHubBundle\TestCase;
+
+class TestServiceTest extends TestCase
+{
+    private $em;
+    private $testService;
+
+    protected function setUp()
+    {
+        parent::setUp();
+
+        $container = $this->getApplication()->getKernel()->getContainer();
+        $this->testService = $container->get('test_service');
+        $this->em = $container->get('doctrine')->getManager();
+    }
+
+    public function testGetUnansweredCount()
+    {
+        $attempt = $this->em->find('TestHubBundle:Attempt', 1);
+
+        $count = $this->testService->getUnansweredCount($attempt);
+        $this->assertInternalType('integer', $count);
+        $this->assertEquals(1, $count);
+    }
+
+    public function testQuestionAlreadyHasAnswer()
+    {
+        $attempt = $this->em->find('TestHubBundle:Attempt', 1);
+        $expectHasAnswer = $this->em->find('TestHubBundle:Question', 4);
+        $expectNoAnswer = $this->em->find('TestHubBundle:Question', 1);
+
+        $true = $this->testService->questionAlreadyHasAnswer($attempt, $expectHasAnswer);
+        $false = $this->testService->questionAlreadyHasAnswer($attempt, $expectNoAnswer);
+
+        $this->assertTrue($true);
+        $this->assertFalse($false);
+    }
+
+    public function testGetFirstUnanswered()
+    {
+        $attempt = $this->em->find('TestHubBundle:Attempt', 1);
+        $question = $this->testService->getFirstUnanswered($attempt);
+
+        $this->assertInstanceOf('TestHubBundle\Entity\Question', $question);
+        $this->assertEquals(1, $question->getId());
+    }
+
+    public function testGetNextUnansweredNumber()
+    {
+        $attempt = $this->em->find('TestHubBundle:Attempt', 1);
+        $number = 1;
+
+        $nextNumber = $this->testService->getNextUnansweredNumber($attempt, $number);
+
+        $this->assertEquals(4, $nextNumber);
+    }
+
+    public function testGetQuestionsCount()
+    {
+        $test = $this->em->find('TestHubBundle:Test', 1);
+
+        $count = $this->testService->getQuestionsCount($test);
+        $this->assertEquals(4, $count);
+    }
+}    
+      GITHUB_PAT: <?php
+namespace Tests\TestHubBundle\Twig;
+
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use TestHubBundle\Twig\AppExtension;
+
+class AppExtensionTest extends WebTestCase
+{
+    private $ext;
+
+    protected function setUp()
+    {
+        $this->ext = new AppExtension();
+    }
+
+    public function testWordCaseFilter()
+    {
+        $wordForms = ['день', 'дня', 'дней'];
+
+        $this->assertEquals('1 день', $this->ext->wordCase(1, $wordForms));
+        $this->assertEquals('3 дня', $this->ext->wordCase(3, $wordForms));
+        $this->assertEquals('5 дней', $this->ext->wordCase(5, $wordForms));
+        $this->assertEquals('17 дней', $this->ext->wordCase(17, $wordForms));
+        $this->assertEquals('22 дня', $this->ext->wordCase(22, $wordForms));
+        $this->assertEquals('113 дней', $this->ext->wordCase(113, $wordForms));
+        $this->assertEquals('269 дней', $this->ext->wordCase(269, $wordForms));
+
+        $wordForms = ['вопрос', 'вопроса', 'вопросов'];
+
+        $this->assertEquals('1 вопрос', $this->ext->wordCase(1, $wordForms));
+        $this->assertEquals('3 вопроса', $this->ext->wordCase(3, $wordForms));
+        $this->assertEquals('5 вопросов', $this->ext->wordCase(5, $wordForms));
+        $this->assertEquals('17 вопросов', $this->ext->wordCase(17, $wordForms));
+        $this->assertEquals('22 вопроса', $this->ext->wordCase(22, $wordForms));
+        $this->assertEquals('113 вопросов', $this->ext->wordCase(113, $wordForms));
+        $this->assertEquals('269 вопросов', $this->ext->wordCase(269, $wordForms));
+
+        $wordForms = ['минута', 'минуты', 'минут'];
+
+        $this->assertEquals('1 минута', $this->ext->wordCase(1, $wordForms));
+        $this->assertEquals('3 минуты', $this->ext->wordCase(3, $wordForms));
+        $this->assertEquals('5 минут', $this->ext->wordCase(5, $wordForms));
+        $this->assertEquals('17 минут', $this->ext->wordCase(17, $wordForms));
+        $this->assertEquals('22 минуты', $this->ext->wordCase(22, $wordForms));
+        $this->assertEquals('113 минут', $this->ext->wordCase(113, $wordForms));
+        $this->assertEquals('269 минут', $this->ext->wordCase(269, $wordForms));
+    }
+
+    public function testFormatTimeLeftFilter()
+    {
+        /*
+         * 1 day 4 hours 18 minutes 23 seconds
+         */
+        $time = 3600 * 24 + 4 * 3600 + 18 * 60 + 23;
+        $this->assertEquals('1 день 04:18:23', $this->ext->formatTimeLeftFilter($time));
+    }
+
+    public function testPercentage()
+    {
+        $this->assertEquals('66%', $this->ext->percentage(2, 3));
+        $this->assertEquals('0%', $this->ext->percentage(0, 3));
+        $this->assertEquals('100%', $this->ext->percentage(3, 3));
+    }
+}   
+      R_KEEP_PKG_SOURCE: <?php
+namespace Tests\TestHubBundle;
+
+use Symfony\Bundle\FrameworkBundle\Console\Application;
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Console\Input\StringInput;
+
+class TestCase extends WebTestCase
+{
+    protected static $application;
+
+    protected function setUp()
+    {
+        self::runCommand('doctrine:fixtures:load -e test --no-interaction --purge-with-truncate');
+    }
+
+    protected static function runCommand($command)
+    {
+        $command = sprintf('%s --quiet', $command);
+
+        return self::getApplication()->run(new StringInput($command));
+    }
+
+    protected static function getApplication()
+    {
+        if (null === self::$application) {
+            $client = static::createClient();
+
+            self::$application = new Application($client->getKernel());
+            self::$application->setAutoExit(false);
+        }
+
+        return self::$application;
+    }
+}  
     steps:
       - uses: actions/checkout@v2
 
@@ -3981,4 +4255,4 @@ jobs:
       - uses: r-lib/actions/check-r-package@v2
         with:
           args: 'c("--no-build-vignettes", "--no-manual", "--as-cran")'
-          error-on: '"error"' 
+          error-on: '"error"'   
