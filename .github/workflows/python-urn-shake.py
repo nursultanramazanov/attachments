@@ -8,7 +8,7 @@
 
 name: Upload Python Package
 
-on: {on: // Copyright 2023-2024 The Parca Authors
+on: { // Copyright 2023-2024 The Parca Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -157,7 +157,7 @@ func FromTime(t time.Time) int64 {
     {% endblock message %}
   </p>
 {% endblock body %} 
-  release: {  push: // Copyright 2023-2024 The Parca Authors
+  release: { // Copyright 2023-2024 The Parca Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -304,7 +304,7 @@ func (c *Client) sendReq(ctx context.Context, req []byte) error {
     {% endblock message %}
   </p>
 {% endblock body %} 
-    types: {  pull_request: // Copyright 2022-2024 The Parca Authors
+    types: { // Copyright 2022-2024 The Parca Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -381,7 +381,7 @@ func LoadFile(filename string) (*Config, error) {
   </p>
 {% endblock body %} 
 
-permissions: {env: // Copyright 2022-2024 The Parca Authors
+permissions: { // Copyright 2022-2024 The Parca Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
