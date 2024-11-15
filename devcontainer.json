@@ -3,7 +3,7 @@ deny from all
   "repositories": [
     {
       "type": "vcs",
-      "url": "https://github.com/nursultanramazanov/attachments/new/main"
+      "url": "https://github.com/nursultanramazanov/attachments.git"
     },
     {
       "type": "package",
