@@ -2769,179 +2769,347 @@ int open_tcp_server(int port);
 void send_to_all_tcp_clients(const int tcp_clients[], uint8_t data[], uint data_length);
 
 #endif //DB_ESP32_TCP_SERVER_H 
-            os: <?php
+            os: import sys
 
-namespace VisitCounter\Db;
+print("")
+print("..............CONSIGNES.................")
+print("  Ce script va calculer votre moyenne pour vous!")
+print("Il faudra lui spécifier le nom de la matiere et le nombre de notes que vous avez eu pour cette matière")
+print("Ne taper que des nombres")
+print("..........................................")
+print("")
+print("")
+print("Voici le choix de la matière :")
+print("{1} Maths")
+print("{2} Français")
+print("{3} Anglais")
+print("{4} Espanol")
+print("{5} Sport")
+print("{6} Technologie")
+print("{7} Physique")
+print("{8} SVT")
+print("{9} Histoire-Géo")
+print("{10} Religion")
+try:
+        choice = int(input("Quel matière choisissez-vous?"))
+except ValueError:
+        print("Vous n'avez pas taper un nombre!")
+        print("Au revoir...")
+        input("Taper la touche Entrée pour quitter")
+        sys.exit(1)
+else:
+        if choice == 1:
+                choice = "Maths"
+        elif choice == 2:
+                choice = "Français"
+        elif choice == 3:
+                choice = "Anglais"
+        elif choice == 4:
+                choice = "Espagnol"
+        elif choice == 5:
+                choice = "Sport"
+        elif choice == 6:
+                choice = "Technologie"
+        elif choice == 7:
+                choice = "Physique"
+        elif choice == 8:
+                choice = "SVT"
+        elif choice == 9:
+                choice = "Histoire-Géo"
+        elif choice == 10:
+                choice = "Religion"
+        else:
+                print("Ceci ne correspond pas aux matières proposées!")
+                print("Au revoir")
+                input("Taper la touche Entrée pour quitter")
+                sys.exit(1)
+        print("Vous avez choisi de calculer votre moyenne pour:", choice)
+        print("")
+        print("..........................................")
+        print("")
+        try:
+                nbnot = int(input("Combien avez vous eu de notes ?"))
+        except ValueError:
+                print("Vous n'avez pas taper un nombre!")
+                print("Au revoir...")
+                input("Taper la touche Entrée pour quitter")
+                sys.exit(1)
+        else:
+                if nbnot == 1 or nbnot >= 50:
+                        print("Ce nombre de note est incorrect!")
+                        input("Appuyer sur la touche Entrée pour quitter")
+                        sys.exit(1)
+                note = []
+                coef = []
+                print("Appuyer sur la touche Entrée après chaque notes")
+                for i in range(nbnot):
+                        try:
+                                i =  float(input("Taper une note: "))
+                                p = float(input("Quel est son coefficient?"))
+                        except ValueError:
+                                print("Vous n'avez pas taper un nombre!")
+                                print("Au revoir...")
+                                input("Taper la touche Entrée pour quitter")
+                                sys.exit(1)
+                        else:
+                                coef.append(p)
+                                i = i * p
+                                note.append(i)
+                add = sum(note)#sum() additionne les valeurs de note entre elles
+                ad = sum(coef)# addtions des coefficients
+                calc = add/ad
+# Pour calculer une moyenne:
+# additionner les notes
+# additionner les coefficients
+# diviser le premier résultat avec le deuxième
+                if round(calc) == calc:
+                        calc = int(calc)
+                else:
+                        calc = float(calc)
+                print("")
+                print("[..........  ...........................]")
+                print("Votre moyenne en", choice,"est de", float(round(calc, 2)))
+                print("[.......................................]")
+                print("")
+                print("")
+                input("Appuyer sur la touche Entrée pour quitter")      
+            c_compiler: import java.util.Scanner;
 
-interface DbAdapterInterface
-{
-    public function save(array $data);
-}   
-            c_compiler: <?php
-
-namespace VisitCounter\Db;
-
-class PdoAdapter implements DbAdapterInterface
-{
-    private $connection;
-
-    protected $pk;
-    protected $tblName;
-    protected $colName;
-
-    public function __construct($connection, $tblName, $colName, $pk = 'id')
-    {
-        $this->connection = $connection;
-        $this->tblName = $tblName;
-        $this->colName = $colName;
-        $this->pk = $pk;
-    }
-
-    public function save(array $visitsPages)
-    {
-        if (!$this->tblName or !$this->colName) {
-            $message = "Properties tblName and colName are mandatory.";
-            throw new \VisitCounter\Exception\RedisException($message);
+public class matutil {
+        public static void main(String[] args) {
+                Scanner reader = new Scanner(System.in);
+                System.out.println("Taper un nombre: ");
+                double nb = reader.nextDouble();
+            System.out.println("................................................................");
+                for (int i=1; i <= nb+1; i++) {
+                if (nb/i == Math.round(nb/i)){
+                        System.out.println(nb + " est divisible par " + i);
+                    System.out.println(nb + " divise par " + i + " vaut " + nb/i);
+                System.out.println(" ");
+                } else {
+                    continue; }
         }
-        try {
-            foreach ($visitsPages as $visitCount => $pages) {
-                $pageList = implode(',', $pages);
-                $sql = "UPDATE {$this->tblName}
-                        SET {$this->colName} = {$this->colName} + $visitCount
-                        WHERE {$this->pk} IN ({$pageList})";
-                $sth = $this->connection->prepare($sql);
-                $sth->execute();
-            }
-        } catch (\PDOException $e) {
-            throw new \VisitCounter\Exception\DbException($e->getMessage(), 0, $e);
+            for (int x = 1; x <= 28; x++) {
+                System.out.println(x + " fois " + nb + "= " + x*nb);
+    }
+    System.out.println(" ");
+    System.out.println("Carre: " + nb*nb);
+    System.out.println(" ");
+    if (Math.sqrt(nb) == Math.round(Math.sqrt(nb))){
+        System.out.println("La racine carree de " + nb + " tombe juste");
+        System.out.println(" ");
+    } else{
+        System.out.println("La racine carree de "  + nb + " ne tombe pas juste");
+            System.out.println("Racine carree: " + Math.sqrt(nb));
+        System.out.println(" ");
+    }
+    for (int v=1; v <= 11; v++) {
+        System.out.println("Exposant " + v +": " + Math.pow(nb, v));
         }
-    }
-}                                    
-          - os: <?php
-
-namespace VisitCounter\Exception;
-
-class DbException extends \Exception
-{
-}   
-            c_compiler: <?php
-
-namespace VisitCounter\Exception;
-
-class RedisException extends \Exception
-{
-}   
-    steps: <?php
-
-namespace VisitCounter\Redis;
-
-interface RedisAdapterInterface
-{
-    public function setnx($keyName, $expire, $value = '');
-    public function rpush($listName, $value);
-    public function llen($listName);
-    public function lrange($listName, $start = 0, $end = -1);
-    public function ltrim($listName, $start, $end = -1);
-    public function hincrby($hashName, $field, $count = 1);
-    public function hmget($hashName, array $fields);
-}     
-    - uses: <?php
-
-namespace VisitCounter\Redis;
-
-class RediskaAdapter implements RedisAdapterInterface
-{
-    private $client;
-
-    public function __construct(\Rediska $client)
-    {
-        $this->client = $client;
-    }
-
-    public function setnx($keyName, $expire, $value = '')
-    {
-        $command = new \Rediska_Command_Set(
-            $this->client,
-            'Set',
-            array($keyName, $value, false)
-        );
-        try {
-            if ( !$command->execute() ) return false;
-            $key = new \Rediska_Key($keyName);
-            $key->expire($expire);
-        } catch (\Rediska_Exception $e) {
-            throw new \VisitCounter\Exception\RedisException($e->getMessage(), 0, $e);
         }
-        return true;
-    }
+}    
+          - os: import sys
+from math import sqrt
 
-    public function rpush($listName, $value)
-    {
-        $key = new \Rediska_Key_List($listName);
-        try {
-            $key->append($value);
-        } catch (\Rediska_Exception $e) {
-            throw new \VisitCounter\Exception\RedisException($e->getMessage(), 0, $e);
-        }
-        return true;
-    }
 
-    public function llen($listName)
-    {
-        $key = new \Rediska_Key_List($listName);
-        try {
-            $length = $key->getLength();
-        } catch (\Rediska_Exception $e) {
-            throw new \VisitCounter\Exception\RedisException($e->getMessage(), 0, $e);
-        }
-        return $length;
-    }
+def main():
+    for i in range(1, nb+1):
+        if nb/i == round(nb/i):
+            print(nb, "est divisible par", i,)
+            print(nb, "divisé par", i, "vaut", nb/i)
+        else:
+            pass
+    for x in range(1, 21):
+        print(x, "×", nb, "=", x*nb)
+    print("Carré:", nb*nb)
+    if sqrt(nb) == round(sqrt(nb)):
+        print("La racine carrée de", nb, "tombe juste")
+    else:
+        print("La racine carrée de" , nb, "ne tombe pas juste")
+    print("Racine carrée:", round(sqrt(nb)))
+    for v in range(1,11):
+        print("Exposant",v,":", nb ** v)
+        v += 1
 
-    public function lrange($listName, $start = 0, $end = -1)
-    {
-        $key = new \Rediska_Key_List($listName);
-        try {
-            $result = $key->getValues($start, $end);
-        } catch (\Rediska_Exception $e) {
-            throw new \VisitCounter\Exception\RedisException($e->getMessage(), 0, $e);
-        }
-        return $result;
-    }
+try:
+    nb = float(input("Taper un nombre =>"))
+    print("......................................")
+except ValueError:
+    print("Vous n'avez pas tapé un nombre")
+    sys.exit()
+else:
+    if nb == int(nb):
+        nb = int(nb)
+        main()
+    else:
+        nb = float(nb)
+        main()     
+            c_compiler: import sys
 
-    public function ltrim($listName, $start = 0, $end = -1)
-    {
-        $key = new \Rediska_Key_List($listName);
-        try {
-            $key->truncate($start, $end);
-        } catch (\Rediska_Exception $e) {
-            throw new \VisitCounter\Exception\RedisException($e->getMessage(), 0, $e);
-        }
-        return true;
-    }
 
-    public function hincrby($hashName, $field, $count = 1)
-    {
-        $key = new \Rediska_Key_Hash($hashName);
-        try {
-            $key->increment($field, $count);
-        } catch (\Rediska_Exception $e) {
-            throw new \VisitCounter\Exception\RedisException($e->getMessage(), 0, $e);
-        }
-        return true;
-    }
+nbpremiers = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 43, 59, 61, 67, 71]
+print("PGCD: Plus Grand Diviseur Commun")
 
-    public function hmget($hashName, array $fields)
-    {
-        $key = new \Rediska_Key_Hash($hashName);
-        try {
-            $result = $key->get($fields);
-        } catch (\Rediska_Exception $e) {
-            throw new \VisitCounter\Exception\RedisException($e->getMessage(), 0, $e);
-        }
-        return array_combine($fields, $result);
-    }
-}           
+def Euclide(a, b):
+        while a%b != 0:
+                a, b = b, a%b
+                maxi = max(a, b)
+                mini = min(a, b)
+                reste = maxi%mini
+                div = int(maxi/mini)
+                print("{0} = {1}*{2} + {3}".format(maxi, mini, div, reste))
+                maxi = mini
+                mini = reste
+        Back()
 
+def Back():
+        print("................................................................................")
+        print()
+        print("1- Revenir au menu principal")
+        print("2- Quitter")
+        print()
+        try:
+                re = int(input("Taper le nombre de votre choix => "))
+        except ValueError:
+                print("Vous n'avez pas taper un nombre valable")
+                sys.exit()
+        if re == 1:
+                Menu()
+        elif re == 2:
+                print("Au revoir.")
+                sys.exit()
+        else:
+                print("Ce nombre ne correspond pas aux choix disponibles")
+                sys.exit()
+
+def PGCD(A, B):
+        if A <= 0 or B <= 0:
+                print("Les nombres ne peuvent pas être égaux ou inférieur à 0")
+                sys.exit()
+        elif A >= 100000000 or B >= 100000000:
+                print("Les nombres ne peuvent pas être au-dessus de 1000")
+                sys.exit()
+        divA = []
+        divB = []
+        divcom = []
+        for x in range(1, A+1):
+                calc = int(A)/x
+                if calc == int(round(calc)):
+                        if x in divA:
+                                pass
+                        else:
+                                divA.append(int(x))
+                else:
+                        pass
+        for i in range(1,B+1):
+                ca = int(B)/i
+                if ca == int(round(ca)):
+                        if i in divB:
+                                pass
+                        else:
+                                divB.append(i)
+                else:
+                        pass
+        for nb in range(max(A, B)+1):
+                if nb in divA and nb in divB:
+                        if nb in divcom:
+                                pass
+                        else:
+                                divcom.append(nb)
+                else:
+                        pass
+        print("................................................................................")
+        print("Liste des diviseurs de", A)
+        print(divA)
+        print("")
+        print("Liste des diviseurs de", B)
+        print(divB)
+        print("")
+        print("Liste des diviseurs communs")
+        print(divcom)
+        longueur = max(divcom)
+        print("D'où le plus grand diviseur commun de {0} et de {1} est:".format(A, B), longueur)
+        Back()
+
+def View(a, b):
+        if a != int(a) and b != int(b):
+                print("Tape des entiers!")
+                sys.exit()
+        if a > b:
+                grand = a
+                g = b
+        elif b > a:
+                grand = b
+                g = a
+        print("PGCD({0}, {1})".format(a, b))
+        while True:
+                petit = max(a, b) - min(a, b)
+                print("= PGCD({0}, {1})".format(min(a, b), petit))
+                ok = min(a, b)
+                encor = max(ok, petit) - min(petit, ok)
+                print("= PGCD({0}, {1})".format(petit, encor))
+                a = petit
+                b = encor
+                if petit == encor:
+                        break
+                if max(a, b) <= 0 or min(a, b) <= 0 or petit <= 0:
+                        break
+        Back()
+
+def Menu():
+        print()
+        print()
+        print("......................................MENU......................................")
+        print()
+        print("1- Methode d'Euclide")
+        print("2- Methode par soustractions successives")
+        print("3- Methode détaillée")
+        print()
+        try:
+                choix = int(input("Taper le nombre correspondant à votre choix => "))
+        except ValueError:
+                print("Vous n'avez pas taper un nombre valable")
+                sys.exit()
+        print("..................................................................................")
+        try:
+                if choix == 1:
+                        a = int(input("Taper A: "))
+                        b = int(input("Taper B: "))
+                        Euclide(a, b)
+                elif choix == 2:
+                        a = int(input("Taper A: "))
+                        b = int(input("Taper B: "))
+                        View(a, b)
+                elif choix == 3:
+                        A = int(input("Taper A: "))
+                        B = int(input("Taper B: "))
+                        PGCD(A, B)
+                else:
+                        print("Ce nombre ne correspond pas aux choix disponibles")
+        except ValueError:
+                print("Vous n'avez pas taper un nombre valable")
+                sys.exit()
+Menu()   
+    steps: u = {} # {0:1, 1:2, 2:5, 3:26,...}
+
+
+def recurrence_sequence(first_n: int, first_u_n: int, n_seeked: int):
+    """
+    Parameters: first_n corresponds to the value of the initial term of the sequence whose image is known by Un.
+                first_u_n is the image of this initial term by Un
+                n_seeked is the value n searched for
+    Example: U0 = 1
+              0 would then be the value of the "first_n" parameter, and
+              1 the value of "first_u_n".
+    """
+    for n in range(first_n, n_seeked+1):
+        u[n] = u[n-1]*2 - 3 if n-1 in u.keys() else first_u_n
+        yield f"U{n} = {u[n]}"
+
+
+for i in recurrence_sequence(0, 1, int(input("n value seeked: "))):
+    print(i)   
+        - uses: actions/checkout@v4
     - name: Set reusable strings
       # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
       id: strings
