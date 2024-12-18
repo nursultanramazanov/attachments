@@ -1,5 +1,4 @@
 on: """
-@author:t0pl
 Warning: gibberish code
 This tool isn't affiliated to SchoolMouv in any way
 """
@@ -210,7 +209,7 @@ push: <?php
 /*
  * This file is part of the Symfony package.
  *
- * (c) Fabien Potencier <fabien@symfony.com>
+ * (c)
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -235,7 +234,7 @@ push: <?php
  * It can be a mandatory requirement or an optional recommendation.
  * There is a special subclass, named PhpIniRequirement, to check a php.ini configuration.
  *
- * @author Tobias Schultze <http://tobion.de>
+ *
  */
 class Requirement
 {
@@ -317,7 +316,7 @@ class Requirement
 /**
  * Represents a PHP requirement in form of a php.ini configuration.
  *
- * @author Tobias Schultze <http://tobion.de>
+ * 
  */
 class PhpIniRequirement extends Requirement
 {
