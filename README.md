@@ -1,6 +1,6 @@
 DRAMSim2: A cycle accurate DRAM Simulator
 ================================================================================
-Elliott Cooper-Balis
+
  
  
 University of Maryland
