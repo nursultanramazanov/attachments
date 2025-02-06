@@ -14,9 +14,8 @@ pytest
 pytest-clarity
 pytest-cov
 twine
-opencv-python-headless
-tqdm
-imageio
+colorama
+getmac
 mesa-libGL
 mesa-dri-drivers
 xorg-x11-server-Xvfb  
