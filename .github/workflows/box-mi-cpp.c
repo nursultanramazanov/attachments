@@ -1216,27 +1216,41 @@ workflows:
       - rtl8730e/flat_dev_ddr:
           requires:
             - checkout_code  
-  push: cp vendor/twbs/bootstrap/dist/css/bootstrap.min.css web/vendor-css/bootstrap.min.css;
-cp vendor/twbs/bootstrap/dist/js/bootstrap.min.js web/vendor-js/bootstrap.min.js;
-cp vendor/twbs/bootstrap/dist/fonts/glyphicons-halflings-regular.eot web/fonts/glyphicons-halflings-regular.eot;
-cp vendor/twbs/bootstrap/dist/fonts/glyphicons-halflings-regular.svg web/fonts/glyphicons-halflings-regular.svg;
-cp vendor/twbs/bootstrap/dist/fonts/glyphicons-halflings-regular.ttf web/fonts/glyphicons-halflings-regular.ttf;
-cp vendor/twbs/bootstrap/dist/fonts/glyphicons-halflings-regular.woff web/fonts/glyphicons-halflings-regular.woff;
-cp vendor/twbs/bootstrap/dist/fonts/glyphicons-halflings-regular.woff2 web/fonts/glyphicons-halflings-regular.woff2;
+  push: /*
+ *
+ *  Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ *  Not a Contribution, Apache license notifications and license are retained
+ *  for attribution purposes only.
+ *
+ * Copyright (C) 2012 The Android Open Source Project
+ * Copyright (C) 2018-2019 The LineageOS Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-cp vendor/components/jquery/jquery.min.js web/vendor-js/jquery.min.js;
-cp vendor/components/handlebars/handlebars.min.js web/vendor-js/handlebars.min.js;
+#ifndef _BDROID_BUILDCFG_H
+#define _BDROID_BUILDCFG_H
 
-cp vendor/codepo8/CustomFileInputs/css/component.css web/vendor-css/component.css;
-cp vendor/codepo8/CustomFileInputs/css/normalize.css web/vendor-css/normalize.css;
-cp vendor/codepo8/CustomFileInputs/js/custom-file-input.js web/vendor-js/custom-file-input.js;
+// Disables read remote device feature
+#define MAX_ACL_CONNECTIONS   16
+#define MAX_L2CAP_CHANNELS    32
+#define BLE_VND_INCLUDED   TRUE
+#define GATT_MAX_PHY_CHANNEL  10
 
-cp vendor/happyworm/jplayer/dist/jplayer/jquery.jplayer.min.js web/vendor-js/jquery.jplayer.min.js;
-cp vendor/happyworm/jplayer/dist/jplayer/jquery.jplayer.swf web/vendor-js/jquery.jplayer.swf;
-cp vendor/happyworm/jplayer/dist/skin/blue.monday/css/jplayer.blue.monday.min.css web/vendor-css/jplayer.blue.monday.min.css;
-cp vendor/happyworm/jplayer/dist/skin/blue.monday/image/jplayer.blue.monday.jpg web/image/jplayer.blue.monday.jpg;
-cp vendor/happyworm/jplayer/dist/skin/blue.monday/image/jplayer.blue.monday.seeking.gif web/image/jplayer.blue.monday.seeking.gif;
-cp vendor/happyworm/jplayer/dist/skin/blue.monday/image/jplayer.blue.monday.video.play.png web/image/jplayer.blue.monday.video.play.png; 
+// Increasing SEPs to 12 from 6 to support SHO/MCast i.e. two streams per codec
+#define AVDT_NUM_SEPS 35
+
+#endif 
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
