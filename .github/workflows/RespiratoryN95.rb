@@ -1621,71 +1621,206 @@ lines( res_mat_km[,1], res_mat_km[,4], lty=2, col='green')
 
 dev.off()
 
-image: 
+image: .ad-author, .ad-city {
+    font-style: italic;
+    font-weight: bold;
+    float: left;
+    margin-right: 30px;
+} 
+ports: .nofloat {
+    float: none;
+}
+.nopaddings {
+    padding: 0;
+}
+.main-menu {
+    padding-top: 15px;
+}
+.footer-content {
+    padding: 20px;
+    text-align: center;
+    border-top: 1px solid #e7e7e7;
+}
+.content {
+    margin-bottom: 30px;
+} 
 
-
-/*
-**        Description:        To decode the data, encoded using 3 character encoding technique.
-*/
-
-
-
-
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-
-void ThreeCharacterEncoding_Decode(uint8_t byte3, uint8_t byte2, uint8_t byte1, uint32_t *decodedOutput);
-
-int main(void)
-{
-        uint32_t forDecodingDebug;
-        uint8_t byte3, byte2, byte1;
-        while(1)
-        {
-                printf("Input 3 bytes of data : \n");
-                scanf("%u%u%u", &byte3, &byte2, &byte1);
-                ThreeCharacterEncoding_Decode(byte3, byte2, byte1, &forDecodingDebug);
-                printf("Decoded Value = %d\n", forDecodingDebug);
-        }
+        env: .category-select {
+    width: 100%;
+}
+.first-level,
+.second-level,
+.third-level {
+    vertical-align: top;
+    box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    width: 33%;
+    padding: 0px 15px;
+}
+.first-level,
+.second-level {
+    border-right: 1px solid #C9E0ED;
+}
+.category-select li {
+    margin-bottom: 5px;
+}
+#id_region, #id_city {
+    width: 150px;
+} 
+          POSTGRES_DB: .form-inline .form-control {
+    width: 100%;
+}
+input, select {
+    margin-bottom: 5px;
+}
+.roots h3 {
+    font-size: 1.25em;
+    font-weight: bold;
+    margin: 10px 0;
+}
+.roots {
+    padding: 15px 0 20px;
+}
+.child {
+    margin: 5px 0;
+}
+.children {
+    border-top: 1px solid #ccc;
+    padding: 15px 0;
+    display: none;
+}
+/*************************************/
+.new-ads h3 {
+    font-size: 1em;
+    margin: 10px 0 2px;
+}
+.new-ads h4 {
+    margin: 5px 0 0;
+}
+.preview {
+    width: 172px;
+    float: left;
+    margin: 8px;
 }
 
-
-/*
-**        @brief                                                                                        Function to decode the 3 character encoding, to extract the encoded distance.
-**        @byte3(PARAM_IN)                                                Higher encoded byte.
-**        @byte2(PARAM_IN)                                                High encoded byte.
-**        @byte1(PARAM_IN)                                                Low encoded byte.
-**        @decodedOutput(PARAM_OUT)                Pointer to the variable which will contain the decoded output.
-*/
-void ThreeCharacterEncoding_Decode(uint8_t byte3, uint8_t byte2, uint8_t byte1, uint32_t *decodedOutput)
-{
-        uint8_t temp_byte1;
-        uint8_t temp_byte2;
-        uint8_t temp_byte3;
-
-        /*        Decryption starts with subtracting 0x30 from each of the encoded bytes        */
-        temp_byte3 = byte3 - 0x30;
-        temp_byte2 = byte2 - 0x30;
-        temp_byte1 = byte1 - 0x30;
-
-        /*        Reset all bits of the output variable        */
-        *decodedOutput &= ~(*decodedOutput);
-
-        /*        Populate the output variable with decoded data        */
-        *decodedOutput |= (temp_byte3 << 12);
-        *decodedOutput |= (temp_byte2 << 6);
-        *decodedOutput |= (temp_byte1 << 0);
-
-        return;
+.preview img {
+    min-width: 160px;
+    min-height: 120px;
 }
-        ports:
-          - "5432:5432"
-        env:
-          POSTGRES_DB: rails_test
-          POSTGRES_USER: rails
-          POSTGRES_PASSWORD: password
+ 
+          POSTGRES_USER: .navbar-default {
+    background-color: #337ab7;
+    border-color: #216cac;
+}
+.navbar-default .navbar-brand {
+    color: #ecf0f1;
+}
+.navbar-default .navbar-brand:hover, .navbar-default .navbar-brand:focus {
+    color: #ffffff;
+}
+.navbar-default .navbar-text {
+    color: #ecf0f1;
+}
+.navbar-default .navbar-nav > li > a {
+    color: #ecf0f1;
+}
+.navbar-default .navbar-nav > li > a:hover, .navbar-default .navbar-nav > li > a:focus {
+    color: #ffffff;
+}
+.navbar-default .navbar-nav > .active > a, .navbar-default .navbar-nav > .active > a:hover, .navbar-default .navbar-nav > .active > a:focus {
+    color: #ffffff;
+    background-color: #216cac;
+}
+.navbar-default .navbar-nav > .open > a, .navbar-default .navbar-nav > .open > a:hover, .navbar-default .navbar-nav > .open > a:focus {
+    color: #ffffff;
+    background-color: #216cac;
+}
+.navbar-default .navbar-toggle {
+    border-color: #216cac;
+}
+.navbar-default .navbar-toggle:hover, .navbar-default .navbar-toggle:focus {
+    background-color: #216cac;
+}
+.navbar-default .navbar-toggle .icon-bar {
+    background-color: #ecf0f1;
+}
+.navbar-default .navbar-collapse,
+.navbar-default .navbar-form {
+    border-color: #ecf0f1;
+}
+.navbar-default .navbar-link {
+    color: #ecf0f1;
+}
+.navbar-default .navbar-link:hover {
+    color: #ffffff;
+}
+
+@media (max-width: 767px) {
+    .navbar-default .navbar-nav .open .dropdown-menu > li > a {
+        color: #ecf0f1;
+    }
+    .navbar-default .navbar-nav .open .dropdown-menu > li > a:hover, .navbar-default .navbar-nav .open .dropdown-menu > li > a:focus {
+        color: #ffffff;
+    }
+    .navbar-default .navbar-nav .open .dropdown-menu > .active > a, .navbar-default .navbar-nav .open .dropdown-menu > .active > a:hover, .navbar-default .navbar-nav .open .dropdown-menu > .active > a:focus {
+        color: #ffffff;
+        background-color: #216cac;
+    }
+} 
+          POSTGRES_PASSWORD: .form-buttons {
+    margin: 20px 20px 0;
+}
+.eav-wrapper, .list-view {
+    margin-top: 20px;
+}
+.eav-attribute {
+    margin-bottom: 10px;
+}
+.ad-item {
+    border-bottom: 1px solid #ccc;
+    padding: 15px 15px 50px 190px;
+    position: relative;
+    min-height: 140px;
+}
+.ad-preview {
+    margin-left: -175px;
+    max-width: 160px;
+    max-height: 120px;
+}
+.ad-city-added {
+    position: absolute;
+    bottom: 15px;
+}
+.ad-price {
+    font-weight: bold;
+    font-size: 1.4em;
+    text-align: right;
+}
+.ad-added {
+    font-size: 0.9em;
+}
+h3 {
+    font-size: 1.4em;
+    margin-top: 5px;
+}
+.pagination>li:nth-child(2)>a {
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+}
+.pagination>li:nth-last-child(2)>a {
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+}
+.my-pager {
+    text-align: center;
+}
+
+@media (max-width: 767px) {
+    .ad-price {
+        text-align: left;
+        font-size: 1.2em;
+    }
+} 
     env:
       RAILS_ENV: test
       DATABASE_URL: "postgres://rails:password@localhost:5432/rails_test"
