@@ -1,354 +1,158 @@
-DRAMSim2: A cycle accurate DRAM Simulator
-================================================================================
-Elliott Cooper-Balis
- 
- 
-University of Maryland
-dramninjas [at] gmail [dot] com
-
-
-1 About DRAMSim2 --------------------------------------------------------------------------------
-
-DRAMSim2 is a cycle accurate model of a DRAM memory controller, the DRAM modules which comprise
-system storage, and the buses by which they communicate.
-The overarching goal is to have a simulator that is small, portable, and accurate. The simulator core has a
-simple interface which allows it to be CPU simulator agnostic and should to work with any simulator (see
-section 4.2). This core has no external run time or build time dependencies and has been tested with g++ on
-Linux as well as g++ on Cygwin on Windows.
-
-2 Getting DRAMSim2--------------------------------------------------------------------------------
-
-DRAMSim2 is available on github. If you have git installed you can clone our repository by typing:
-
-$ git clone git://github.com/dramninjasUMD/DRAMSim2.git
-
-3 Building DRAMSim2--------------------------------------------------------------------------------
-
-To build an optimized standalone trace-based simulator called DRAMSim simply type:
-$ make
-For a debug build which contains debugging symbols and verbose output, run:
-$ make DEBUG=1
-
-To build the DRAMSim2 library, type:
-$ make libdramsim.so
-
-
-4 Running DRAMSim2--------------------------------------------------------------------------------
-
-4.1 Trace-Based Simulation--------------------------------------------------------------------------------
-In standalone mode, DRAMSim2 can simulate memory system traces. While traces are not as accurate as a
-real CPU model driving the memory model, they are convenient since they can be generated in a number of
-different ways (instrumentation, hardware traces, CPU simulation, etc.) and reused.
-We've provided a few small sample traces in the traces/ directory. These gzipped traces should first be pre-
-processed before running through the simulator. To run the preprocessor (the preprocessor requires python):
-
-cd traces/
-./traceParse.py k6_aoe_02_short.trc.gz
-This should produce the file traces/k6aoe02short.trc. Then, go back to the DRAMSim2 directory
-and run the trace based simulator:
-cd .
-./DRAMSim -t traces/k6_aoe_02_short.trc -s system.ini -d ini/DDR3_micron_64M_8B_x4_sg15.ini -c 1000
-This will run a 1000 cycle simulation of the k6aoe02short trace using the specified DDR3 part. The -s,
--d, and -t flags are required to run a simulation.
-A full list of the command line arguments can be obtained by typing:
-
-$ ./DRAMSim --help
-DRAMSim2 Usage:
-DRAMSim -t tracefile -s system.ini -d ini/device.ini [-c #] [-p pwd] -q
-  -t, --tracefile=FILENAME specify a tracefile to run
-  -s, --systemini=FILENAME specify an ini file that describes the memory system parameters
-  -d, --deviceini=FILENAME specify an ini file that describes the device-level parameters
-  -c, --numcycles=# specify number of cycles to run the simulation for [default=30]
-  -q, --quiet flag to suppress simulation output (except final stats) [default=no]
-  -o, --option=OPTION_A=234 overwrite any ini file option from the command line
-  -p, --pwd=DIRECTORY Set the working directory
-Some traces include timing information, which can be used by the simulator or ignored. The benefit of ignoring
-timing information is that requests will stream as fast as possible into the memory system and can serve as a good
-stress test. To toggle the use of clock cycles, please change the useClockCycle flag in TraceBasedSim.cpp.
-If you have a custom trace format you'd like to use, you can modify the parseTraceFileLine() function
-ton add support for your own trace formats.
-The prefix of the filename determines which type of trace this function will use (ex: k6 foo.trc) will use the k6
-format in parseTraceFileLine().
-
-4.2 Library Interface--------------------------------------------------------------------------------
-
-In addition to simulating memory traces, DRAMSim2 can also be built as a dynamic shared library which
-is convenient for connecting it to CPU simulators or other custom front ends. A MemorySystem object
-encapsulates the functionality of the memory system (i.e., the memory controller and DIMMs). The classes that
-comprise DRAMSim2 can be seen in figure 1. A simple example application is provided in the exampleapp/
-directory. At this time we have plans to provide code to integrate DRAMSim2 into MARSSx86, SST, and
-(eventually) M5.
-
-The verbosity of the DRAMSim2 can be customized in the system.ini file by turning the various debug flags on
-or off.
-Below, we have provided a detailed explanation of the simulator output. With all DEBUG flags enabled, the
-following output is displayed for each cycle executed.
-NOTE : BP = Bus Packet, T = Transaction
-MC = MemoryController, R# = Rank (index #)
- ----------------- Memory System Update ------------------
- ---------- Memory Controller Update Starting ------------ [8]
- -- R0 Receiving On Bus : BP [ACT] pa[0x5dec7f0] r[0] b[3] row[1502] col[799]
- -- MC Issuing On Data Bus : BP [DATA] pa[0x7edc7e0] r[0] b[2] row[2029] col[799] data[0]=
- ++ Adding Read energy to total energy
- -- MC Issuing On Command Bus : BP [READ_P] pa[0x5dec7f8] r[1] b[3] row[1502] col[799]
-== New Transaction - Mapping Address [0x5dec800] (read)
-  Rank : 0
-  Bank : 0
-  Row : 1502
-  Col : 800
- ++ Adding IDD3N to total energy [from rank 0]
- ++ Adding IDD3N to total energy [from rank 1]
-== Printing transaction queue
-  8]T [Read] [0x45bbfa4]
-  9]T [Write] [0x55fbfa0] [5439E]
-  10]T [Write] [0x55fbfa8] [1111]
-== Printing bank states (According to MC)
-[idle] [idle] [2029] [1502]
-[idle] [idle] [1502] [1502]
-
-== Printing Per Rank, Per Bank Queue
- = Rank 0
-    Bank 0 size : 2
-       0]BP [ACT] pa[0x5dec800] r[0] b[0] row[1502] col[800]
-       1]BP [READ_P] pa[0x5dec800] r[0] b[0] row[1502] col[800]
-    Bank 1 size : 2
-       0]BP [ACT] pa[0x5dec810] r[0] b[1] row[1502] col[800]
-       1]BP [READ_P] pa[0x5dec810] r[0] b[1] row[1502] col[800]
-    Bank 2 size : 2
-       0]BP [ACT] pa[0x5dec7e0] r[0] b[2] row[1502] col[799]
-       1]BP [READ_P] pa[0x5dec7e0] r[0] b[2] row[1502] col[799]
-    Bank 3 size : 1
-       0]BP [READ_P] pa[0x5dec7f0] r[0] b[3] row[1502] col[799]
- = Rank 1
-    Bank 0 size : 2
-       0]BP [ACT] pa[0x5dec808] r[1] b[0] row[1502] col[800]
-       1]BP [READ_P] pa[0x5dec808] r[1] b[0] row[1502] col[800]
-    Bank 1 size : 2
-       0]BP [ACT] pa[0x5dec818] r[1] b[1] row[1502] col[800]
-       1]BP [READ_P] pa[0x5dec818] r[1] b[1] row[1502] col[800]
-    Bank 2 size : 1
-       0]BP [READ_P] pa[0x5dec7e8] r[1] b[2] row[1502] col[799]
-    Bank 3 size : 0
+[![Build Status](https://travis-ci.com/umd-memsys/DRAMsim3.svg?branch=master)](https://travis-ci.com/umd-memsys/DRAMsim3)
 
-Anything sent on the bus is encapsulated in an BusPacket (BP) object. When printing, they display the
-following information:
-BP [ACT] pa[0x5dec818] r[1] b[1] row[1502] col[800]
-The information displayed is (in order): command type, physical address, rank #, bank #, row #, and column
-#.
+# About DRAMsim3
 
+DRAMsim3 models the timing paramaters and memory controller behavior for several DRAM protocols such as DDR3, DDR4, LPDDR3, LPDDR4, GDDR5, GDDR6, HBM, HMC, STT-MRAM. It is implemented in C++ as an objected oriented model that includes a parameterized DRAM bank model, DRAM controllers, command queues and system-level interfaces to interact with a CPU simulator (GEM5, ZSim) or trace workloads. It is designed to be accurate, portable and parallel.
+    
+If you use this simulator in your work, please consider cite:
 
-Lines beginning with " -- " indicate bus traffic, ie,
-      -- R0 Receiving On Bus : BP [ACT] pa[0x5dec7f0] r[0] b[3] row[1502] col[799]
-      -- MC Issuing On Data Bus : BP [DATA] pa[0x7edc7e0] r[0] b[2] row[2029] col[799] data[0]=
-      -- MC Issuing On Command Bus : BP [READ_P] pa[0x5dec7f8] r[1] b[3] row[1502] col[799]
+[1] "DRAMsim3: a Cycle-accurate, Thermal-Capable DRAM Simulator," in IEEE Computer Architecture Letters. [Link](https://ieeexplore.ieee.org/document/8999595)
 
-Sender and receiver are indicated and the packet being sent is detailed.
-Lines beginning with " ++ " indicate power calculations, ie,
-      ++ Adding Read energy to total energy
-      ++ Adding IDD3N to total energy [from rank 0]
-      ++ Adding IDD3N to total energy [from rank 1]
+See [Related Work](#related-work) for more work done with this simulator.
 
-The state of the system and the actions taken determine which current draw is used. For further detail about
-each current value, see Micron datasheet.
-If a pending transaction is in the transaction queue, it will be printed, as seen below:
-   == Printing transaction queue
-     1]T [Read] [0x45bbfa4]
-     2]T [Write] [0x55fbfa0] [5439E]
-     3]T [Write] [0x55fbfa8] [1111]
 
-Currently, at the start of every cycle, the head of the transaction queue is removed, broken up into DRAM
-commands and placed in the appropriate command queues. To do this, an address mapping scheme is applied
-to the transaction's physical address, the output of which is seen below:
-  == New Transaction - Mapping Address [0x5dec800] (read)
-   Rank : 0
-      Bank : 0
-      Row : 1502
-      Col : 800
+## Building and running the simulator
 
-If there are pending commands in the command queue, they will be printed. The output is dependent on the
-designated structure for the command queue. For example, per-rank/per-bank queues are shown below:
-   = Rank 1
-     Bank 0 size : 2
-         0]BP [ACT] pa[0x5dec808] r[1] b[0] row[1502] col[800]
-         1]BP [READ_P] pa[0x5dec808] r[1] b[0] row[1502] col[800]
-     Bank 1 size : 2
-         0]BP [ACT] pa[0x5dec818] r[1] b[1] row[1502] col[800]
-         1]BP [READ_P] pa[0x5dec818] r[1] b[1] row[1502] col[800]
-     Bank 2 size : 1
-         0]BP [READ_P] pa[0x5dec7e8] r[1] b[2] row[1502] col[799]
-     Bank 3 size : 0
+This simulator by default uses a CMake based build system.
+The advantage in using a CMake based build system is portability and dependency management.
+We require CMake 3.0+ to build this simulator.
+If `cmake-3.0` is not available,
+we also supply a Makefile to build the most basic version of the simulator.
 
-The state of each bank in the system is also displayed:
-     == Printing bank states (According to MC)
-     [idle] [idle] [2029] [1502]
-     [idle] [idle] [1502] [1502]
+### Building
 
-Banks can be in many states, including idle, row active (shown with the row that is active), refreshing, or
-precharging. These states will update based on the commands being sent by the controller.
+Doing out of source builds with CMake is recommended to avoid the build files cluttering the main directory.
 
-6 Results Output--------------------------------------------------------------------------------
+```bash
+# cmake out of source build
+mkdir build
+cd build
+cmake ..
 
-In addition to printing memory statistics and debug information to standard out, DRAMSim2 also produces a
-'vis' file in the results/ directory. A vis file is essentially a summary of relevant statistics that is generated per
-epoch (the number of cycles per epoch can be set by changing the EPOCH_COUNT parameter in the system.ini
-file).
-We are currently working on DRAMVis, which is a cross-platform viewer which parses the vis file and generates
-graphs that can be used to analyze and compare results.
+# Build dramsim3 library and executables
+make -j4
 
+# Alternatively, build with thermal module enabled
+cmake .. -DTHERMAL=1
 
+```
 
+The build process creates `dramsim3main` and executables in the `build` directory.
+By default, it also creates `libdramsim3.so` shared library in the project root directory.
 
+### Running
 
+```bash
+# help
+./build/dramsim3main -h
 
+# Running random stream with a config file
+./build/dramsim3main configs/DDR4_8Gb_x8_3200.ini --stream random -c 100000 
 
+# Running a trace file
+./build/dramsim3main configs/DDR4_8Gb_x8_3200.ini -c 100000 -t sample_trace.txt
 
+# Running with gem5
+--mem-type=dramsim3 --dramsim3-ini=configs/DDR4_4Gb_x4_2133.ini
 
+```
 
+The output can be directed to another directory by `-o` option
+or can be configured in the config file.
+You can control the verbosity in the config file as well.
 
+### Output Visualization
 
+`scripts/plot_stats.py` can visualize some of the output (requires `matplotlib`):
 
+```bash
+# generate histograms from overall output
+python3 scripts/plot_stats dramsim3.json
 
+# or
+# generate time series for a variety stats from epoch outputs
+python3 scripts/plot_stats dramsim3epoch.json
+```
 
+Currently stats from all channels are squashed together for cleaner plotting.
 
+### Integration with other simulators
 
+**Gem5** integration: works with a forked Gem5 version, see https://github.com/umd-memsys/gem5 at `dramsim3` branch for reference.
 
+**SST** integration: see http://git.ece.umd.edu/shangli/sst-elements/tree/dramsim3 for reference. We will try to merge to official SST repo.
 
+**ZSim** integration: see http://git.ece.umd.edu/shangli/zsim/tree/master for reference.
 
+## Simulator Design
 
+### Code Structure
 
+```
+├── configs                 # Configs of various protocols that describe timing constraints and power consumption.
+├── ext                     # 
+├── scripts                 # Tools and utilities
+├── src                     # DRAMsim3 source files
+├── tests                   # Tests of each model, includes a short example trace
+├── CMakeLists.txt
+├── Makefile
+├── LICENSE
+└── README.md
 
+├── src  
+    bankstate.cc: Records and manages DRAM bank timings and states which is modeled as a state machine.
+    channelstate.cc: Records and manages channel timings and states.
+    command_queue.cc: Maintains per-bank or per-rank FIFO queueing structures, determine which commands in the queues can be issued in this cycle.
+    configuration.cc: Initiates, manages system and DRAM parameters, including protocol, DRAM timings, address mapping policy and power parameters.
+    controller.cc: Maintains the per-channel controller, which manages a queue of pending memory transactions and issues corresponding DRAM commands, 
+                   follows FR-FCFS policy.
+    cpu.cc: Implements 3 types of simple CPU: 
+            1. Random, can handle random CPU requests at full speed, the entire parallelism of DRAM protocol can be exploited without limits from address mapping and scheduling pocilies. 
+            2. Stream, provides a streaming prototype that is able to provide enough buffer hits.
+            3. Trace-based, consumes traces of workloads, feed the fetched transactions into the memory system.
+    dram_system.cc:  Initiates JEDEC or ideal DRAM system, registers the supplied callback function to let the front end driver know that the request is finished. 
+    hmc.cc: Implements HMC system and interface, HMC requests are translates to DRAM requests here and a crossbar interconnect between the high-speed links and the memory controllers is modeled.
+    main.cc: Handles the main program loop that reads in simulation arguments, DRAM configurations and tick cycle forward.
+    memory_system.cc: A wrapper of dram_system and hmc.
+    refresh.cc: Raises refresh request based on per-rank refresh or per-bank refresh.
+    timing.cc: Initiate timing constraints.
+```
 
+## Experiments
 
+### Verilog Validation
 
+First we generate a DRAM command trace.
+There is a `CMD_TRACE` macro and by default it's disabled.
+Use `cmake .. -DCMD_TRACE=1` to enable the command trace output build and then
+whenever a simulation is performed the command trace file will be generated.
 
+Next, `scripts/validation.py` helps generate a Verilog workbench for Micron's Verilog model
+from the command trace file.
+Currently DDR3, DDR4, and LPDDR configs are supported by this script.
 
+Run
 
+```bash
+./script/validataion.py DDR4.ini cmd.trace
+```
 
+To generage Verilog workbench.
+Our workbench format is compatible with ModelSim Verilog simulator,
+other Verilog simulators may require a slightly different format.
 
 
+## Related Work
 
+[1] (2020) DRAMsim3: a Cycle-accurate, Thermal-Capable DRAM Simulator, IEEE Computer Architecture Letters.
 
+[2] (2019). Analyzing the Monolithic Integration of a ReRAM-Based Main Memory Into a CPU's Die. IEEE Micro, 39(6), 64-72.
 
+[3] (2018, October). A performance & power comparison of modern high-speed DRAM architectures. In Proceedings of the International Symposium on Memory Systems (pp. 341-353).
 
+[4] (2019, September). Rethinking cycle accurate DRAM simulation. In Proceedings of the International Symposium on Memory Systems (pp. 184-191).
 
-                                            import requests
-import base64
+[5] Statistical DRAM modeling. In Proceedings of the International Symposium on Memory Systems (pp. 521-530).
 
-a = requests.post("https://www.hackthebox.eu/api/invite/generate")
-b = a.json()
-print(b)
-if b["success"] == 1:
-        password = b["data"]["code"]
-        print(base64.b64decode(password).decode())
-else:
-        print("Failed")              6
-
-
-Figure 1: Block diagram of DRAMSim2. The recv() functions are actually called receiveFromBus() but were
-abbreviated to save sapce.
-
-
-
-
-
-                                       import socket
-import platform
-from requests import get
-from lxml import etree
-import os
-from subprocess import Popen
-
-
-class Main():
-        mycostatus = False
-        ip = ''
-        if socket.gethostbyname(socket.gethostname()) != '127.0.0.1':
-                local_ip = socket.gethostbyname(socket.gethostname())
-        def __init__(self):
-                try:
-                        moninstance = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                        moninstance.connect(("8.8.8.8", 80)) # Google DNS
-                except socket.error:
-                        self.mycostatus = False
-                else:
-                        self.ip = get('https://api.ipify.org').text
-
-                        self.mycostatus = True
-                finally:
-                        moninstance.close()
-        def IpDetails(self, target=ip):
-                if self.mycostatus == True:
-                        details = get('http://ip-api.com/xml/{}'.format(str(target))).text
-                        nveaufichierxml = open("resultatip.xml", 'w')
-                        nveaufichierxml.write(str(details))
-                        nveaufichierxml.close()
-                        tree = etree.parse("resultatip.xml")
-                        for a in tree.xpath("/query/country"):
-                                country = a.text
-                        for b in tree.xpath("/query/countryCode"):
-                                countrycode = b.text
-                        for c in tree.xpath("/query/region"):
-                                region = c.text
-                        for d in tree.xpath("/query/regionName"):
-                                regionName = d.text
-                        for e in tree.xpath("/query/city"):
-                                city = e.text
-                        for f in tree.xpath("/query/zip"):
-                                zipcode = f.text
-                        for g in tree.xpath("/query/lat"):
-                                latitude = g.text
-                        for h in tree.xpath("/query/lon"):
-                                longitude = h.text
-                        for i in tree.xpath("/query/timezone"):
-                                timezone = i.text
-                        for j in tree.xpath("/query/isp"):
-                                ispname = j.text
-                        for k in tree.xpath("/query/org"):
-                                organization = k.text
-                        for l in tree.xpath("/query/as"):
-                                As = l.text
-                        for m in tree.xpath("/query/query"):
-                                cible = m.text
-                        print("   0000-----------------{}-----------------0000".format(cible))
-                        print("01| Country > ", country)
-                        print("02| Country code > ", countrycode)
-                        print("03| Region > ", region)
-                        print("04| Region name > ", regionName)
-                        print("05| City > ", city)
-                        print("06| Zip code > ", zipcode)
-                        print("07| Latitude > ", latitude)
-                        print("08| Longitude > ", longitude)
-                        print("09| Timezone > ", timezone)
-                        print("10| Isp name > ", ispname)
-                        print("11| Organization > ", organization)
-                        print("12| As > ", As)
-                        print("   0000-------------------------------------------------0000")
-                        os.remove("resultatip.xml")#FileNotFoundError
-        def PublicIpAddress(self):
-                if self.mycostatus == True:
-                        self.ip = get('https://api.ipify.org').text
-                        return self.ip
-        def MyPcDetails(self):
-                pc_details = platform.uname()
-                print("|________________________________________________________________|")
-                print("")
-                if self.mycostatus == True:
-                        print("Internet access: OK")
-                        print("Local ip: ", self.local_ip)
-                        print("External ip: ", self.ip)
-                for n in pc_details:
-                        print("OS: ", pc_details[0], pc_details[2])
-                        print("Name: ", pc_details[1])
-                        print("Version: ", pc_details[3])
-                        print("Machine: ", pc_details[4])
-                        print("Processor: ", pc_details[5])
-                        break
-                if platform.system() == 'Linux':
-                        distribu = platform.linux_distribution()
-                        for o in distribu:
-                                print("Distrib: ", distribu[0], distribu[1])
-                                print("Id: ", distribu[2])
-                                break
-                print("")
-                print("|________________________________________________________________|")           7
+[6] Scalable and Accurate Memory System Simulation (Doctoral dissertation).
 
