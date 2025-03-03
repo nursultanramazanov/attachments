@@ -3462,16 +3462,178 @@ redisLock:
         password: "THIS-IS-A-PASSWORD"
         tls: false
       slotsRefreshTimeout: 1000     
-    env:
-      RAILS_ENV: test
-      DATABASE_URL: "postgres://rails:password@localhost:5432/rails_test"
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    env: 
+#include "MoveCommand.h"
+
+static const std::string _name("move");
+static const std::string _description =
+    "Arguments: {column_index}{row_index}\n"
+    "Example: " +
+    _name + " e4\n"
+            "Description: Moves the selected piece to the specified square if legal.";
+
+MoveCommand::MoveCommand(Chess &chess)
+    : Command(chess, _name, _description)
+{
+}
+
+Result MoveCommand::apply(const std::vector<std::string> &params)
+{
+    if (params.size() != 1 || params[0].length() != 2)
+        return {true, false};
+
+    int row = params[0][1] - '1';
+    int column = params[0][0] - 'a';
+
+    Chess &chess = this->get_chess();
+    bool error = chess.move({row, column});
+    return {error, false};
+} 
+      RAILS_ENV: #pragma once
+
+#include "../Command.h"
+
+// Moves the selected piece to a new square.
+// Params:
+//      1. string of format {char}{int} representing a
+//          field of the chessboard.
+class MoveCommand : public Command
+{
+public:
+    MoveCommand(Chess &chess);
+
+    Result apply(const std::vector<std::string> &params) override;
+}; 
+      DATABASE_URL: 
+#include "QuitCommand.h"
+
+static const std::string _name = "quit";
+static const std::string _description =
+    "Arguments: [None]\n"
+    "Description: Quits the game.";
+
+QuitCommand::QuitCommand(Chess &chess)
+    : Command(chess, _name, _description)
+{
+}
+
+Result QuitCommand::apply(const std::vector<std::string> &params)
+{
+    bool error = !params.empty();
+    bool quit = true;
+    return {error, quit};
+} 
+    steps: #pragma once
+
+#include "../Command.h"
+
+// Sends a quit signal to the session.
+// No params.
+class QuitCommand : public Command
+{
+public:
+    QuitCommand(Chess &chess);
+
+    Result apply(const std::vector<std::string> &params) override;
+}; 
+      - name: 
+#include "SelectCommand.h"
+
+static const std::string _name("select");
+static const std::string _description =
+    "Arguments: {column_index}{row_index}\n"
+    "Example: " +
+    _name + " e2\n"
+            "Description: Selects the specified square.";
+
+SelectCommand::SelectCommand(Chess &chess)
+    : Command(chess, _name, _description)
+{
+}
+
+Result SelectCommand::apply(const std::vector<std::string> &params)
+{
+    if (params.size() != 1 || params[0].length() != 2)
+        return {true, false};
+
+    int row = params[0][1] - '1';
+    int column = params[0][0] - 'a';
+
+    Chess &chess = this->get_chess();
+    bool error = chess.select({row, column});
+    return {error, false};
+} 
+        uses: #pragma once
+
+#include "../Command.h"
+
+// Selects a square.
+// Params:
+//     1. row
+//     2. column
+class SelectCommand : public Command
+{
+public:
+    SelectCommand(Chess &chess);
+
+    Result apply(const std::vector<std::string> &params) override;
+}; 
       # Add or replace dependency steps here
-      - name: Install Ruby and gems
-        uses: ruby/setup-ruby@78c01b705fd9d5ad960d432d3a0cfa341d50e410 # v1.179.1
-        with:
+      - name: 
+#include "Command.h"
+
+Command::Command(Chess &chess, std::string name, std::string description)
+    : chess(chess), name(name), description(description) {}
+
+const std::string &Command::get_name() const
+{
+    return this->name;
+}
+
+const std::string &Command::get_description() const
+{
+    return this->description;
+}
+
+Chess &Command::get_chess()
+{
+    return this->chess;
+} 
+        uses: #pragma once
+
+#include <string>
+#include <vector>
+
+#include "Result.h"
+
+#include "../model/Chess.h"
+
+class Command
+{
+public:
+    Command(Chess &chess, std::string name, std::string description);
+    virtual ~Command() = default;
+
+    const std::string &get_name() const;
+    const std::string &get_description() const;
+
+    virtual Result apply(const std::vector<std::string> &params) = 0;
+
+protected:
+    Chess &get_chess();
+
+private:
+    Chess &chess;
+    std::string name;
+    std::string description;
+}; # v1.179.1
+        with: #pragma once
+
+struct Result
+{
+    bool error;
+    bool quit;
+}; 
           bundler-cache: true
       # Add or replace database setup steps here
       - name: Set up database schema
