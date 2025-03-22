@@ -5,203 +5,21 @@
 
 name: Synopsys Intelligent Security Scan
 
-on: #!usr/bin/env python
-__author__ = ""
-__email__ = "@westwoodrobotics.io"
-__copyright__ = "Copyright 2020 Westwood Robotics"
-__date__ = "Jan 8, 2020"
-__version__ = "0.1.2"
-__status__ = "Production"
+on: version: 2
 
-# -----------------------------
-# Simple code to set ID for BEAR
-
-from pybear import Manager
-
-bear = Manager.BEAR(port="COM7", baudrate=8000000)
-m_id = int(input("Enter the present ID and press enter.\n"))
-print("Present ID entered is: %d" % m_id)
-if bear.ping(m_id):
-    print("BEAR connected.")
-    m_id_new = int(input("Enter the new ID and press enter.\n"))
-    bear.set_id((m_id, m_id_new))
-    bear.save_config(m_id_new)
-    if bear.ping(m_id_new):
-        print("BEAR ID has been changed from %d to %d" % (m_id, m_id_new))
-    else:
-        print("BEAR ID change unsuccessful. Please try again.")
-else:
-    print("Seems like that BEAR is offline, please double check your entry and connections.")
-  push: #!usr/bin/env python
-__author__ = ""
-__email__ = "@westwoodrobotics.io"
-__copyright__ = "Copyright 2022 Westwood Robotics"
-__date__ = "July 18, 2022"
-__version__ = "0.0.1"
-__status__ = "Prototype"
-
-# -----------------------------
-# Search and list all motors in the chain
-# Prompt to change ID for each motor
-
-# Ping and search for available BEARs
-from pybear import Manager
-
-# Define port and baud rate
-bear_port = "COM11"
-bear_baudrate = 8000000
-# Define ID search range
-id_range = range(0, 253)
-
-bear = Manager.BEAR(port=bear_port, baudrate=bear_baudrate)
-bear_list = []
-found = False
-for i in id_range:
-    m_id = i
-    data = bear.ping(m_id)[0]
-    if data:
-        found = True
-        bear_list.append(m_id)
-if found:
-    print("Search done. Total of %d BEARs found. And their IDs are:" % len(bear_list))
-    print(bear_list)
-else:
-    print("Search done. No BEAR found.")
-    exit()
-
-# Change ID if found BEAR(s).
-if found:
-    print("Changing ID...")
-    for idx, m_id in enumerate(bear_list):
-        print("Current object: %d of %d" % (idx+1, len(bear_list)))
-        change_in_progress = True
-        while change_in_progress:
-            usr = input("Present ID: %d, enter new id or 'N/n' to skip:" % m_id)
-            if usr in ['n', 'N']:
-                change_in_progress = False
-            else:
-                try:
-                    usr = int(usr)
-                    if -1 < usr < 254:
-                        if usr not in bear_list:
-                            bear.set_id((m_id, usr))
-                            bear.save_config(usr)
-                            if bear.ping(usr):
-                                print("Present BEAR's ID has been changed from %d to %d" % (m_id, usr))
-                                change_in_progress = False
-                            else:
-                                print("BEAR ID change unsuccessful. Please debug.")
-                                exit()
-                        else:
-                            print("Entered ID already exists in chain. Please try again.")
-                    else:
-                        print("Invalid entrance. Only integers from 0 to 253 accepted.")
-                except:
-                    print("Invalid entrance. Only integers from 0 to 253 accepted.")
-    print("All done.")
-    branches: [ "main" ]
-  pull_request: #!usr/bin/env python
-__author__ = ""
-__email__ = "@westwoodrobotics.io"
-__copyright__ = "Copyright 2022 Westwood Robotics"
-__date__ = "July 18, 2022"
-__version__ = "0.0.1"
-__status__ = "Prototype"
-
-# Test bulk_comm speed
-
-from pybear import Manager
-import time
-
-BEAR_LIST = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-
-port = 'COM11'
-baud = 8000000
-pbm = Manager.BEAR(port=port, baudrate=baud, bulk_timeout=0.002)
-
-
-start_time = time.time()
-for i in range(1000):
-    pbm.bulk_read(BEAR_LIST, ['present_position', 'present_velocity', 'present_iq'])
-end_time = time.time()
-freq = 1000/(end_time-start_time)
-
-print("Bulk_comm frequency: %2.4f" % freq)
-
-    # The branches below must be a subset of the branches above
-    branches: [ "main" ]
-  schedule: #!usr/bin/env python
-__author__ = ""
-__email__ = "@westwoodrobotics.io"
-__copyright__ = "Copyright 2020 Westwood Robotics"
-__date__ = "Jan 8, 2021"
-__version__ = "0.1.3"
-__status__ = "Production"
-
-# Ping and search for available BEARs
-from pybear import Manager
-
-# Define port and baud rate
-bear_port = "COM7"
-bear_baudrate = 8000000
-# Define ID search range
-id_range = range(0, 9)
-
-bear = Manager.BEAR(port=bear_port, baudrate=bear_baudrate)
-bear_list = []
-found = False
-for i in id_range:
-    m_id = i
-    print("Pinging BEAR with ID %d" % m_id)
-    data = bear.ping(m_id)[0]
-    if data:
-        print("Found BEAR with ID %d." % m_id)
-        found = True
-        bear_list.append(m_id)
-if found:
-    print("Search done. Total of %d BEARs found. And their IDs are:\n" % len(bear_list))
-    print(bear_list)
-else:
-    print("Search done. No BEAR found.")
-    - cron: <component name="InspectionProjectProfileManager">
+aliases:
+  docker-cp: &docker-cp
+    run:
+      name: Create Docker Volume
+      command: |
+        docker create -v /<component name="InspectionProjectProfileManager">
   <settings>
     <option name="USE_PROJECT_PROFILE" value="false" />
     <version value="1.0" />
   </settings>
-</component>
-
-jobs: # Default ignored files
-/shelf/
-/workspace.xml
-  analyze: <?xml version="1.0" encoding="UTF-8"?>
-<module type="PYTHON_MODULE" version="4">
-  <component name="NewModuleRootManager">
-    <content url="file://$MODULE_DIR$">
-      <excludeFolder url="file://$MODULE_DIR$/venv" />
-    </content>
-    <orderEntry type="jdk" jdkName="Python 3.10" jdkType="Python SDK" />
-    <orderEntry type="sourceFolder" forTests="false" />
-  </component>
-  <component name="PyDocumentationSettings">
-    <option name="format" value="PLAIN" />
-    <option name="myDocStringFormat" value="Plain" />
-  </component>
-</module>
-    name: <?xml version="1.0" encoding="UTF-8"?>
-<project version="4">
-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.10" project-jdk-type="Python SDK" />
-</project>
-    runs-on: <?xml version="1.0" encoding="UTF-8"?>
-<project version="4">
-  <component name="ProjectModuleManager">
-    <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/PyBEAR.iml" filepath="$PROJECT_DIR$/.idea/PyBEAR.iml" />
-    </modules>
-  </component>
-</project>
-    permissions: #!usr/bin/env python
-__author__ = ""
-__email__ = "@westwoodrobotics.io"
+</component> --name #!usr/bin/env python
+__author__ = 
+__email__ = "xzhang@westwoodrobotics.io"
 __copyright__ = "Copyright 2020 Westwood Robotics"
 __date__ = "Aug 20, 2020"
 __version__ = "0.1.0"
@@ -290,10 +108,9 @@ if not error:
 
     # Disable BEAR
     bear.set_torque_enable((m_id, 0))
-    print("Thanks for using BEAR!")
-      actions: #!usr/bin/env python
-__author__ = ""
-__email__ = "@westwoodrobotics.io"
+    print("Thanks for using BEAR!") --privileged tizenrt/tizenrt:#!usr/bin/env python
+__author__ = 
+__email__ = "xzhang@westwoodrobotics.io"
 __copyright__ = "Copyright 2020 Westwood Robotics"
 __date__ = "Aug 20, 2020"
 __version__ = "0.1.0"
@@ -383,1828 +200,821 @@ if not error:
             run = False
             print("Demo terminated by user.")
             break
-    print("Thanks for using BEAR!")
-      contents: #!usr/bin/env python
+    print("Thanks for using BEAR!") /bin/bash
+        docker cp ./. message("Adding Custom Plugin")
 
+#-- Version control
+#   Major and minor versions are defined here (manually)
 
-################################################################################
-# Copyright 2020 Westwood Robotics Corporation
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-################################################################################
+CUSTOM_QGC_VER_MAJOR = 0
+CUSTOM_QGC_VER_MINOR = 0
+CUSTOM_QGC_VER_FIRST_BUILD = 0
 
-__author__ = "Westwood Robotics Corporation"
-__email__ = "info@westwoodrobotics.io"
-__copyright__ = "Copyright 2020 Westwood Robotics"
-__date__ = "Jan. 01, 2020"
+# Build number is automatic
+# Uses the current branch. This way it works on any branch including build-server's PR branches
+CUSTOM_QGC_VER_BUILD = $$system(git --git-dir ../.git rev-list $$GIT_BRANCH --first-parent --count)
+win32 {
+    CUSTOM_QGC_VER_BUILD = $$system("set /a $$CUSTOM_QGC_VER_BUILD - $$CUSTOM_QGC_VER_FIRST_BUILD")
+} else {
+    CUSTOM_QGC_VER_BUILD = $$system("echo $(($$CUSTOM_QGC_VER_BUILD - $$CUSTOM_QGC_VER_FIRST_BUILD))")
+}
+CUSTOM_QGC_VERSION = $${CUSTOM_QGC_VER_MAJOR}.$${CUSTOM_QGC_VER_MINOR}.$${CUSTOM_QGC_VER_BUILD}
 
-__version__ = "0.1.2"
-__status__ = "Production"
+DEFINES -= GIT_VERSION=\"\\\"$$GIT_VERSION\\\"\"
+DEFINES += GIT_VERSION=\"\\\"$$CUSTOM_QGC_VERSION\\\"\"
 
-"""
-Control Table
-"""
+message(Custom QGC Version: $${CUSTOM_QGC_VERSION})
 
+# Build a single flight stack by disabling APM support
+MAVLINK_CONF = common
+CONFIG  += QGC_DISABLE_APM_MAVLINK
+CONFIG  += QGC_DISABLE_APM_PLUGIN QGC_DISABLE_APM_PLUGIN_FACTORY
 
-class INSTRUCTION:
-    """
-    Instruction Constants
-    ---------------------
-    This is the field that defines the purpose of the Packet.
-    """
-    PING = 0x01
-    READ_STAT = 0x02
-    WRITE_STAT = 0x03
-    READ_CFG = 0x04
-    WRITE_CFG = 0x05
-    SAVE_CFG = 0x06
-    BULK_COMM = 0x12
+# We implement our own PX4 plugin factory
+CONFIG  += QGC_DISABLE_PX4_PLUGIN_FACTORY
 
+# Branding
 
-class CFG_REG:
-    """Configuration Registers"""
-    ID = 0x00
-    MODE = 0x01
-    BAUDRATE = 0x02
-    HOMING_OFFSET = 0x03
-    # Gains for Id current loop
-    P_GAIN_ID = 0x04
-    I_GAIN_ID = 0x05
-    D_GAIN_ID = 0x06
-    # Gains for Iq current loop
-    P_GAIN_IQ = 0x07
-    I_GAIN_IQ = 0x08
-    D_GAIN_IQ = 0x09
-    # Gains for velocity loop
-    P_GAIN_VEL = 0x0A
-    I_GAIN_VEL = 0x0B
-    D_GAIN_VEL = 0x0C
-    # Gains for position loop
-    P_GAIN_POS = 0x0D
-    I_GAIN_POS = 0x0E
-    D_GAIN_POS = 0x0F
-    # Gains for direct force loop
-    P_GAIN_FORCE = 0x10
-    I_GAIN_FORCE = 0x11
-    D_GAIN_FORCE = 0x12
-    # Limits
-    LIMIT_ACC_MAX = 0x13
-    LIMIT_I_MAX = 0x14
-    LIMIT_VEL_MAX = 0x15
-    LIMIT_POS_MIN = 0x16
-    LIMIT_POS_MAX = 0x17
-    MIN_VOLTAGE = 0x18
-    MAX_VOLTAGE = 0x19
-    # LOW_VOLTAGE_WARNING = 0x1A
-    WATCHDOG_TIMEOUT = 0x1A
-    TEMP_LIMIT_LOW = 0x1B  # Motor will start to limit power
-    TEMP_LIMIT_HIGH = 0x1C  # Motor will shutdown
+DEFINES += CUSTOMHEADER=\"\\\"CustomPlugin.h\\\"\"
+DEFINES += CUSTOMCLASS=CustomPlugin
 
-    UINT_REG = [ID, MODE, BAUDRATE, WATCHDOG_TIMEOUT]
+TARGET   = CustomQGroundControl
+DEFINES += QGC_APPLICATION_NAME='"\\\"Custom QGroundControl\\\""'
 
+DEFINES += QGC_ORG_NAME=\"\\\"qgroundcontrol.org\\\"\"
+DEFINES += QGC_ORG_DOMAIN=\"\\\"org.qgroundcontrol\\\"\"
 
-CFG_REG_DIC = {'id': CFG_REG.ID,
-               'mode': CFG_REG.MODE,
-               'baudrate': CFG_REG.BAUDRATE,
-               'homing_offset': CFG_REG.HOMING_OFFSET,
-               'p_gain_id': CFG_REG.P_GAIN_ID,
-               'i_gain_id': CFG_REG.I_GAIN_ID,
-               'd_gain_id': CFG_REG.D_GAIN_ID,
-               'p_gain_iq': CFG_REG.P_GAIN_IQ,
-               'i_gain_iq': CFG_REG.I_GAIN_IQ,
-               'd_gain_iq': CFG_REG.D_GAIN_IQ,
-               'p_gain_velocity': CFG_REG.P_GAIN_VEL,
-               'i_gain_velocity': CFG_REG.I_GAIN_VEL,
-               'd_gain_velocity': CFG_REG.D_GAIN_VEL,
-               'p_gain_position': CFG_REG.P_GAIN_POS,
-               'i_gain_position': CFG_REG.I_GAIN_POS,
-               'd_gain_position': CFG_REG.D_GAIN_POS,
-               'p_gain_direct_force': CFG_REG.P_GAIN_FORCE,
-               'i_gain_direct_force': CFG_REG.I_GAIN_FORCE,
-               'd_gain_direct_force': CFG_REG.D_GAIN_FORCE,
-               'limit_acc_max': CFG_REG.LIMIT_ACC_MAX,
-               'limit_i_max': CFG_REG.LIMIT_I_MAX,
-               'limit_iq_max': CFG_REG.LIMIT_I_MAX,
-               'limit_velocity_max': CFG_REG.LIMIT_VEL_MAX,
-               'limit_position_min': CFG_REG.LIMIT_POS_MIN,
-               'limit_position_max': CFG_REG.LIMIT_POS_MAX,
-               'min_voltage': CFG_REG.MIN_VOLTAGE,
-               'max_voltage': CFG_REG.MAX_VOLTAGE,
-               # 'low_voltage_warning': CFG_REG.LOW_VOLTAGE_WARNING,
-               'watchdog_timeout': CFG_REG.WATCHDOG_TIMEOUT,
-               'temp_limit_low': CFG_REG.TEMP_LIMIT_LOW,
-               'temp_limit_high': CFG_REG.TEMP_LIMIT_HIGH}
+QGC_APP_NAME        = "Custom QGroundControl"
+QGC_BINARY_NAME     = "CustomQGroundControl"
+QGC_ORG_NAME        = "Custom"
+QGC_ORG_DOMAIN      = "org.custom"
+QGC_APP_DESCRIPTION = "Custom QGroundControl"
+QGC_APP_COPYRIGHT   = "Copyright (C) 2020 QGroundControl Development Team. All rights reserved."
 
+# Our own, custom resources
+RESOURCES += \
+    $$PWD/custom.qrc
 
-class STAT_REG:
-    """Status Registers"""
-    TORQUE_ENABLE = 0x00  # Enable output
-    HOMING_COMPLETE = 0x01
-    GOAL_ID = 0x02
-    GOAL_IQ = 0x03
-    GOAL_VEL = 0x04
-    GOAL_POS = 0x05
-    PRESENT_ID = 0x06
-    PRESENT_IQ = 0x07
-    PRESENT_VEL = 0x08
-    PRESENT_POS = 0x09
-    INPUT_VOLTAGE = 0x0A
-    WINDING_TEMP = 0x0B
-    POWERSTAGE_TEMP = 0x0C
-    IC_TEMP = 0x0D
-    ERROR_STATUS = 0x0E
-    WARNING_STATUS = 0x0F
+QML_IMPORT_PATH += \
+   $$PWD/res
 
+# Our own, custom sources
+SOURCES += \
+    $$PWD/src/CustomPlugin.cc \
 
-STAT_REG_DIC = {'torque_enable': STAT_REG.TORQUE_ENABLE,
-                'homing_complete': STAT_REG.HOMING_COMPLETE,
-                'goal_id': STAT_REG.GOAL_ID,
-                'goal_iq': STAT_REG.GOAL_IQ,
-                'goal_velocity': STAT_REG.GOAL_VEL,
-                'goal_position': STAT_REG.GOAL_POS,
-                'present_id': STAT_REG.PRESENT_ID,
-                'present_iq': STAT_REG.PRESENT_IQ,
-                'present_velocity': STAT_REG.PRESENT_VEL,
-                'present_position': STAT_REG.PRESENT_POS,
-                'input_voltage': STAT_REG.INPUT_VOLTAGE,
-                'winding_temperature': STAT_REG.WINDING_TEMP,
-                'powerstage_temperature': STAT_REG.POWERSTAGE_TEMP,
-                'ic_temperature': STAT_REG.IC_TEMP,
-                'error_status': STAT_REG.ERROR_STATUS,
-                'warning_status': STAT_REG.WARNING_STATUS
-      security-events: #!usr/bin/env python
+HEADERS += \
+    $$PWD/src/CustomPlugin.h \
 
+INCLUDEPATH += \
+    $$PWD/src \
 
-################################################################################
-# Copyright 2020 Westwood Robotics Corporation
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-################################################################################
+#-------------------------------------------------------------------------------------
+# Custom Firmware/AutoPilot Plugin
 
-__author__ = "Westwood Robotics Corporation"
-__email__ = "info@westwoodrobotics.io"
-__copyright__ = "Copyright 2020 Westwood Robotics"
-__date__ = "Jan. 01, 2020"
+INCLUDEPATH += \
+    $$PWD/src/FirmwarePlugin \
+    $$PWD/src/AutoPilotPlugin
 
-__version__ = "0.1.2"
-__status__ = "Production"
+HEADERS+= \
+    $$PWD/src/AutoPilotPlugin/CustomAutoPilotPlugin.h \
+    $$PWD/src/FirmwarePlugin/CustomFirmwarePlugin.h \
+    $$PWD/src/FirmwarePlugin/CustomFirmwarePluginFactory.h \
 
-class CRC:
-        TABLE = ( 
-        0x0000, 0x8005, 0x800F, 0x000A, 0x801B, 0x001E, 0x0014, 0x8011, 
-        0x8033, 0x0036, 0x003C, 0x8039, 0x0028, 0x802D, 0x8027, 0x0022,
-        0x8063, 0x0066, 0x006C, 0x8069, 0x0078, 0x807D, 0x8077, 0x0072,
-        0x0050, 0x8055, 0x805F, 0x005A, 0x804B, 0x004E, 0x0044, 0x8041,
-        0x80C3, 0x00C6, 0x00CC, 0x80C9, 0x00D8, 0x80DD, 0x80D7, 0x00D2,
-        0x00F0, 0x80F5, 0x80FF, 0x00FA, 0x80EB, 0x00EE, 0x00E4, 0x80E1,
-        0x00A0, 0x80A5, 0x80AF, 0x00AA, 0x80BB, 0x00BE, 0x00B4, 0x80B1,
-        0x8093, 0x0096, 0x009C, 0x8099, 0x0088, 0x808D, 0x8087, 0x0082,
-        0x8183, 0x0186, 0x018C, 0x8189, 0x0198, 0x819D, 0x8197, 0x0192,
-        0x01B0, 0x81B5, 0x81BF, 0x01BA, 0x81AB, 0x01AE, 0x01A4, 0x81A1,
-        0x01E0, 0x81E5, 0x81EF, 0x01EA, 0x81FB, 0x01FE, 0x01F4, 0x81F1,
-        0x81D3, 0x01D6, 0x01DC, 0x81D9, 0x01C8, 0x81CD, 0x81C7, 0x01C2,
-        0x0140, 0x8145, 0x814F, 0x014A, 0x815B, 0x015E, 0x0154, 0x8151,
-        0x8173, 0x0176, 0x017C, 0x8179, 0x0168, 0x816D, 0x8167, 0x0162,
-        0x8123, 0x0126, 0x012C, 0x8129, 0x0138, 0x813D, 0x8137, 0x0132,
-        0x0110, 0x8115, 0x811F, 0x011A, 0x810B, 0x010E, 0x0104, 0x8101,
-        0x8303, 0x0306, 0x030C, 0x8309, 0x0318, 0x831D, 0x8317, 0x0312,
-        0x0330, 0x8335, 0x833F, 0x033A, 0x832B, 0x032E, 0x0324, 0x8321,
-        0x0360, 0x8365, 0x836F, 0x036A, 0x837B, 0x037E, 0x0374, 0x8371,
-        0x8353, 0x0356, 0x035C, 0x8359, 0x0348, 0x834D, 0x8347, 0x0342,
-        0x03C0, 0x83C5, 0x83CF, 0x03CA, 0x83DB, 0x03DE, 0x03D4, 0x83D1,
-        0x83F3, 0x03F6, 0x03FC, 0x83F9, 0x03E8, 0x83ED, 0x83E7, 0x03E2,
-        0x83A3, 0x03A6, 0x03AC, 0x83A9, 0x03B8, 0x83BD, 0x83B7, 0x03B2,
-        0x0390, 0x8395, 0x839F, 0x039A, 0x838B, 0x038E, 0x0384, 0x8381,
-        0x0280, 0x8285, 0x828F, 0x028A, 0x829B, 0x029E, 0x0294, 0x8291,
-        0x82B3, 0x02B6, 0x02BC, 0x82B9, 0x02A8, 0x82AD, 0x82A7, 0x02A2,
-        0x82E3, 0x02E6, 0x02EC, 0x82E9, 0x02F8, 0x82FD, 0x82F7, 0x02F2,
-        0x02D0, 0x82D5, 0x82DF, 0x02DA, 0x82CB, 0x02CE, 0x02C4, 0x82C1,
-        0x8243, 0x0246, 0x024C, 0x8249, 0x0258, 0x825D, 0x8257, 0x0252,
-        0x0270, 0x8275, 0x827F, 0x027A, 0x826B, 0x026E, 0x0264, 0x8261,
-        0x0220, 0x8225, 0x822F, 0x022A, 0x823B, 0x023E, 0x0234, 0x8231,
-        0x8213, 0x0216, 0x021C, 0x8219, 0x0208, 0x820D, 0x8207, 0x0202
-        )
-
-    steps: #!usr/bin/env python
-
-################################################################################
-# Copyright 2020 Westwood Robotics Corporation
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-################################################################################
-
-__author__ = "Westwood Robotics Corporation"
-__email__ = "info@westwoodrobotics.io"
-__copyright__ = "Copyright 2020 Westwood Robotics"
-__date__ = "Jan. 01, 2020"
-
-__version__ = "0.1.2"
-__status__ = "Production"
-
+SOURCES += \
+    $$PWD/src/AutoPilotPlugin/CustomAutoPilotPlugin.cc \
+    $$PWD/src/FirmwarePlugin/CustomFirmwarePlugin.cc \
+    $$PWD/src/FirmwarePlugin/CustomFirmwarePluginFactory.cc \
+:/<RCC>
+    <qresource prefix="/custom">
+        <file alias="CustomFlyViewOverlay.qml">res/CustomFlyViewOverlay.qml</file>
+    </qresource>
+    <qresource prefix="custom/img">
+        <file alias="altitude.svg">res/Images/altitude.svg</file>
+        <file alias="attitude_crosshair.svg">res/Images/attitude_crosshair.svg</file>
+        <file alias="attitude_dial.svg">res/Images/attitude_dial.svg</file>
+        <file alias="attitude_pointer.svg">res/Images/attitude_pointer.svg</file>
+        <file alias="chronometer.svg">res/Images/chronometer.svg</file>
+        <file alias="compass_needle.svg">res/Images/compass_needle.svg</file>
+        <file alias="compass_pointer.svg">res/Images/compass_pointer.svg</file>
+        <file alias="distance.svg">res/Images/distance.svg</file>
+        <file alias="horizontal_speed.svg">res/Images/horizontal_speed.svg</file>
+        <file alias="microSD.svg">res/Images/microSD.svg</file>
+        <file alias="odometer.svg">res/Images/odometer.svg</file>
+        <file alias="vertical_speed.svg">res/Images/vertical_speed.svg</file>
+        <file alias="CustomAppIcon.png">res/Images/CustomAppIcon.png</file>
+    </qresource>
+    <qresource prefix="/qmlimages">
+	<file alias="PaperPlane.svg">res/Images/CustomVehicleIcon.svg</file>
+    </qresource>
+    <qresource prefix="Custom/Widgets">
+        <file alias="Custom/Widgets/CustomArtificialHorizon.qml">res/Custom/Widgets/CustomArtificialHorizon.qml</file>
+        <file alias="Custom/Widgets/CustomAttitudeWidget.qml">res/Custom/Widgets/CustomAttitudeWidget.qml</file>
+        <file alias="Custom/Widgets/CustomIconButton.qml">res/Custom/Widgets/CustomIconButton.qml</file>
+        <file alias="Custom/Widgets/CustomOnOffSwitch.qml">res/Custom/Widgets/CustomOnOffSwitch.qml</file>
+        <file alias="Custom/Widgets/CustomQuickButton.qml">res/Custom/Widgets/CustomQuickButton.qml</file>
+        <file alias="Custom/Widgets/CustomSignalStrength.qml">res/Custom/Widgets/CustomSignalStrength.qml</file>
+        <file alias="Custom/Widgets/CustomToolBarButton.qml">res/Custom/Widgets/CustomToolBarButton.qml</file>
+        <file alias="Custom/Widgets/CustomVehicleButton.qml">res/Custom/Widgets/CustomVehicleButton.qml</file>
+        <file alias="Custom/Widgets/qmldir">res/Custom/Widgets/qmldir</file>
+    </qresource>
+    <qresource prefix="/qml">
+        <file alias="QGroundControl/FlightDisplay/FlyViewCustomLayer.qml">res/CustomFlyViewOverlay.qml</file>
+    </qresource>
+</RCC>                                                                                               
+        docker run -d --rm -it --name         <file alias="PaperPlane.svg">src/ui/toolbar/Images/PaperPlane.svg</file>
+        <file alias="QGroundControl/FlightDisplay/FlyViewCustomLayer.qml">src/FlightDisplay/FlyViewCustomLayer.qml</file>
+ --volumes-from=<RCC>
+	<qresource prefix="/fonts">
+		<file alias="opensans">../resources/fonts/OpenSans-Regular.ttf</file>
+		<file alias="opensans-demibold">../resources/fonts/OpenSans-Semibold.ttf</file>
+		<file alias="NanumGothic-Regular">../resources/fonts/NanumGothic-Regular.ttf</file>
+		<file alias="NanumGothic-Bold">../resources/fonts/NanumGothic-Bold.ttf</file>
+	</qresource>
+	<qresource prefix="/res">
+		<file alias="action.svg">../resources/action.svg</file>
+		<file alias="AntennaRC">../resources/Antenna_RC.svg</file>
+		<file alias="AntennaT">../resources/Antenna_T.svg</file>
+		<file alias="ArrowDown.svg">../resources/ArrowDown.svg</file>
+		<file alias="ArrowRight.svg">../resources/ArrowRight.svg</file>
+		<file alias="buttonLeft.svg">../resources/buttonLeft.svg</file>
+		<file alias="buttonRight.svg">../resources/buttonRight.svg</file>
+		<file alias="cancel.svg">../resources/cancel.svg</file>
+		<file alias="clockwise-arrow.svg">../resources/clockwise-arrow.svg</file>
+		<file alias="counter-clockwise-arrow.svg">../resources/counter-clockwise-arrow.svg</file>
+		<file alias="chevron-down.svg">../resources/chevron-down.svg</file>
+		<file alias="chevron-up.svg">../resources/chevron-up.svg</file>
+		<file alias="DropArrow.svg">../resources/DropArrow.svg</file>
+		<file alias="gear-black.svg">../resources/gear-black.svg</file>
+		<file alias="gear-white.svg">../resources/gear-white.svg</file>
+		<file alias="helicoptericon.svg">../resources/helicoptericon.svg</file>
+		<file alias="JoystickBezel.png">../resources/JoystickBezel.png</file>
+		<file alias="JoystickBezelLight.png">../resources/JoystickBezelLight.png</file>
+		<file alias="land.svg">../resources/land.svg</file>
+		<file alias="LockClosed.svg">../resources/LockClosed.svg</file>
+		<file alias="LockOpen.svg">../resources/LockOpen.svg</file>
+		<file alias="notile.png">../resources/notile.png</file>
+		<file alias="Pause.svg">../resources/Pause.svg</file>
+		<file alias="pause-mission.svg">../resources/pause-mission.svg</file>
+		<file alias="Play">../resources/Play.svg</file>
+		<file alias="PowerButton">../resources/PowerButton.svg</file>
+		<file alias="QGCLogoBlack">../resources/QGCLogoBlack.svg</file>
+		<file alias="QGCLogoFull">../resources/QGCLogoFull.svg</file>
+		<file alias="QGCLogoWhite">../resources/QGCLogoWhite.svg</file>
+		<file alias="QGCLogoArrow">../resources/QGCLogoArrow.svg</file>
+		<file alias="QGroundControlConnect">../resources/QGroundControlConnect.svg</file>
+		<file alias="rtl.svg">../resources/rtl.svg</file>
+		<file alias="SplashScreen">../resources/SplashScreen.png</file>
+		<file alias="Stop">../resources/Stop.svg</file>
+		<file alias="takeoff.svg">../resources/takeoff.svg</file>
+		<file alias="TrashDelete.svg">../resources/TrashDelete.svg</file>
+		<file alias="waves.svg">../resources/waves.svg</file>
+		<file alias="wind-guru.svg">../resources/wind-guru.svg</file>
+		<file alias="wind-rose.svg">../resources/wind-rose.svg</file>
+		<file alias="wind-roseBlack.svg">../resources/wind-roseBlack.svg</file>
+		<file alias="wind-rose-arrow.svg">../resources/wind-rose-arrow.svg</file>
+		<file alias="XDelete.svg">../resources/XDelete.svg</file>
+		<file alias="XDeleteBlack.svg">../resources/XDeleteBlack.svg</file>
+		<file alias="waypoint.svg">../resources/waypoint.svg</file>
+		<file>../resources/icons/qgroundcontrol.ico</file>
+	</qresource>
+	<qresource prefix="/res/firmware">
+		<file alias="3drradio.png">../resources/firmware/3drradio.png</file>
+		<file alias="apm.png">../resources/firmware/apm.png</file>
+		<file alias="px4.png">../resources/firmware/px4.png</file>
+	</qresource>
+	<qresource prefix="/res/calibration">
+		<file alias="accel_back.png">../resources/calibration/accel_back.png</file>
+		<file alias="accel_down.png">../resources/calibration/accel_down.png</file>
+		<file alias="accel_front.png">../resources/calibration/accel_front.png</file>
+		<file alias="accel_left.png">../resources/calibration/accel_left.png</file>
+		<file alias="accel_right.png">../resources/calibration/accel_right.png</file>
+		<file alias="accel_up.png">../resources/calibration/accel_up.png</file>
+	</qresource>
+	<qresource prefix="/qml/calibration/mode1">
+		<file alias="radioCenter.png">../resources/calibration/mode1/radioCenter.png</file>
+		<file alias="radioHome.png">../resources/calibration/mode1/radioHome.png</file>
+		<file alias="radioPitchDown.png">../resources/calibration/mode1/radioPitchDown.png</file>
+		<file alias="radioPitchUp.png">../resources/calibration/mode1/radioPitchUp.png</file>
+		<file alias="radioRollLeft.png">../resources/calibration/mode1/radioRollLeft.png</file>
+		<file alias="radioRollRight.png">../resources/calibration/mode1/radioRollRight.png</file>
+		<file alias="radioSwitchMinMax.png">../resources/calibration/mode1/radioSwitchMinMax.png</file>
+		<file alias="radioThrottleDown.png">../resources/calibration/mode1/radioThrottleDown.png</file>
+		<file alias="radioThrottleUp.png">../resources/calibration/mode1/radioThrottleUp.png</file>
+		<file alias="radioYawLeft.png">../resources/calibration/mode1/radioYawLeft.png</file>
+		<file alias="radioYawRight.png">../resources/calibration/mode1/radioYawRight.png</file>
+	</qresource>
+	<qresource prefix="/qml/calibration/mode2">
+		<file alias="radioCenter.png">../resources/calibration/mode2/radioCenter.png</file>
+		<file alias="radioHome.png">../resources/calibration/mode2/radioHome.png</file>
+		<file alias="radioPitchDown.png">../resources/calibration/mode2/radioPitchDown.png</file>
+		<file alias="radioPitchUp.png">../resources/calibration/mode2/radioPitchUp.png</file>
+		<file alias="radioRollLeft.png">../resources/calibration/mode2/radioRollLeft.png</file>
+		<file alias="radioRollRight.png">../resources/calibration/mode2/radioRollRight.png</file>
+		<file alias="radioSwitchMinMax.png">../resources/calibration/mode2/radioSwitchMinMax.png</file>
+		<file alias="radioThrottleDown.png">../resources/calibration/mode2/radioThrottleDown.png</file>
+		<file alias="radioThrottleUp.png">../resources/calibration/mode2/radioThrottleUp.png</file>
+		<file alias="radioYawLeft.png">../resources/calibration/mode2/radioYawLeft.png</file>
+		<file alias="radioYawRight.png">../resources/calibration/mode2/radioYawRight.png</file>
+	</qresource>
+	<qresource prefix="/db/mapping/joystick">
+		<file alias="gamecontrollerdb.txt">../resources/SDL_GameControllerDB/gamecontrollerdb.txt</file>
+	</qresource>
+	<qresource prefix="/res/audio">
+		<file alias="Alert">../resources/audio/alert.wav</file>
+	</qresource>
+	<qresource prefix="/opengl">
+		<file>../resources/opengl/buglist.json</file>
+	</qresource>
+</RCC> -w /<RCC>
+	<qresource prefix="/unittest">
+		<file alias="FactSystemTest.qml">../src/FactSystem/FactSystemTest.qml</file>
+	</qresource>
+	<qresource prefix="/toolbar">
+		<file alias="ArmedIndicator.qml">../src/ui/toolbar/ArmedIndicator.qml</file>
+		<file alias="BatteryIndicator.qml">../src/ui/toolbar/BatteryIndicator.qml</file>
+		<file alias="GPSIndicator.qml">../src/ui/toolbar/GPSIndicator.qml</file>
+		<file alias="GPSRTKIndicator.qml">../src/ui/toolbar/GPSRTKIndicator.qml</file>
+		<file alias="JoystickIndicator.qml">../src/ui/toolbar/JoystickIndicator.qml</file>
+		<file alias="LinkIndicator.qml">../src/ui/toolbar/LinkIndicator.qml</file>
+		<file alias="MainToolBar.qml">../src/ui/toolbar/MainToolBar.qml</file>
+		<file alias="MainToolBarIndicators.qml">../src/ui/toolbar/MainToolBarIndicators.qml</file>
+		<file alias="MessageIndicator.qml">../src/ui/toolbar/MessageIndicator.qml</file>
+		<file alias="ModeIndicator.qml">../src/ui/toolbar/ModeIndicator.qml</file>
+		<file alias="MultiVehicleSelector.qml">../src/ui/toolbar/MultiVehicleSelector.qml</file>
+		<file alias="RCRSSIIndicator.qml">../src/ui/toolbar/RCRSSIIndicator.qml</file>
+		<file alias="ROIIndicator.qml">../src/ui/toolbar/ROIIndicator.qml</file>
+		<file alias="TelemetryRSSIIndicator.qml">../src/ui/toolbar/TelemetryRSSIIndicator.qml</file>
+		<file alias="VTOLModeIndicator.qml">../src/ui/toolbar/VTOLModeIndicator.qml</file>
+	</qresource>
+	<qresource prefix="/checklists">
+		<file alias="DefaultChecklist.qml">../src/FlightDisplay/DefaultChecklist.qml</file>
+		<file alias="MultiRotorChecklist.qml">../src/FlightDisplay/MultiRotorChecklist.qml</file>
+		<file alias="FixedWingChecklist.qml">../src/FlightDisplay/FixedWingChecklist.qml</file>
+		<file alias="VTOLChecklist.qml">../src/FlightDisplay/VTOLChecklist.qml</file>
+		<file alias="RoverChecklist.qml">../src/FlightDisplay/RoverChecklist.qml</file>
+		<file alias="SubChecklist.qml">../src/FlightDisplay/SubChecklist.qml</file>
+	</qresource>
+	<qresource prefix="/qml">
+		<file alias="QGroundControl/Controls/HeightIndicator.qml">../src/QmlControls/HeightIndicator.qml</file>
+		<file alias="QGroundControl/Controls/QGCDynamicObjectManager.qml">../src/QmlControls/QGCDynamicObjectManager.qml</file>
+		<file alias="QGroundControl/Controls/QGCOptionsComboBox.qml">../src/QmlControls/QGCOptionsComboBox.qml</file>
+		<file alias="QGroundControl/Controls/TransectStyleMapVisuals.qml">../src/PlanView/TransectStyleMapVisuals.qml</file>
+		<file alias="QGroundControl/FlightMap/MapLineArrow.qml">../src/MissionManager/MapLineArrow.qml</file>
+		<file alias="QGroundControl/FlightMap/SplitIndicator.qml">../src/FlightMap/MapItems/SplitIndicator.qml</file>
+		<file alias="AnalyzeView.qml">../src/AnalyzeView/AnalyzeView.qml</file>
+		<file alias="AppSettings.qml">../src/ui/AppSettings.qml</file>
+		<file alias="BluetoothSettings.qml">../src/ui/preferences/BluetoothSettings.qml</file>
+		<file alias="CameraPageWidget.qml">../src/FlightMap/Widgets/CameraPageWidget.qml</file>
+		<file alias="CorridorScanEditor.qml">../src/PlanView/CorridorScanEditor.qml</file>
+		<file alias="CustomCommandWidget.qml">../src/ViewWidgets/CustomCommandWidget.qml</file>
+		<file alias="DebugWindow.qml">../src/ui/preferences/DebugWindow.qml</file>
+		<file alias="ESP8266Component.qml">../src/AutoPilotPlugins/Common/ESP8266Component.qml</file>
+		<file alias="ESP8266ComponentSummary.qml">../src/AutoPilotPlugins/Common/ESP8266ComponentSummary.qml</file>
+		<file alias="ExitWithErrorWindow.qml">../src/ui/ExitWithErrorWindow.qml</file>
+		<file alias="FirmwareUpgrade.qml">../src/VehicleSetup/FirmwareUpgrade.qml</file>
+		<file alias="FlightDisplayViewDummy.qml">../src/FlightDisplay/FlightDisplayViewDummy.qml</file>
+		<file alias="FlightDisplayViewUVC.qml">../src/FlightDisplay/FlightDisplayViewUVC.qml</file>
+		<file alias="FWLandingPatternEditor.qml">../src/PlanView/FWLandingPatternEditor.qml</file>
+		<file alias="GeneralSettings.qml">../src/ui/preferences/GeneralSettings.qml</file>
+		<file alias="GeoTagPage.qml">../src/AnalyzeView/GeoTagPage.qml</file>
+		<file alias="HealthPageWidget.qml">../src/FlightMap/Widgets/HealthPageWidget.qml</file>
+		<file alias="HelpSettings.qml">../src/ui/preferences/HelpSettings.qml</file>
+		<file alias="JoystickConfig.qml">../src/VehicleSetup/JoystickConfig.qml</file>
+		<file alias="JoystickConfigAdvanced.qml">../src/VehicleSetup/JoystickConfigAdvanced.qml</file>
+		<file alias="JoystickConfigButtons.qml">../src/VehicleSetup/JoystickConfigButtons.qml</file>
+		<file alias="JoystickConfigCalibration.qml">../src/VehicleSetup/JoystickConfigCalibration.qml</file>
+		<file alias="JoystickConfigGeneral.qml">../src/VehicleSetup/JoystickConfigGeneral.qml</file>
+		<file alias="LinkSettings.qml">../src/ui/preferences/LinkSettings.qml</file>
+		<file alias="LogDownloadPage.qml">../src/AnalyzeView/LogDownloadPage.qml</file>
+		<file alias="LogReplaySettings.qml">../src/ui/preferences/LogReplaySettings.qml</file>
+		<file alias="MainRootWindow.qml">../src/ui/MainRootWindow.qml</file>
+		<file alias="MavlinkConsolePage.qml">../src/AnalyzeView/MavlinkConsolePage.qml</file>
+		<file alias="MAVLinkInspectorPage.qml">../src/AnalyzeView/MAVLinkInspectorPage.qml</file>
+		<file alias="MavlinkSettings.qml">../src/ui/preferences/MavlinkSettings.qml</file>
+		<file alias="MicrohardSettings.qml">../src/Microhard/MicrohardSettings.qml</file>
+		<file alias="MissionSettingsEditor.qml">../src/PlanView/MissionSettingsEditor.qml</file>
+		<file alias="MockLink.qml">../src/ui/preferences/MockLink.qml</file>
+		<file alias="MockLinkSettings.qml">../src/ui/preferences/MockLinkSettings.qml</file>
+		<file alias="MotorComponent.qml">../src/AutoPilotPlugins/Common/MotorComponent.qml</file>
+		<file alias="OfflineMap.qml">../src/QtLocationPlugin/QMLControl/OfflineMap.qml</file>
+		<file alias="PlanToolBar.qml">../src/PlanView/PlanToolBar.qml</file>
+		<file alias="PlanToolBarIndicators.qml">../src/PlanView/PlanToolBarIndicators.qml</file>
+		<file alias="PlanView.qml">../src/PlanView/PlanView.qml</file>
+		<file alias="PreFlightCheckList.qml">../src/FlightDisplay/PreFlightCheckList.qml</file>
+		<file alias="PX4FlowSensor.qml">../src/VehicleSetup/PX4FlowSensor.qml</file>
+		<file alias="QGCInstrumentWidget.qml">../src/FlightMap/Widgets/QGCInstrumentWidget.qml</file>
+		<file alias="QGCInstrumentWidgetAlternate.qml">../src/FlightMap/Widgets/QGCInstrumentWidgetAlternate.qml</file>
+		<file alias="QGCViewDialogContainer.qml">../src/QmlControls/QGCViewDialogContainer.qml</file>
+		<file alias="QGroundControl/Controls/AnalyzePage.qml">../src/AnalyzeView/AnalyzePage.qml</file>
+		<file alias="QGroundControl/Controls/AppMessages.qml">../src/QmlControls/AppMessages.qml</file>
+		<file alias="QGroundControl/Controls/AxisMonitor.qml">../src/QmlControls/AxisMonitor.qml</file>
+		<file alias="QGroundControl/Controls/CameraCalcCamera.qml">../src/PlanView/CameraCalcCamera.qml</file>
+		<file alias="QGroundControl/Controls/CameraCalcGrid.qml">../src/PlanView/CameraCalcGrid.qml</file>
+		<file alias="QGroundControl/Controls/CameraSection.qml">../src/PlanView/CameraSection.qml</file>
+		<file alias="QGroundControl/Controls/ClickableColor.qml">../src/QmlControls/ClickableColor.qml</file>
+		<file alias="QGroundControl/Controls/CorridorScanMapVisual.qml">../src/PlanView/CorridorScanMapVisual.qml</file>
+		<file alias="QGroundControl/Controls/DeadMouseArea.qml">../src/QmlControls/DeadMouseArea.qml</file>
+		<file alias="QGroundControl/Controls/DropButton.qml">../src/QmlControls/DropButton.qml</file>
+		<file alias="QGroundControl/Controls/DropPanel.qml">../src/QmlControls/DropPanel.qml</file>
+		<file alias="QGroundControl/Controls/EditPositionDialog.qml">../src/QmlControls/EditPositionDialog.qml</file>
+		<file alias="QGroundControl/Controls/ExclusiveGroupItem.qml">../src/QmlControls/ExclusiveGroupItem.qml</file>
+		<file alias="QGroundControl/Controls/FactSliderPanel.qml">../src/QmlControls/FactSliderPanel.qml</file>
+		<file alias="QGroundControl/Controls/FirstRunPrompt.qml">../src/FirstRunPromptDialogs/FirstRunPrompt.qml</file>
+		<file alias="QGroundControl/Controls/FileButton.qml">../src/QmlControls/FileButton.qml</file>
+		<file alias="QGroundControl/Controls/FlightModeDropdown.qml">../src/QmlControls/FlightModeDropdown.qml</file>
+		<file alias="QGroundControl/Controls/FlightModeMenu.qml">../src/QmlControls/FlightModeMenu.qml</file>
+		<file alias="QGroundControl/Controls/FWLandingPatternMapVisual.qml">../src/PlanView/FWLandingPatternMapVisual.qml</file>
+		<file alias="QGroundControl/Controls/GeoFenceEditor.qml">../src/PlanView/GeoFenceEditor.qml</file>
+		<file alias="QGroundControl/Controls/GeoFenceMapVisuals.qml">../src/PlanView/GeoFenceMapVisuals.qml</file>
+		<file alias="QGroundControl/Controls/HorizontalFactValueGrid.qml">../src/QmlControls/HorizontalFactValueGrid.qml</file>
+		<file alias="QGroundControl/Controls/IndicatorButton.qml">../src/QmlControls/IndicatorButton.qml</file>
+		<file alias="QGroundControl/Controls/InstrumentValueLabel.qml">../src/QmlControls/InstrumentValueLabel.qml</file>
+		<file alias="QGroundControl/Controls/InstrumentValueValue.qml">../src/QmlControls/InstrumentValueValue.qml</file>
+		<file alias="QGroundControl/Controls/InstrumentValueEditDialog.qml">../src/QmlControls/InstrumentValueEditDialog.qml</file>
+		<file alias="QGroundControl/Controls/JoystickThumbPad.qml">../src/QmlControls/JoystickThumbPad.qml</file>
+		<file alias="QGroundControl/Controls/KMLOrSHPFileDialog.qml">../src/QmlControls/KMLOrSHPFileDialog.qml</file>
+		<file alias="QGroundControl/Controls/LogReplayStatusBar.qml">../src/QmlControls/LogReplayStatusBar.qml</file>
+		<file alias="QGroundControl/Controls/MainWindowSavedState.qml">../src/QmlControls/MainWindowSavedState.qml</file>
+		<file alias="QGroundControl/Controls/MAVLinkChart.qml">../src/QmlControls/MAVLinkChart.qml</file>
+		<file alias="QGroundControl/Controls/MAVLinkMessageButton.qml">../src/QmlControls/MAVLinkMessageButton.qml</file>
+		<file alias="QGroundControl/Controls/MissionCommandDialog.qml">../src/QmlControls/MissionCommandDialog.qml</file>
+		<file alias="QGroundControl/Controls/MissionItemEditor.qml">../src/PlanView/MissionItemEditor.qml</file>
+		<file alias="QGroundControl/Controls/MissionItemIndexLabel.qml">../src/QmlControls/MissionItemIndexLabel.qml</file>
+		<file alias="QGroundControl/Controls/MissionItemMapVisual.qml">../src/PlanView/MissionItemMapVisual.qml</file>
+		<file alias="QGroundControl/Controls/MissionItemStatus.qml">../src/PlanView/MissionItemStatus.qml</file>
+		<file alias="QGroundControl/Controls/ModeSwitchDisplay.qml">../src/QmlControls/ModeSwitchDisplay.qml</file>
+		<file alias="QGroundControl/Controls/MultiRotorMotorDisplay.qml">../src/QmlControls/MultiRotorMotorDisplay.qml</file>
+		<file alias="QGroundControl/Controls/OfflineMapButton.qml">../src/QmlControls/OfflineMapButton.qml</file>
+		<file alias="QGroundControl/Controls/PageView.qml">../src/QmlControls/PageView.qml</file>
+		<file alias="QGroundControl/Controls/ParameterEditor.qml">../src/QmlControls/ParameterEditor.qml</file>
+		<file alias="QGroundControl/Controls/ParameterEditorDialog.qml">../src/QmlControls/ParameterEditorDialog.qml</file>
+		<file alias="QGroundControl/Controls/PIDTuning.qml">../src/QmlControls/PIDTuning.qml</file>
+		<file alias="QGroundControl/Controls/PlanEditToolbar.qml">../src/PlanView/PlanEditToolbar.qml</file>
+		<file alias="QGroundControl/Controls/PreFlightCheckButton.qml">../src/QmlControls/PreFlightCheckButton.qml</file>
+		<file alias="QGroundControl/Controls/PreFlightCheckGroup.qml">../src/QmlControls/PreFlightCheckGroup.qml</file>
+		<file alias="QGroundControl/Controls/PreFlightCheckModel.qml">../src/QmlControls/PreFlightCheckModel.qml</file>
+		<file alias="QGroundControl/Controls/QGCButton.qml">../src/QmlControls/QGCButton.qml</file>
+		<file alias="QGroundControl/Controls/QGCCheckBox.qml">../src/QmlControls/QGCCheckBox.qml</file>
+		<file alias="QGroundControl/Controls/QGCColoredImage.qml">../src/QmlControls/QGCColoredImage.qml</file>
+		<file alias="QGroundControl/Controls/QGCControlDebug.qml">../src/QmlControls/QGCControlDebug.qml</file>
+		<file alias="QGroundControl/Controls/QGCComboBox.qml">../src/QmlControls/QGCComboBox.qml</file>
+		<file alias="QGroundControl/Controls/QGCFileDialog.qml">../src/QmlControls/QGCFileDialog.qml</file>
+		<file alias="QGroundControl/Controls/QGCFlickable.qml">../src/QmlControls/QGCFlickable.qml</file>
+		<file alias="QGroundControl/Controls/QGCFlickableHorizontalIndicator.qml">../src/QmlControls/QGCFlickableHorizontalIndicator.qml</file>
+		<file alias="QGroundControl/Controls/QGCFlickableVerticalIndicator.qml">../src/QmlControls/QGCFlickableVerticalIndicator.qml</file>
+		<file alias="QGroundControl/Controls/QGCGroupBox.qml">../src/QmlControls/QGCGroupBox.qml</file>
+		<file alias="QGroundControl/Controls/QGCHoverButton.qml">../src/QmlControls/QGCHoverButton.qml</file>
+		<file alias="QGroundControl/Controls/QGCLabel.qml">../src/QmlControls/QGCLabel.qml</file>
+		<file alias="QGroundControl/Controls/QGCListView.qml">../src/QmlControls/QGCListView.qml</file>
+		<file alias="QGroundControl/Controls/QGCMapCircleVisuals.qml">../src/MissionManager/QGCMapCircleVisuals.qml</file>
+		<file alias="QGroundControl/Controls/QGCMapLabel.qml">../src/QmlControls/QGCMapLabel.qml</file>
+		<file alias="QGroundControl/Controls/QGCMapPolygonVisuals.qml">../src/MissionManager/QGCMapPolygonVisuals.qml</file>
+		<file alias="QGroundControl/Controls/QGCMapPolylineVisuals.qml">../src/MissionManager/QGCMapPolylineVisuals.qml</file>
+		<file alias="QGroundControl/Controls/QGCMenu.qml">../src/QmlControls/QGCMenu.qml</file>
+		<file alias="QGroundControl/Controls/QGCMenuItem.qml">../src/QmlControls/QGCMenuItem.qml</file>
+		<file alias="QGroundControl/Controls/QGCMenuSeparator.qml">../src/QmlControls/QGCMenuSeparator.qml</file>
+		<file alias="QGroundControl/Controls/QGCMouseArea.qml">../src/QmlControls/QGCMouseArea.qml</file>
+		<file alias="QGroundControl/Controls/QGCMovableItem.qml">../src/QmlControls/QGCMovableItem.qml</file>
+		<file alias="QGroundControl/Controls/QGCPopupDialog.qml">../src/QmlControls/QGCPopupDialog.qml</file>
+		<file alias="QGroundControl/Controls/QGCPopupDialogContainer.qml">../src/QmlControls/QGCPopupDialogContainer.qml</file>
+		<file alias="QGroundControl/Controls/QGCPipOverlay.qml">../src/QmlControls/QGCPipOverlay.qml</file>
+		<file alias="QGroundControl/Controls/QGCPipState.qml">../src/QmlControls/QGCPipState.qml</file>
+		<file alias="QGroundControl/Controls/QGCRadioButton.qml">../src/QmlControls/QGCRadioButton.qml</file>
+		<file alias="QGroundControl/Controls/QGCSlider.qml">../src/QmlControls/QGCSlider.qml</file>
+		<file alias="QGroundControl/Controls/QGCSwitch.qml">../src/QmlControls/QGCSwitch.qml</file>
+		<file alias="QGroundControl/Controls/QGCTabBar.qml">../src/QmlControls/QGCTabBar.qml</file>
+		<file alias="QGroundControl/Controls/QGCTabButton.qml">../src/QmlControls/QGCTabButton.qml</file>
+		<file alias="QGroundControl/Controls/QGCTextField.qml">../src/QmlControls/QGCTextField.qml</file>
+		<file alias="QGroundControl/Controls/QGCToolBarButton.qml">../src/QmlControls/QGCToolBarButton.qml</file>
+		<file alias="QGroundControl/Controls/QGCToolInsets.qml">../src/QmlControls/QGCToolInsets.qml</file>
+		<file alias="QGroundControl/Controls/QGCViewDialog.qml">../src/QmlControls/QGCViewDialog.qml</file>
+		<file alias="QGroundControl/Controls/QGCViewMessage.qml">../src/QmlControls/QGCViewMessage.qml</file>
+		<file alias="QGroundControl/Controls/qmldir">../src/QmlControls/QGroundControl/Controls/qmldir</file>
+		<file alias="QGroundControl/Controls/RallyPointEditorHeader.qml">../src/PlanView/RallyPointEditorHeader.qml</file>
+		<file alias="QGroundControl/Controls/RallyPointItemEditor.qml">../src/PlanView/RallyPointItemEditor.qml</file>
+		<file alias="QGroundControl/Controls/RallyPointMapVisuals.qml">../src/PlanView/RallyPointMapVisuals.qml</file>
+		<file alias="QGroundControl/Controls/RCChannelMonitor.qml">../src/QmlControls/RCChannelMonitor.qml</file>
+		<file alias="QGroundControl/Controls/RCToParamDialog.qml">../src/QmlControls/RCToParamDialog.qml</file>
+		<file alias="QGroundControl/Controls/RoundButton.qml">../src/QmlControls/RoundButton.qml</file>
+		<file alias="QGroundControl/Controls/SectionHeader.qml">../src/QmlControls/SectionHeader.qml</file>
+		<file alias="QGroundControl/Controls/SetupPage.qml">../src/AutoPilotPlugins/Common/SetupPage.qml</file>
+		<file alias="QGroundControl/Controls/SignalStrength.qml">../src/ui/toolbar/SignalStrength.qml</file>
+		<file alias="QGroundControl/Controls/SimpleItemMapVisual.qml">../src/PlanView/SimpleItemMapVisual.qml</file>
+		<file alias="QGroundControl/Controls/SliderSwitch.qml">../src/QmlControls/SliderSwitch.qml</file>
+		<file alias="QGroundControl/Controls/StructureScanMapVisual.qml">../src/PlanView/StructureScanMapVisual.qml</file>
+		<file alias="QGroundControl/Controls/SubMenuButton.qml">../src/QmlControls/SubMenuButton.qml</file>
+		<file alias="QGroundControl/Controls/SurveyMapVisual.qml">../src/PlanView/SurveyMapVisual.qml</file>
+		<file alias="QGroundControl/Controls/TerrainStatus.qml">../src/PlanView/TerrainStatus.qml</file>
+		<file alias="QGroundControl/Controls/TakeoffItemMapVisual.qml">../src/PlanView/TakeoffItemMapVisual.qml</file>
+		<file alias="QGroundControl/Controls/ToolBarBase.qml">../src/ui/toolbar/ToolBarBase.qml</file>
+		<file alias="QGroundControl/Controls/ToolStrip.qml">../src/QmlControls/ToolStrip.qml</file>
+		<file alias="QGroundControl/Controls/TransectStyleComplexItemStats.qml">../src/PlanView/TransectStyleComplexItemStats.qml</file>
+		<file alias="QGroundControl/Controls/VehicleRotationCal.qml">../src/QmlControls/VehicleRotationCal.qml</file>
+		<file alias="QGroundControl/Controls/VehicleSummaryRow.qml">../src/QmlControls/VehicleSummaryRow.qml</file>
+		<file alias="QGroundControl/Controls/VerticalFactValueGrid.qml">../src/QmlControls/VerticalFactValueGrid.qml</file>
+		<file alias="QGroundControl/Controls/ViewWidget.qml">../src/ViewWidgets/ViewWidget.qml</file>
+		<file alias="QGroundControl/Controls/VTOLLandingPatternMapVisual.qml">../src/PlanView/VTOLLandingPatternMapVisual.qml</file>
+		<file alias="QGroundControl/FactControls/AltitudeFactTextField.qml">../src/FactSystem/FactControls/AltitudeFactTextField.qml</file>
+		<file alias="QGroundControl/FactControls/FactBitmask.qml">../src/FactSystem/FactControls/FactBitmask.qml</file>
+		<file alias="QGroundControl/FactControls/FactCheckBox.qml">../src/FactSystem/FactControls/FactCheckBox.qml</file>
+		<file alias="QGroundControl/FactControls/FactComboBox.qml">../src/FactSystem/FactControls/FactComboBox.qml</file>
+		<file alias="QGroundControl/FactControls/FactLabel.qml">../src/FactSystem/FactControls/FactLabel.qml</file>
+		<file alias="QGroundControl/FactControls/FactTextField.qml">../src/FactSystem/FactControls/FactTextField.qml</file>
+		<file alias="QGroundControl/FactControls/FactTextFieldGrid.qml">../src/FactSystem/FactControls/FactTextFieldGrid.qml</file>
+		<file alias="QGroundControl/FactControls/FactTextFieldRow.qml">../src/FactSystem/FactControls/FactTextFieldRow.qml</file>
+		<file alias="QGroundControl/FactControls/FactTextFieldSlider.qml">../src/FactSystem/FactControls/FactTextFieldSlider.qml</file>
+		<file alias="QGroundControl/FactControls/FactValueSlider.qml">../src/FactSystem/FactControls/FactValueSlider.qml</file>
+		<file alias="QGroundControl/FactControls/qmldir">../src/QmlControls/QGroundControl/FactControls/qmldir</file>
+		<file alias="QGroundControl/FlightDisplay/FlightDisplayViewVideo.qml">../src/FlightDisplay/FlightDisplayViewVideo.qml</file>
+		<file alias="QGroundControl/FlightDisplay/FlightDisplayViewWidgets.qml">../src/FlightDisplay/FlightDisplayViewWidgets.qml</file>
+		<file alias="QGroundControl/FlightDisplay/FlyViewAirspaceIndicator.qml">../src/FlightDisplay/FlyViewAirspaceIndicator.qml</file>
+		<file alias="QGroundControl/FlightDisplay/FlyView.qml">../src/FlightDisplay/FlyView.qml</file>
+		<file alias="QGroundControl/FlightDisplay/FlyViewCustomLayer.qml">../src/FlightDisplay/FlyViewCustomLayer.qml</file>
+		<file alias="QGroundControl/FlightDisplay/FlyViewInstrumentPanel.qml">../src/FlightDisplay/FlyViewInstrumentPanel.qml</file>
+		<file alias="QGroundControl/FlightDisplay/FlyViewMap.qml">../src/FlightDisplay/FlyViewMap.qml</file>
+		<file alias="QGroundControl/FlightDisplay/FlyViewMissionCompleteDialog.qml">../src/FlightDisplay/FlyViewMissionCompleteDialog.qml</file>
+		<file alias="QGroundControl/FlightDisplay/FlyViewPreFlightChecklistPopup.qml">../src/FlightDisplay/FlyViewPreFlightChecklistPopup.qml</file>
+		<file alias="QGroundControl/FlightDisplay/FlyViewToolStrip.qml">../src/FlightDisplay/FlyViewToolStrip.qml</file>
+		<file alias="QGroundControl/FlightDisplay/FlyViewToolStripActionList.qml">../src/FlightDisplay/FlyViewToolStripActionList.qml</file>
+		<file alias="QGroundControl/FlightDisplay/FlyViewVideo.qml">../src/FlightDisplay/FlyViewVideo.qml</file>
+		<file alias="QGroundControl/FlightDisplay/FlyViewWidgetLayer.qml">../src/FlightDisplay/FlyViewWidgetLayer.qml</file>
+		<file alias="QGroundControl/FlightDisplay/GuidedActionActionList.qml">../src/FlightDisplay/GuidedActionActionList.qml</file>
+		<file alias="QGroundControl/FlightDisplay/GuidedActionConfirm.qml">../src/FlightDisplay/GuidedActionConfirm.qml</file>
+		<file alias="QGroundControl/FlightDisplay/GuidedActionsController.qml">../src/FlightDisplay/GuidedActionsController.qml</file>
+		<file alias="QGroundControl/FlightDisplay/GuidedActionLand.qml">../src/FlightDisplay/GuidedActionLand.qml</file>
+		<file alias="QGroundControl/FlightDisplay/GuidedActionList.qml">../src/FlightDisplay/GuidedActionList.qml</file>
+		<file alias="QGroundControl/FlightDisplay/GuidedActionTakeoff.qml">../src/FlightDisplay/GuidedActionTakeoff.qml</file>
+		<file alias="QGroundControl/FlightDisplay/GuidedActionPause.qml">../src/FlightDisplay/GuidedActionPause.qml</file>
+		<file alias="QGroundControl/FlightDisplay/GuidedActionRTL.qml">../src/FlightDisplay/GuidedActionRTL.qml</file>
+		<file alias="QGroundControl/FlightDisplay/GuidedAltitudeSlider.qml">../src/FlightDisplay/GuidedAltitudeSlider.qml</file>
+		<file alias="QGroundControl/FlightDisplay/GuidedToolStripAction.qml">../src/FlightDisplay/GuidedToolStripAction.qml</file>
+		<file alias="QGroundControl/FlightDisplay/MultiVehicleList.qml">../src/FlightDisplay/MultiVehicleList.qml</file>
+		<file alias="QGroundControl/FlightDisplay/MultiVehiclePanel.qml">../src/FlightDisplay/MultiVehiclePanel.qml</file>
+		<file alias="QGroundControl/FlightDisplay/PreFlightBatteryCheck.qml">../src/FlightDisplay/PreFlightBatteryCheck.qml</file>
+		<file alias="QGroundControl/FlightDisplay/PreFlightGPSCheck.qml">../src/FlightDisplay/PreFlightGPSCheck.qml</file>
+		<file alias="QGroundControl/FlightDisplay/PreFlightRCCheck.qml">../src/FlightDisplay/PreFlightRCCheck.qml</file>
+		<file alias="QGroundControl/FlightDisplay/PreFlightSensorsHealthCheck.qml">../src/FlightDisplay/PreFlightSensorsHealthCheck.qml</file>
+		<file alias="QGroundControl/FlightDisplay/PreFlightSoundCheck.qml">../src/FlightDisplay/PreFlightSoundCheck.qml</file>
+		<file alias="QGroundControl/FlightDisplay/PreFlightCheckListShowAction.qml">../src/FlightDisplay/PreFlightCheckListShowAction.qml</file>
+		<file alias="QGroundControl/FlightDisplay/TerrainProgress.qml">../src/FlightDisplay/TerrainProgress.qml</file>
+		<file alias="QGroundControl/FlightDisplay/VehicleWarnings.qml">../src/FlightDisplay/VehicleWarnings.qml</file>
+		<file alias="QGroundControl/FlightDisplay/qmldir">../src/QmlControls/QGroundControl/FlightDisplay/qmldir</file>
+		<file alias="QGroundControl/FlightMap/CameraTriggerIndicator.qml">../src/FlightMap/MapItems/CameraTriggerIndicator.qml</file>
+		<file alias="QGroundControl/FlightMap/CenterMapDropButton.qml">../src/FlightMap/Widgets/CenterMapDropButton.qml</file>
+		<file alias="QGroundControl/FlightMap/CenterMapDropPanel.qml">../src/FlightMap/Widgets/CenterMapDropPanel.qml</file>
+		<file alias="QGroundControl/FlightMap/CompassRing.qml">../src/FlightMap/Widgets/CompassRing.qml</file>
+		<file alias="QGroundControl/FlightMap/CustomMapItems.qml">../src/FlightMap/MapItems/CustomMapItems.qml</file>
+		<file alias="QGroundControl/FlightMap/FlightMap.qml">../src/FlightMap/FlightMap.qml</file>
+		<file alias="QGroundControl/FlightMap/InstrumentSwipeView.qml">../src/FlightMap/Widgets/InstrumentSwipeView.qml</file>
+		<file alias="QGroundControl/FlightMap/MapFitFunctions.qml">../src/FlightMap/Widgets/MapFitFunctions.qml</file>
+		<file alias="QGroundControl/FlightMap/MapScale.qml">../src/FlightMap/MapScale.qml</file>
+		<file alias="QGroundControl/FlightMap/MissionItemIndicator.qml">../src/FlightMap/MapItems/MissionItemIndicator.qml</file>
+		<file alias="QGroundControl/FlightMap/MissionItemIndicatorDrag.qml">../src/FlightMap/MapItems/MissionItemIndicatorDrag.qml</file>
+		<file alias="QGroundControl/FlightMap/MissionItemView.qml">../src/FlightMap/MapItems/MissionItemView.qml</file>
+		<file alias="QGroundControl/FlightMap/MissionLineView.qml">../src/FlightMap/MapItems/MissionLineView.qml</file>
+		<file alias="QGroundControl/FlightMap/PlanMapItems.qml">../src/FlightMap/MapItems/PlanMapItems.qml</file>
+		<file alias="QGroundControl/FlightMap/PolygonEditor.qml">../src/FlightMap/MapItems/PolygonEditor.qml</file>
+		<file alias="QGroundControl/FlightMap/QGCArtificialHorizon.qml">../src/FlightMap/Widgets/QGCArtificialHorizon.qml</file>
+		<file alias="QGroundControl/FlightMap/QGCAttitudeHUD.qml">../src/FlightMap/Widgets/QGCAttitudeHUD.qml</file>
+		<file alias="QGroundControl/FlightMap/QGCAttitudeWidget.qml">../src/FlightMap/Widgets/QGCAttitudeWidget.qml</file>
+		<file alias="QGroundControl/FlightMap/QGCCompassWidget.qml">../src/FlightMap/Widgets/QGCCompassWidget.qml</file>
+		<file alias="QGroundControl/FlightMap/QGCPitchIndicator.qml">../src/FlightMap/Widgets/QGCPitchIndicator.qml</file>
+		<file alias="QGroundControl/FlightMap/QGCVideoBackground.qml">../src/FlightMap/QGCVideoBackground.qml</file>
+		<file alias="QGroundControl/FlightMap/qmldir">../src/QmlControls/QGroundControl/FlightMap/qmldir</file>
+		<file alias="QGroundControl/FlightMap/VehicleMapItem.qml">../src/FlightMap/MapItems/VehicleMapItem.qml</file>
+		<file alias="QGroundControl/ScreenTools/qmldir">../src/QmlControls/QGroundControl/ScreenTools/qmldir</file>
+		<file alias="QGroundControl/ScreenTools/ScreenTools.qml">../src/QmlControls/ScreenTools.qml</file>
+		<file alias="QmlTest.qml">../src/QmlControls/QmlTest.qml</file>
+		<file alias="RadioComponent.qml">../src/AutoPilotPlugins/Common/RadioComponent.qml</file>
+		<file alias="SerialSettings.qml">../src/ui/preferences/SerialSettings.qml</file>
+		<file alias="SetupParameterEditor.qml">../src/VehicleSetup/SetupParameterEditor.qml</file>
+		<file alias="SetupView.qml">../src/VehicleSetup/SetupView.qml</file>
+		<file alias="SimpleItemEditor.qml">../src/PlanView/SimpleItemEditor.qml</file>
+		<file alias="StructureScanEditor.qml">../src/PlanView/StructureScanEditor.qml</file>
+		<file alias="SurveyItemEditor.qml">../src/PlanView/SurveyItemEditor.qml</file>
+		<file alias="SyslinkComponent.qml">../src/AutoPilotPlugins/Common/SyslinkComponent.qml</file>
+		<file alias="TaisyncSettings.qml">../src/Taisync/TaisyncSettings.qml</file>
+		<file alias="TcpSettings.qml">../src/ui/preferences/TcpSettings.qml</file>
+		<file alias="test.qml">../src/test.qml</file>
+		<file alias="UdpSettings.qml">../src/ui/preferences/UdpSettings.qml</file>
+		<file alias="ValuePageWidget.qml">../src/FlightMap/Widgets/ValuePageWidget.qml</file>
+		<file alias="VehicleSummary.qml">../src/VehicleSetup/VehicleSummary.qml</file>
+		<file alias="VibrationPageWidget.qml">../src/FlightMap/Widgets/VibrationPageWidget.qml</file>
+		<file alias="VideoPageWidget.qml">../src/FlightMap/Widgets/VideoPageWidget.qml</file>
+		<file alias="VirtualJoystick.qml">../src/FlightDisplay/VirtualJoystick.qml</file>
+		<file alias="VTOLLandingPatternEditor.qml">../src/PlanView/VTOLLandingPatternEditor.qml</file>
+	</qresource>
+	<qresource prefix="/FirstRunPromptDialogs">
+		<file alias="UnitsFirstRunPrompt.qml">../src/FirstRunPromptDialogs/UnitsFirstRunPrompt.qml</file>
+		<file alias="OfflineVehicleFirstRunPrompt.qml">../src/FirstRunPromptDialogs/OfflineVehicleFirstRunPrompt.qml</file>
+	</qresource>
+	<qresource prefix="/json">
+		<file alias="ADSBVehicleManager.SettingsGroup.json">../src/Settings/ADSBVehicleManager.SettingsGroup.json</file>
+		<file alias="APMMavlinkStreamRate.SettingsGroup.json">../src/Settings/APMMavlinkStreamRate.SettingsGroup.json</file>
+		<file alias="App.SettingsGroup.json">../src/Settings/App.SettingsGroup.json</file>
+		<file alias="AutoConnect.SettingsGroup.json">../src/Settings/AutoConnect.SettingsGroup.json</file>
+		<file alias="BrandImage.SettingsGroup.json">../src/Settings/BrandImage.SettingsGroup.json</file>
+		<file alias="BreachReturn.FactMetaData.json">../src/MissionManager/BreachReturn.FactMetaData.json</file>
+		<file alias="CameraCalc.FactMetaData.json">../src/MissionManager/CameraCalc.FactMetaData.json</file>
+		<file alias="CameraSection.FactMetaData.json">../src/MissionManager/CameraSection.FactMetaData.json</file>
+		<file alias="CameraSpec.FactMetaData.json">../src/MissionManager/CameraSpec.FactMetaData.json</file>
+		<file alias="CorridorScan.SettingsGroup.json">../src/MissionManager/CorridorScan.SettingsGroup.json</file>
+		<file alias="EditPositionDialog.FactMetaData.json">../src/QmlControls/EditPositionDialog.FactMetaData.json</file>
+		<file alias="FirmwareUpgrade.SettingsGroup.json">../src/Settings/FirmwareUpgrade.SettingsGroup.json</file>
+		<file alias="FlightMap.SettingsGroup.json">../src/Settings/FlightMap.SettingsGroup.json</file>
+		<file alias="FlyView.SettingsGroup.json">../src/Settings/FlyView.SettingsGroup.json</file>
+		<file alias="FWLandingPattern.FactMetaData.json">../src/MissionManager/FWLandingPattern.FactMetaData.json</file>
+		<file alias="MavCmdInfoCommon.json">../src/MissionManager/MavCmdInfoCommon.json</file>
+		<file alias="MavCmdInfoFixedWing.json">../src/MissionManager/MavCmdInfoFixedWing.json</file>
+		<file alias="MavCmdInfoMultiRotor.json">../src/MissionManager/MavCmdInfoMultiRotor.json</file>
+		<file alias="MavCmdInfoRover.json">../src/MissionManager/MavCmdInfoRover.json</file>
+		<file alias="MavCmdInfoSub.json">../src/MissionManager/MavCmdInfoSub.json</file>
+		<file alias="MavCmdInfoVTOL.json">../src/MissionManager/MavCmdInfoVTOL.json</file>
+		<file alias="MissionSettings.FactMetaData.json">../src/MissionManager/MissionSettings.FactMetaData.json</file>
+		<file alias="OfflineMaps.SettingsGroup.json">../src/Settings/OfflineMaps.SettingsGroup.json</file>
+		<file alias="PlanView.SettingsGroup.json">../src/Settings/PlanView.SettingsGroup.json</file>
+		<file alias="QGCMapCircle.Facts.json">../src/MissionManager/QGCMapCircle.Facts.json</file>
+		<file alias="RallyPoint.FactMetaData.json">../src/MissionManager/RallyPoint.FactMetaData.json</file>
+		<file alias="RCToParamDialog.FactMetaData.json">../src/QmlControls/RCToParamDialog.FactMetaData.json</file>
+		<file alias="RTK.SettingsGroup.json">../src/Settings/RTK.SettingsGroup.json</file>
+		<file alias="SpeedSection.FactMetaData.json">../src/MissionManager/SpeedSection.FactMetaData.json</file>
+		<file alias="StructureScan.SettingsGroup.json">../src/MissionManager/StructureScan.SettingsGroup.json</file>
+		<file alias="Survey.SettingsGroup.json">../src/MissionManager/Survey.SettingsGroup.json</file>
+		<file alias="TransectStyle.SettingsGroup.json">../src/MissionManager/TransectStyle.SettingsGroup.json</file>
+		<file alias="Units.SettingsGroup.json">../src/Settings/Units.SettingsGroup.json</file>
+		<file alias="USBBoardInfo.json">../src/comm/USBBoardInfo.json</file>
+		<file alias="Vehicle/BatteryFact.json">../src/Vehicle/BatteryFact.json</file>
+		<file alias="Vehicle/ClockFact.json">../src/Vehicle/ClockFact.json</file>
+		<file alias="Vehicle/DistanceSensorFact.json">../src/Vehicle/DistanceSensorFact.json</file>
+		<file alias="Vehicle/EstimatorStatusFactGroup.json">../src/Vehicle/EstimatorStatusFactGroup.json</file>
+		<file alias="Vehicle/GPSFact.json">../src/Vehicle/GPSFact.json</file>
+		<file alias="Vehicle/GPSRTKFact.json">../src/Vehicle/GPSRTKFact.json</file>
+		<file alias="Vehicle/SetpointFact.json">../src/Vehicle/SetpointFact.json</file>
+		<file alias="Vehicle/SubmarineFact.json">../src/Vehicle/SubmarineFact.json</file>
+		<file alias="Vehicle/TemperatureFact.json">../src/Vehicle/TemperatureFact.json</file>
+		<file alias="Vehicle/TerrainFactGroup.json">../src/Vehicle/TerrainFactGroup.json</file>
+		<file alias="Vehicle/VehicleFact.json">../src/Vehicle/VehicleFact.json</file>
+		<file alias="Vehicle/VibrationFact.json">../src/Vehicle/VibrationFact.json</file>
+		<file alias="Vehicle/WindFact.json">../src/Vehicle/WindFact.json</file>
+		<file alias="Video.SettingsGroup.json">../src/Settings/Video.SettingsGroup.json</file>
+		<file alias="VTOLLandingPattern.FactMetaData.json">../src/MissionManager/VTOLLandingPattern.FactMetaData.json</file>
+	</qresource>
+	<qresource prefix="/MockLink">
+		<file alias="APMArduSubMockLink.params">../src/comm/APMArduSubMockLink.params</file>
+		<file alias="PX4MockLink.params">../src/comm/PX4MockLink.params</file>
+	</qresource>
+</RCC>/os --privileged tizenrt/tizenrt:#!/usr/bin/env python
 import os
 
-import pdb
-
-import serial
-
-import time
-
-# import Packet
-from pybear import Packet
-
-from pybear.CONTROL_TABLE import *
-
-
-class BEAR(Packet.PKT):
-    """
-    Provides control of Dynamixel servos using PySerial
-    """
-    def __init__(self,
-                 port = '/dev/ttyUSB0',
-                 baudrate = '8000000',
-                 bytesize = serial.EIGHTBITS,
-                 parity = serial.PARITY_NONE,
-                 stopbits = serial.STOPBITS_ONE,
-                 timeout = None,
-                 bulk_timeout = None,
-                 debug = False):
-        """
-        Constructor for opening up the serial port.
-        :param port: Port address; Should be specified per object if using multiple chains
-        :param baudrate: Specified baudrate
-        """
-
-        self.port = port
-        self.baudrate = baudrate
-        self.bytesize = bytesize
-        self.parity = parity
-        self.stopbits = stopbits
-
-
-        self.bulk_timeout = bulk_timeout
-        self.timeout = timeout
-
-        self.connected = False
-        self.motors = {}
-
-        self.ascii_art = True
-
-        self.debug = debug # Option for ease of debugging. Set to false for proper operation.
-
-        super(BEAR, self).__init__(self.port, self.baudrate, timeout=timeout, bulk_timeout=bulk_timeout)
-
-        self.welcome_msg()
-
-    def welcome_msg(self):
-        if self.ascii_art:
-            os.system('clear')
-            print("==============================================================")
-            print("   __        __          _                               _ ")
-            print("   \ \      / /___  ___ | |_ __      __ ___    ___    __| | ")
-            print("    \ \ /\ / // _ \/ __|| __|\ \ /\ / // _ \  / _ \  / _` | ")
-            print("     \ V  V /|  __/\__ \| |_  \ V  V /| (_) || (_) || (_| | ")
-            print("      \_/\_/  \___||___/ \__|  \_/\_/  \___/  \___/  \__,_| ")
-            print("              ____         _             _    _             ")
-            print("             |  _ \  ___  | |__    ___  | |_ (_)  ___  ___  ")
-            print("             | |_) |/ _ \ | '_ \  / _ \ | __|| | / __|/ __| ")
-            print("             |  _ <| (_) || |_) || (_) || |_ | || (__ \__ \ ")
-            print("             |_| \_\\\___/ |_.__/  \___/  \__||_| \___||___/ ")
-            print("==============================================================")
-            print("=== PyBEAR by Westwood Robotics -- Last Updated 2020.06.29 ===")
-            print("==============================================================")
-
-    # =================================================================================================================
-    # ===== Configuration Registers
-
-    def get_id(self, *argv):
-        return [self.read_cfg_data(argv[idx], CFG_REG.ID) for idx in range(len(argv))]
-
-    def set_id(self, *argv):
-        self.multi_write_cfg_data(CFG_REG.ID, argv)
-
-    def get_mode(self, *argv):
-        return [self.read_cfg_data(argv[idx], CFG_REG.MODE) for idx in range(len(argv))]
-
-    def set_mode(self, *argv):
-        self.multi_write_cfg_data(CFG_REG.MODE, argv)
-
-    def get_baudrate(self, *argv):
-        return [self.read_cfg_data(argv[idx], CFG_REG.BAUDRATE) for idx in range(len(argv))]
-
-    def set_baudrate(self, *argv):
-        self.multi_write_cfg_data(CFG_REG.BAUDRATE, argv)
-
-    def get_homing_offset(self, *argv):
-        return [self.read_cfg_data(argv[idx], CFG_REG.HOMING_OFFSET) for idx in range(len(argv))]
-
-    def set_homing_offset(self, *argv):
-        self.multi_write_cfg_data(CFG_REG.HOMING_OFFSET, argv)
-
-    def get_p_gain_id(self, *argv):
-        return [self.read_cfg_data(argv[idx], CFG_REG.P_GAIN_ID) for idx in range(len(argv))]
-
-    def set_p_gain_id(self, *argv):
-        self.multi_write_cfg_data(CFG_REG.P_GAIN_ID, argv)
-
-    def get_i_gain_id(self, *argv):
-        return [self.read_cfg_data(argv[idx], CFG_REG.I_GAIN_ID) for idx in range(len(argv))]
-
-    def set_i_gain_id(self, *argv):
-        self.multi_write_cfg_data(CFG_REG.I_GAIN_ID, argv)
-
-    def get_d_gain_id(self, *argv):
-        return [self.read_cfg_data(argv[idx], CFG_REG.D_GAIN_ID) for idx in range(len(argv))]
-
-    def set_d_gain_id(self, *argv):
-        self.multi_write_cfg_data(CFG_REG.D_GAIN_ID, argv)
-
-    def get_p_gain_iq(self, *argv):
-        return [self.read_cfg_data(argv[idx], CFG_REG.P_GAIN_IQ) for idx in range(len(argv))]
-
-    def set_p_gain_iq(self, *argv):
-        self.multi_write_cfg_data(CFG_REG.P_GAIN_IQ, argv)
-
-    def get_i_gain_iq(self, *argv):
-        return [self.read_cfg_data(argv[idx], CFG_REG.I_GAIN_IQ) for idx in range(len(argv))]
-
-    def set_i_gain_iq(self, *argv):
-        self.multi_write_cfg_data(CFG_REG.I_GAIN_IQ, argv)
-
-    def get_d_gain_iq(self, *argv):
-        return [self.read_cfg_data(argv[idx], CFG_REG.D_GAIN_IQ) for idx in range(len(argv))]
-
-    def set_d_gain_iq(self, *argv):
-        self.multi_write_cfg_data(CFG_REG.D_GAIN_IQ, argv)
-
-    def get_p_gain_velocity(self, *argv):
-        return [self.read_cfg_data(argv[idx], CFG_REG.P_GAIN_VEL) for idx in range(len(argv))]
-
-    def set_p_gain_velocity(self, *argv):
-        self.multi_write_cfg_data(CFG_REG.P_GAIN_VEL, argv)
-
-    def get_i_gain_velocity(self, *argv):
-        return [self.read_cfg_data(argv[idx], CFG_REG.I_GAIN_VEL) for idx in range(len(argv))]
-
-    def set_i_gain_velocity(self, *argv):
-        self.multi_write_cfg_data(CFG_REG.I_GAIN_VEL, argv)
-
-    def get_d_gain_velocity(self, *argv):
-        return [self.read_cfg_data(argv[idx], CFG_REG.D_GAIN_VEL) for idx in range(len(argv))]
-
-    def set_d_gain_velocity(self, *argv):
-        self.multi_write_cfg_data(CFG_REG.D_GAIN_VEL, argv)
-
-    def get_p_gain_position(self, *argv):
-        return [self.read_cfg_data(argv[idx], CFG_REG.P_GAIN_POS) for idx in range(len(argv))]
-
-    def set_p_gain_position(self, *argv):
-        self.multi_write_cfg_data(CFG_REG.P_GAIN_POS, argv)
-
-    def get_i_gain_position(self, *argv):
-        return [self.read_cfg_data(argv[idx], CFG_REG.I_GAIN_POS) for idx in range(len(argv))]
-
-    def set_i_gain_position(self, *argv):
-        self.multi_write_cfg_data(CFG_REG.I_GAIN_POS, argv)
-
-    def get_d_gain_position(self, *argv):
-        return [self.read_cfg_data(argv[idx], CFG_REG.D_GAIN_POS) for idx in range(len(argv))]
-
-    def set_d_gain_position(self, *argv):
-        self.multi_write_cfg_data(CFG_REG.D_GAIN_POS, argv)
-
-    def get_p_gain_force(self, *argv):
-        return [self.read_cfg_data(argv[idx], CFG_REG.P_GAIN_FORCE) for idx in range(len(argv))]
-
-    def set_p_gain_force(self, *argv):
-        self.multi_write_cfg_data(CFG_REG.P_GAIN_FORCE, argv)
-
-    def get_i_gain_force(self, *argv):
-        return [self.read_cfg_data(argv[idx], CFG_REG.I_GAIN_FORCE) for idx in range(len(argv))]
-
-    def set_i_gain_force(self, *argv):
-        self.multi_write_cfg_data(CFG_REG.I_GAIN_FORCE, argv)
-
-    def get_d_gain_force(self, *argv):
-        return [self.read_cfg_data(argv[idx], CFG_REG.D_GAIN_FORCE) for idx in range(len(argv))]
-
-    def set_d_gain_force(self, *argv):
-        self.multi_write_cfg_data(CFG_REG.D_GAIN_FORCE, argv)
-
-    def get_limit_id_max(self, *argv):
-        print("This function is no longer valid.")
-
-    def set_limit_id_max(self, *argv):
-        print("This function is no longer valid.")
-
-    def get_limit_acc_max(self, *argv):
-        return [self.read_cfg_data(argv[idx], CFG_REG.LIMIT_ACC_MAX) for idx in range(len(argv))]
-
-    def set_limit_acc_max(self, *argv):
-        self.multi_write_cfg_data(CFG_REG.LIMIT_ACC_MAX, argv)
-
-    def get_limit_iq_max(self, *argv):
-        """
-        This function is depreciated. Use get_limit_i_max() instead.
-        """
-        return [self.read_cfg_data(argv[idx], CFG_REG.LIMIT_I_MAX) for idx in range(len(argv))]
-
-    def set_limit_iq_max(self, *argv):
-        """
-        This function is depreciated. Use set_limit_i_max() instead.
-        """
-        self.multi_write_cfg_data(CFG_REG.LIMIT_I_MAX, argv)
-
-    def get_limit_i_max(self, *argv):
-        return [self.read_cfg_data(argv[idx], CFG_REG.LIMIT_I_MAX) for idx in range(len(argv))]
-
-    def set_limit_i_max(self, *argv):
-        self.multi_write_cfg_data(CFG_REG.LIMIT_I_MAX, argv)
-
-    def get_limit_velocity_max(self,*argv):
-        return [self.read_cfg_data(argv[idx], CFG_REG.LIMIT_VEL_MAX) for idx in range(len(argv))]
-
-    def set_limit_velocity_max(self, *argv):
-        self.multi_write_cfg_data(CFG_REG.LIMIT_VEL_MAX, argv)
-
-    def get_limit_position_min(self, *argv):
-        return [self.read_cfg_data(argv[idx], CFG_REG.LIMIT_POS_MIN) for idx in range(len(argv))]
-
-    def set_limit_position_min(self, *argv):
-        self.multi_write_cfg_data(CFG_REG.LIMIT_POS_MIN, argv)
-
-    def get_limit_position_max(self, *argv):
-        return [self.read_cfg_data(argv[idx], CFG_REG.LIMIT_POS_MAX) for idx in range(len(argv))]
-
-    def set_limit_position_max(self, *argv):
-        self.multi_write_cfg_data(CFG_REG.LIMIT_POS_MAX, argv)
-
-    def get_min_voltage(self, *argv):
-        return [self.read_cfg_data(argv[idx], CFG_REG.MIN_VOLTAGE) for idx in range(len(argv))]
-
-    def set_min_voltage(self, *argv):
-        self.multi_write_cfg_data(CFG_REG.MIN_VOLTAGE, argv)
-
-    def get_max_voltage(self, *argv):
-        return [self.read_cfg_data(argv[idx], CFG_REG.MAX_VOLTAGE) for idx in range(len(argv))]
-
-    def set_max_voltage(self, *argv):
-        self.multi_write_cfg_data(CFG_REG.MAX_VOLTAGE, argv)
-
-    # def get_low_voltage_warning(self, *argv):
-    #     return [self.read_cfg_data(argv[idx], CFG_REG.LOW_VOLTAGE_WARNING) for idx in range(len(argv))]
-    #
-    # def set_low_voltage_warning(self, *argv):
-    #     self.multi_write_cfg_data(CFG_REG.LOW_VOLTAGE_WARNING, argv)
-    def get_watchdog_timeout(self, *argv):
-        return [self.read_cfg_data(argv[idx], CFG_REG.WATCHDOG_TIMEOUT) for idx in range(len(argv))]
-
-    def set_watchdog_timeout(self, *argv):
-        self.multi_write_cfg_data(CFG_REG.WATCHDOG_TIMEOUT, argv)
-
-    def get_temp_limit_low(self, *argv):
-        return [self.read_cfg_data(argv[idx], CFG_REG.TEMP_LIMIT_LOW) for idx in range(len(argv))]
-
-    def set_temp_limit_low(self, *argv):
-        self.multi_write_cfg_data(CFG_REG.TEMP_LIMIT_LOW, argv)
-
-    def get_temp_limit_high(self, *argv):
-        return [self.read_cfg_data(argv[idx], CFG_REG.TEMP_LIMIT_HIGH) for idx in range(len(argv))]
-
-    def set_temp_limit_high(self, *argv):
-        self.multi_write_cfg_data(CFG_REG.TEMP_LIMIT_HIGH, argv)
-
-    def get_bulk_config(self, *argv):
-        #TODO: Verbally missleading as this is not BULK_COMM. Replace with get_config() and depreciate.
-        """
-        Read multiple config registers from a single motor in one packet.
-        Multiple target motors can be visited but goes through them one-by-one
-        argv = (ID, reg1, reg2 ...), (ID, reg1, reg2 ...) ...
-        """
-        return [self.read_bulk_cfg_data(argv[idx]) for idx in range(len(argv))]
-
-    def set_bulk_config(self, *argv):
-        # TODO: Verbally missleading as this is not BULK_COMM. Replace with set_config() and depreciate.
-        """
-        Write to multiple config registers on a single motor in one packet.
-        Multiple target motors can be visited but goes through them one-by-one
-        argv = (ID, reg1, data1, reg2 data2...), (ID, reg1, data1 ...) ...
-        """
-        for data in argv:
-            self.write_bulk_cfg_data(data[0], data[1:])
-
-    def get_config(self, *argv):
-        """
-        Read multiple config registers from a single motor in one packet.
-
-        Multiple target motors can be visited but goes through them one-by-one
-        argv = (ID, reg1, reg2 ...), (ID, reg1, reg2 ...) ...
-
-        CAUTION: Will not work for: ID, Mode, Baudrate, Watchdog_timeout
-        """
-        return [self.read_bulk_cfg_data(argv[idx]) for idx in range(len(argv))]
-
-    def set_config(self, *argv):
-        """
-        Write to multiple config registers on a single motor in one packet.
-
-        Multiple target motors can be visited but goes through them one-by-one
-        argv = (ID, reg1, data1, reg2 data2...), (ID, reg1, data1 ...) ...
-
-        CAUTION: Will not work for: ID, Mode, Baudrate, Watchdog_timeout
-        """
-        for data in argv:
-            self.write_bulk_cfg_data(data[0], data[1:])
-
-
-    # =================================================================================================================
-    # ===== Status Registers
-    def ping(self, *argv: int):
-        """
-        Function used to detect BEAR(s). Will return firmware and hardware version info.
-        Return None if pinging unsuccessful.
-        """
-        return [self._ping(i) for i in argv]
-
-    def get_torque_enable(self, *argv):
-        return [self.read_status_data(argv[idx], STAT_REG.TORQUE_ENABLE) for idx in range(len(argv))]
-
-    def set_torque_enable(self, *argv):
-        self.multi_write_status_data(STAT_REG.TORQUE_ENABLE, argv)
-
-    def get_goal_id(self, *argv):
-        return [self.read_status_data(argv[idx], STAT_REG.GOAL_ID) for idx in range(len(argv))]
-
-    def set_goal_id(self, *argv):
-        self.multi_write_status_data(STAT_REG.GOAL_ID, argv)
-
-    def get_goal_iq(self, *argv):
-        return [self.read_status_data(argv[idx], STAT_REG.GOAL_IQ) for idx in range(len(argv))]
-
-    def set_goal_iq(self, *argv):
-        self.multi_write_status_data(STAT_REG.GOAL_IQ, argv)
-
-    def get_goal_velocity(self, *argv):
-        return [self.read_status_data(argv[idx], STAT_REG.GOAL_VEL) for idx in range(len(argv))]
-
-    def set_goal_velocity(self, *argv):
-        self.multi_write_status_data(STAT_REG.GOAL_VEL, argv)
-
-    def get_goal_position(self, *argv):
-        return [self.read_status_data(argv[idx], STAT_REG.GOAL_POS) for idx in range(len(argv))]
-
-    def set_goal_position(self, *argv):
-        self.multi_write_status_data(STAT_REG.GOAL_POS, argv)
-
-    def get_present_id(self, *argv):
-        return [self.read_status_data(argv[idx], STAT_REG.PRESENT_ID) for idx in range(len(argv))]
-
-    def get_present_iq(self, *argv):
-        return [self.read_status_data(argv[idx], STAT_REG.PRESENT_IQ) for idx in range(len(argv))]
-
-    def get_present_velocity(self, *argv):
-        return [self.read_status_data(argv[idx], STAT_REG.PRESENT_VEL) for idx in range(len(argv))]
-
-    def get_present_position(self, *argv):
-        return [self.read_status_data(argv[idx], STAT_REG.PRESENT_POS) for idx in range(len(argv))]
-
-    def get_input_voltage(self, *argv):
-        return [self.read_status_data(argv[idx], STAT_REG.INPUT_VOLTAGE) for idx in range(len(argv))]
-
-    def get_winding_temperature(self, *argv):
-        return [self.read_status_data(argv[idx], STAT_REG.WINDING_TEMP) for idx in range(len(argv))]
-
-    def get_powerstage_temperature(self, *argv):
-        return [self.read_status_data(argv[idx], STAT_REG.POWERSTAGE_TEMP) for idx in range(len(argv))]
-
-    def get_ic_temperature(self, *argv):
-        return [self.read_status_data(argv[idx], STAT_REG.IC_TEMP) for idx in range(len(argv))]
-
-    # Not implemented yet
-    # def get_error_status(self, m_id):
-    #     val = self.read_status_data(m_id, STAT_REG.ERROR_STATUS)
-    #     return val
-    #
-    # def get_warning_status(self, m_id):
-    #     val = self.read_status_data(m_id, STAT_REG.WARNING_STATUS)
-    #     return val
-
-    def get_bulk_status(self, *argv):
-        # TODO: Verbally missleading as this is not BULK_COMM. Replace with get_status() and depreciate.
-        """
-        Read multiple status registers from a single motor in one packet.
-        Multiple target motors can be visited but goes through them one-by-one
-        e.g.: get_bulk_status((ID, reg1, reg2), (ID, reg1, reg2, reg3))
-        """
-        return [self.read_bulk_status_data(data) for data in argv]
-
-    def set_bulk_status(self, *argv):
-        # TODO: Verbally missleading as this is not BULK_COMM. Replace with set_status() and depreciate.
-        """
-        Write to multiple status registers on a single motor in one packet.
-        Multiple target motors can be visited but goes through them one-by-one
-        e.g.: set_bulk_status((ID, reg1, data1, reg2, data2), (ID, reg1, data1 ...))
-        """
-        for data in argv:
-            self.write_bulk_status_data(data[0], data[1:])
-
-    def get_status(self, *argv):
-        """
-        |  Read multiple status registers from a single motor in one packet.
-        |  Multiple target motors can be visited but goes through them one-by-one
-        |  e.g.: get_bulk_status((ID, reg1, reg2), (ID, reg1, reg2, reg3))
-        |
-        |  CAUTION: Will not work for Torque Enable
-        """
-        return [self.read_bulk_status_data(data) for data in argv]
-
-    def set_status(self, *argv):
-        """
-        |  Write to multiple status registers on a single motor in one packet.
-        |  Multiple target motors can be visited but goes through them one-by-one
-        |  e.g.: set_bulk_status((ID, reg1, data1, reg2, data2), (ID, reg1, data1 ...))
-
-        |  CAUTION: Will not work for Torque Enable
-        """
-        for data in argv:
-            self.write_bulk_status_data(data[0], data[1:])
-
-    def bulk_read(self, m_ids, read_registers, error_mode = 0):
-        """
-        Up to 16 registers
-
-        Parameters
-        ----------
-        m_ids
-            list of IDs
-        read_registers
-            list of regirsters to read
-        error_mode
-            0(default): return[None, -99] for BEAR with corrupted data;
-            1: return None as long as there is any error
-        """
-        return self.bulk_comm(m_ids, read_registers, [], [], error_mode)
-
-    def bulk_write(self, m_ids, write_registers, write_data):
-        """
-        Up to 16 registers
-
-        Parameters
-        ----------
-        m_ids
-            list of IDs
-        write_registers
-            list of regirsters to write to
-        write_data
-            list of data-list to write [[ID1-data1, ID1-data2 ...],
-                                        [ID2-data1, ID2-data2 ...] ...]
-        ----------
-        """
-        return self.bulk_comm(m_ids, [], write_registers, write_data)
-
-    def bulk_read_write(self, m_ids, read_reg, write_reg, write_data, error_mode = 0):
-        """
-        Read up to 16 registers and write to up to 16 registers
-
-        Parameters
-        ----------
-        m_ids
-            list of IDs [ID1, ID2 ...]
-        read_reg
-            list of regirsters to read [reg1, reg2 ...]
-        write_reg
-            list of regirsters to write to [reg1, reg2 ...]
-        write_data
-            list of data-list to write [[ID1-data1, ID1-data2 ...],
-                                        [ID2-data1, ID2-data2 ...] ...]
-        error_mode
-            0(default): return[None, -99] for BEAR with corrupted data;
-            1: return None as long as there is any error
-        ----------
-        """
-        return self.bulk_comm(m_ids, read_reg, write_reg, write_data, error_mode) 
-
-          #------------------------------------------BLACKDUCK----------------------------------------
-    - name: #!usr/bin/env python
-
-################################################################################
-# Copyright 2020 Westwood Robotics Corporation
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-################################################################################
-
-__author__ = "Westwood Robotics Corporation"
-__email__ = "info@westwoodrobotics.io"
-__copyright__ = "Copyright 2020 Westwood Robotics"
-__date__ = "Jan. 01, 2020"
-
-__version__ = "0.1.2"
-__status__ = "Production"
-
-import pdb
-import struct
-import time
-import sys
-import ctypes
-
-from itertools import chain
-
-import numpy as np
-import serial
-
-from pybear.TIMING_TABLE import *
-from pybear.CONTROL_TABLE import *
-from pybear.CRC import *
-
-
-class PKT(object):
-    def __init__(self, port, baudrate, timeout=None, bulk_timeout=None):
-        if not self.debug:
-            self.ser = serial.Serial(
-                port,
-                baudrate,
-                bytesize=serial.EIGHTBITS,
-                parity=serial.PARITY_NONE,
-                stopbits=serial.STOPBITS_ONE,
-                timeout=timeout,
-            )
+qgc_rc  = "qgroundcontrol.qrc"
+res_rc  = "qgcresources.qrc"
+qgc_exc = "qgroundcontrol.exclusion"
+res_exc = "qgcresources.exclusion"
+
+def read_file(filename):
+    with open(filename) as src:
+        return [line.rstrip().lstrip() for line in src.readlines()]
+
+def process(src, exclusion, dst):
+    file1 = read_file(src)
+    file2 = read_file(exclusion)
+    file3 = open(dst, 'w')
+    for line in file1:
+        if line not in file2:
+            if line.startswith('<qresource') or line.startswith('</qresource'):
+                file3.write('\t')
+            if line.startswith('<file') or line.startswith('</file'):
+                file3.write('\t\t')
+            newLine = str(line)
+            if line.startswith('<file'):
+                newLine = newLine.replace(">", ">../", 1)
+            file3.write(newLine + '\n')
         else:
-            pass
-        if bulk_timeout is None:
-            self._bulk_timeout = BULK_TIMEOUT_DEFAULT
-        else:
-            self._bulk_timeout = bulk_timeout
+            print 'Excluded:', line
+    file3.close()
+
+def main():
+    if(os.path.isfile(qgc_exc)):
+        process(os.path.join("../",qgc_rc), qgc_exc, qgc_rc)
+    if(os.path.isfile(res_exc)):
+        process(os.path.join("../",res_rc), res_exc, res_rc)
+
+if __name__ == '__main__':
+    main() /bin/bash
+
+  arm-version: &arm-version
+      run: 
+      name: ARM GCC Version
+      command: |
+        docker exec ${BUILDER} arm-none-eabi-gcc --version
+
+  build-job: &build-job
+    run:
+      name: TizenRT Build Test
+      command: |
+        docker exec -it ${BUILDER} bash -c "cd tools; ./configure.sh ${CIRCLE_JOB}"
+        docker exec -it ${BUILDER} bash -c "make"
 
-        if timeout is None:
-            self._timeout = TIMEOUT_DEFAULT
-        else:
-            self._timeout = timeout
-
-        if sys.version_info[0] < 3: # Python 2
-            self.ord_adapt = lambda x : ord(x)
-            self.sustr_adapt = lambda val: ''.join(chr(idx) for idx in val)
-            self.sustr_loop_adapt = lambda idx, val: ''.join(chr(idx) for idx in val[idx:idx+4])
-            pass
-        else: # Python 3
-            self.ord_adapt = lambda x : x
-            self.sustr_adapt = lambda val: bytearray(val)
-            self.sustr_loop_adapt = lambda idx, val: bytearray(val[idx:idx+4])
-
-    def close(self):
-        """
-        Close the serial port
-        """
-        if self.ser:
-            self.ser.close()
-
-    def __del__(self):
-        self.close()
-
-    def __write_packet(self, packet):
-        if not self.debug:
-            self.ser.reset_input_buffer()
-            self.ser.write(bytearray(packet))
-        else:
-            print("[DEBUG] :: __write_packet(): {}".format(packet))
-            pdb.set_trace()
-
-    # def __read_packet(self, motor_id):
-    #     status_packet = []
-    #     status_packet.extend(self.ser.read(4))
-    #     # print("Waiting in... : {}".format(status_packet))
-    #     if status_packet:
-    #         extlen = ord(status_packet[3])
-    #         while self.ser.inWaiting() < extlen:
-    #             pass
-    #         status_packet.extend(self.ser.read(extlen))
-    #         status_packet = [ord(idx) for idx in status_packet[5:-1]]
-    #     return status_packet
-
-    def __read_packet(self, motor_id):
-        status_packet = []
-        status_packet.extend(self.ser.read(4))
-        if status_packet:
-            extlen = self.ord_adapt(status_packet[3])
-            while self.ser.in_waiting < extlen:
-                pass
-            status_packet.extend(self.ser.read(extlen))
-            # Check for checksum
-            checksum = ctypes.c_ubyte(~(ctypes.c_ubyte(sum(status_packet[2:-1])).value))
-            if checksum.value == status_packet[-1]:
-                error_code = status_packet[4]
-                status_packet = [self.ord_adapt(idx) for idx in status_packet[5:-1]]
-                return status_packet, error_code
-            else:
-                # checksum is wrong
-                return None, None
-
-    def __read_bulk_packet(self, motor_id):
-        """
-        Returning multiple register values in the order of the initial status packet.
-        """
-        pass
-
-    def __write_data(self, m_id, address, data, reg_type=None):
-        """
-        Write to singel register
-        """
-        if reg_type == 'cfg':
-            instruction = INSTRUCTION.WRITE_CFG
-        elif reg_type == 'stat':
-            instruction = INSTRUCTION.WRITE_STAT
-
-        if (address not in CFG_REG.UINT_REG and reg_type == 'cfg') or (address > 1 and reg_type == 'stat'):
-            data = self.__float32_to_hex(data)
-            data = [data[i:i+2] for i in range(2,len(data),2)]
-            data = tuple([int(x, 16) for x in data])
-            n_add = len((address,))+len((data))+2
-            checksum = self.chksum(m_id, n_add, instruction, (address, sum(data)))
-        else:
-            data = (data & 0xFF, (data >> 8) & 0xFF, (data >> 16) & 0xFF, (data >> 24) & 0xFF)
-            n_add = len((address,))+len((data))+2
-            checksum = self.chksum(m_id, n_add, instruction, (address, sum(data)))
-
-        # Generate packet
-        packet = self.__packet_generator(m_id, n_add, instruction, address, data, checksum)
-
-        # Write packet
-        self.__write_packet(packet)
-
-    def write_status_data(self, m_id, address, data):
-        """
-        This command is to write data to single status register.
-        """
-        self.__write_data(m_id, address, data, reg_type='stat')
-
-    def multi_write_status_data(self, add, data):
-        """
-        Convenient loop function for writing to multiple motors and to a single register.
-        # TODO: To be merged into self.write_cfg_data() and deprecated.
-        """
-        for idx in range(len(data)):
-            self.write_status_data(data[idx][0], add, data[idx][1])
-
-    def write_cfg_data(self, m_id, address, data):
-        """
-        This command is to write data to single configuration register.
-        """
-        self.__write_data(m_id, address, data, reg_type='cfg')
-
-    def multi_write_cfg_data(self, add, data):
-        """
-        Convenient loop function for writing to multiple motors and to a single register.
-        # TODO: To be merged into self.write_cfg_data() and deprecated.
-        """
-        for idx in range(len(data)):
-            self.write_cfg_data(data[idx][0], add, data[idx][1])
-
-    def write_bulk_cfg_data(self, m_id, adpair):
-        """
-        Write multiple configuration registers on a single motor in one packet.
-        m_id: Motor ID
-        adpair: ('address', data) pairs
-        """
-        self.__write_bulk_data(m_id, adpair, reg_type='cfg')
-
-    # def multi_write_bulk_cfg_data(self, argv):
-    #     """
-    #     Convenient loop function for writing to multiple motors with bulk writes to registers.
-    #     """
-    #     for idx in range(len(argv)):
-    #         self.write_bulk_cfg_data(argv[idx][0], argv[idx][1:])
-
-    def write_bulk_status_data(self, m_id, adpair):
-        """
-        Write multiple configuration registers on a single motor in one packet.
-        m_id: Motor ID
-        adpair: ('address', data) pairs
-        """
-        self.__write_bulk_data(m_id, adpair, reg_type='stat')
-
-    def __write_bulk_data(self, m_id, adpair, reg_type=None):
-        if reg_type == 'cfg':
-            instruction = INSTRUCTION.WRITE_CFG
-        elif reg_type == 'stat':
-            instruction = INSTRUCTION.WRITE_STAT
-
-        n_add = 0
-        n_adpair = len(adpair)//2 # Identify the number of registers to write to
-        adpair_hex = []
-
-        for idx in range(n_adpair):
-            idx_ptr = 2*idx
-            if reg_type == 'cfg':
-                addr = CFG_REG_DIC[adpair[idx_ptr]]
-            elif reg_type == 'stat':
-                addr = STAT_REG_DIC[adpair[idx_ptr]]
-
-            data = adpair[idx_ptr+1]
-
-            # if addr > 2 and reg_type == 'cfg' or addr > 1 and reg_type == 'stat':
-            if (addr not in CFG_REG.UINT_REG and reg_type == 'cfg') or (addr > 1 and reg_type == 'stat'):
-                data = self.__float32_to_hex(data)
-                data = [data[i:i+2] for i in range(2,len(data),2)]
-                data = [int(x, 16) for x in data]
-                if reg_type == 'cfg':
-                    n_add += len((CFG_REG_DIC[adpair[idx_ptr]],)) + len(data)
-                elif reg_type == 'stat':
-                    n_add += len((STAT_REG_DIC[adpair[idx_ptr]],)) + len(data)
-            else:
-                data = list((data & 0xFF, (data >> 8) & 0xFF, (data >> 16) & 0xFF, (data >> 24) & 0xFF))
-                if reg_type == 'cfg':
-                    n_add += len((CFG_REG_DIC[adpair[idx_ptr]],))+len(data)
-                elif reg_type == 'stat':
-                    n_add += len((STAT_REG_DIC[adpair[idx_ptr]],))+len(data)
-
-            adpair_hex = adpair_hex + [addr] + data
-
-        n_add += 2
-        checksum = self.chksum(m_id, n_add, instruction, adpair_hex)
-
-        # Generate packet
-        packet = self.__packet_generator(m_id, n_add, instruction, adpair_hex, None, checksum)
-
-        # Write packet
-        self.__write_packet(packet)
-
-    def __read_data(self, m_id, add_list, reg_type=None, data_type=None):
-        """
-        Read Single data
-        """
-        if reg_type == 'cfg':
-            instruction = INSTRUCTION.READ_CFG
-        elif reg_type == 'stat':
-            instruction = INSTRUCTION.READ_STAT
-
-        # pkt_len = np.add(len((add_list,)), 2)
-        pkt_len = len((add_list,))+2
-
-        checksum = self.chksum(m_id, pkt_len, instruction, (add_list,))
-
-        packet = self.__packet_generator(m_id, pkt_len, instruction, add_list, None, checksum)
-
-        # while self.ser.in_waiting > 0:
-        #     self.ser.reset_input_buffer()
-
-        while True:
-            # Corrupted data prevention if checksum is wrong
-            # Timeout prevention if communication error starts occuring
-            self.ser.reset_input_buffer()
-            self.__write_packet(packet)
-
-            t_bus_init = time.time()
-            while True:
-                if self.ser.in_waiting > 6:
-                    break
-                if time.time() - t_bus_init > self._timeout:
-                    print("[PyBEAR | WARNING] ::  Read response timed out. Re-sending the same packet.")
-                    self.ser.reset_input_buffer()
-                    self.__write_packet(packet)
-                    t_bus_init = time.time()
-            status, error_code = self.__read_packet(m_id)
-            if error_code:
-                # checksum was right
-                break
-            else:
-                # checksum was wrong and __read_packet() returned None
-                print("[PyBEAR | WARNING] :: Data corrupted. Re-sending the same packet.")
-
-        if data_type == 'f32':
-            return self.__hex_to_float32(status), error_code
-        elif data_type == 'u32':
-            # return status[0]|status[1]<<8|status[2]<<16|status[3]<<24, error_code
-            return self.__hex_to_int32(status), error_code
-
-
-    # def __read_bulk_data(self, m_id, add_list, reg_type=None, data_type=None):
-    #     """
-    #     m_id: Motor id
-    #     add_list: List of register addresses to read
-    #     """
-    #     if reg_type == 'cfg':
-    #         instruction = INSTRUCTION.READ_CFG
-    #     elif reg_type == 'stat':
-    #         instruction = INSTRUCTION.READ_STAT
-    #
-    #     # pkt_len = np.add(len(add_list), 2)
-    #     pkt_len = len(add_list)+2
-    #
-    #     checksum = self.chksum(m_id, pkt_len, instruction, add_list)
-    #
-    #     packet = self.__packet_generator(m_id, pkt_len, instruction, add_list, None, checksum)
-    #
-    #     self.__write_packet(packet)
-    #
-    #     while self.ser.in_waiting < 4:
-    #         pass
-    #
-    #     # status = self.__read_bulk_packet(m_id)
-    #     status, error_code = self.__read_packet(m_id)
-    #
-    #     # Place holder for multiple reads later.
-    #     # read_val = status[3]
-    #
-    #     if data_type == 'f32':
-    #         # return self.__hex_to_float32(status[5:-1])
-    #         return self.__hex_to_float32(status), error_code
-    #     elif data_type == 'u32':
-    #         # return status[5]
-    #         return status[0], error_code
-    #
-    def __read_bulk_data(self, m_id, add_list, reg_type=None, data_type=None):
-        """
-        m_id: Motor id
-        add_list: List of register addresses to read
-        CAUTION: Will not work for: ID, Mode, Baudrate, Watchdog_timeout and Torque Enable
-        """
-        if reg_type == 'cfg':
-            instruction = INSTRUCTION.READ_CFG
-        elif reg_type == 'stat':
-            instruction = INSTRUCTION.READ_STAT
-
-        # pkt_len = np.add(len(add_list), 2)
-        pkt_len = len(add_list)+2
-
-        checksum = self.chksum(m_id, pkt_len, instruction, add_list)
-
-        packet = self.__packet_generator(m_id, pkt_len, instruction, add_list, None, checksum)
-
-        while True:
-
-            self.ser.reset_input_buffer()
-            self.__write_packet(packet)
-
-            t_bus_init = time.time()
-
-            while True:
-                if self.ser.in_waiting > 6:
-                    # At least we have 0xFF, oxFF, Motor_ID, Length, Error, Data0 in the buffer
-                    break
-                if time.time() - t_bus_init > self._timeout:
-                    # Timeout prevention if communication error starts occuring
-                    print("[PyBEAR | WARNING] :: Status response timed out. Re-sending the same packet.")
-                    self.ser.reset_input_buffer()
-                    self.__write_packet(packet)
-                    t_bus_init = time.time()
-
-            status, error_code = self.__read_packet(m_id)
-            if error_code:
-                # checksum was right
-                break
-            else:
-                # Corrupted data prevention if checksum is wrong
-                # checksum was wrong and __read_packet() returned None
-                print("[PyBEAR | WARNING] :: Data corrupted. Re-sending the same packet.")
-
-        # Place holder for multiple reads later.
-        # read_val = status[3]
-
-        if data_type == 'f32':
-            # return self.__hex_to_float32(status[5:-1])
-            return self.__hex_to_float32(status), error_code
-        elif data_type == 'u32':
-            # return status[5]
-            return self.__hex_to_int32(status), error_code
-
-    # def __bulk_communication_save(self,):
-    #
-    #
-    #     instruction = INSTRUCTION.BULK_COMM
-    #
-    #     m_ids = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    #
-    #     num_stat_read = 3
-    #     num_stat_write = 0
-    #     num_total_stat = num_stat_write + num_stat_read*16
-    #     read_addr = [STAT_REG.PRESENT_POS, STAT_REG.PRESENT_VEL, STAT_REG.WINDING_TEMP]
-    #     pkt_length = 3+num_stat_read+num_stat_write+len(m_ids)+1
-    #
-    #     data = [len(m_ids), num_total_stat, sum(read_addr), sum(m_ids)]
-    #
-    #     checksum = self.chksum(0xFE, pkt_length, instruction, data)
-    #
-    #     packet = self.__packet_generator_bulk(m_ids, pkt_length, instruction, num_total_stat, read_addr, checksum)
-    #
-    #     self.__write_packet(packet)
-    #
-    #     while self.ser.inWaiting() < 4:
-    #         pass
-    #
-    #     status_packet = []
-    #     status_packet.extend(self.ser.read(4))
-    #     # print("Status packet: {}".format(status_packet))
-    #     if status_packet:
-    #         retlen = ord(status_packet[3])
-    #         totlen = retlen + (4+retlen)*(len(m_ids)-1)
-    #         while self.ser.inWaiting() < totlen:
-    #             pass
-    #         status_packet.extend(self.ser.read(totlen))
-    #         output = []
-    #         for x in range(len(m_ids)):
-    #             for idx in status_packet[5+x*(4+retlen):-1+(x+1)*(4+retlen)]:
-    #                 output.append(ord(idx))
-    #         status_packet = [ord(idx) for index in range(len(m_ids))
-    #                          for idx in status_packet[5+index*(4+retlen):-1+(index+1)*(4+retlen)]]
-    #
-    #         return np.reshape(self.__hex_to_float32(status_packet), (len(m_ids),num_stat_read))
-
-    # def __bulk_communication(self, m_ids, read_addr, write_addr, write_data):
-    #
-    #     instruction = INSTRUCTION.BULK_COMM
-    #
-    #     num_motors = len(m_ids)
-    #     num_read_regs = len(read_addr)
-    #     num_write_regs = len(write_addr)
-    #     num_total_regs = num_write_regs|num_read_regs<<4  # lower 4 bits for writes, higher 4 bits for reads
-    #
-    #     pkt_length = 3 + num_read_regs + num_write_regs + num_motors + num_write_regs*4*num_motors + 1
-    #
-    #     if num_write_regs is 0:
-    #         data_packets = [len(m_ids), num_total_regs, sum(read_addr), sum(write_addr), sum(m_ids)]
-    #         checksum = self.chksum(0xFE, pkt_length, instruction, data_packets)
-    #         packet = self.__packet_generator_bulk(m_ids, pkt_length, instruction, num_total_regs, read_addr, write_addr, None, checksum)
-    #     else:
-    #         data = tuple()
-    #         for i in range(num_motors):
-    #             command = self.__float32_to_hex(write_data[i])
-    #             command = [command[j:j+2] for j in range(2,len(command),2)]
-    #             data += (m_ids[i],) + tuple([int(x, 16) for x in command])
-    #         data_packets = [len(m_ids), num_total_regs, sum(read_addr), sum(write_addr), sum(data)]
-    #         checksum = self.chksum(0xFE, pkt_length, instruction, data_packets)
-    #         packet = self.__packet_generator_bulk(m_ids, pkt_length, instruction, num_total_regs, read_addr, write_addr, data, checksum)
-    #
-    #     num_retries = 3    # set this number to change how many times PyBEAR will try to resend the packet
-    #     error_id = 0
-    #     error_status = 0
-    #
-    #     for i in range(num_retries):
-    #         t0 = time.time()
-    #
-    #         self.__write_packet(packet)
-    #         found_packet = True
-    #
-    #         while self.ser.in_waiting < 4:
-    #             if self._bulk_timeout is None:
-    #                 pass
-    #             elif time.time() - t0 > self._bulk_timeout:
-    #                 found_packet = False
-    #                 break
-    #
-    #         if found_packet:
-    #             status_packet = []
-    #             status_packet.extend(self.ser.read(4))
-    #             if status_packet:
-    #                 #pdb.set_trace()
-    #                 retlen = ord(status_packet[3])  # length of the data in a single packet
-    #                 totlen = retlen + (4+retlen)*(len(m_ids)-1)  # total length of all data coming back
-    #                 found_data = True
-    #                 while self.ser.in_waiting < totlen:
-    #                     if self._bulk_timeout is None:
-    #                         pass
-    #                     elif time.time() - t0 > self._bulk_timeout:
-    #                         buffer_length = self.ser.in_waiting
-    #                         error_id = int((buffer_length - retlen)/(4+retlen)) + 2
-    #                         found_data = False
-    #                         break
-    #
-    #                 # read from the buffer either way so that it gets cleared out
-    #                 status_packet.extend(self.ser.read(totlen))
-    #
-    #                 if found_data:
-    #                     data_output = [ord(idx) for index in range(len(m_ids))
-    #                                    for idx in status_packet[5+index*(4+retlen):-1+(index+1)*(4+retlen)]]
-    #                     motor_status = [ord(idx) for index in range(len(m_ids)) for idx in status_packet[4+index*(4+retlen)]]
-    #                     return error_status, motor_status, np.reshape(self.__hex_to_float32(data_output), (len(m_ids), num_read_regs))
-    #
-    #     # Communication has been attempted but has failed!
-    #     # Return an error_status and zeros for everything else
-    #     if error_id == 0:
-    #         # No packets are being returned
-    #         error_status = -99
-    #     else:
-    #         # Return the motor id number that is not communicating
-    #         error_status = -error_id
-    #     motor_status = np.zeros((len(m_ids), 1))
-    #     data_ouput = np.zeros((len(m_ids), num_read_regs))
-    #     return error_status, motor_status, data_ouput
-
-    def __bulk_communication(self, m_ids, read_addr, write_addr, write_data, error_mode):
-        """
-        CAUTION: Will not work for: ID, Mode, Baudrate, Watchdog_timeout and Torque Enable
-
-        Parameters
-        ----------
-        m_ids
-            tuple of IDs
-        read_registers
-            tuple of regirsters to read
-        write_registers
-            tuple of regirsters to write to
-        write_data
-            tuple of data to write
-        error_mode
-            0(default): return[None, -99] for BEAR with corrupted data;
-            1: return None as long as there is any error
-        """
-
-        instruction = INSTRUCTION.BULK_COMM
-
-        num_motors = len(m_ids)
-        num_read_regs = len(read_addr)
-        num_write_regs = len(write_addr)
-        num_total_regs = num_write_regs | num_read_regs << 4  # lower 4 bits for writes, higher 4 bits for reads
-
-        pkt_length = 3 + num_read_regs + num_write_regs + num_motors + num_write_regs * 4 * num_motors + 1
-
-        if num_write_regs == 0:
-            data_packets = [num_motors, num_total_regs, sum(read_addr), sum(m_ids)]
-            checksum = self.chksum(0xFE, pkt_length, instruction, data_packets)
-            packet = self.__packet_generator_bulk(m_ids, pkt_length, instruction, num_total_regs, read_addr, write_addr,
-                                                  None, checksum)
-        else:
-            data = tuple()
-            for i in range(num_motors):
-                command = [self.__float32_to_hex(k) for k in write_data[i]]
-                command = [k[j:j+2] for k in command for j in range(2, len(k), 2)]
-                data += (m_ids[i],) + tuple([int(x, 16) for x in command])
-            data_packets = [num_motors, num_total_regs, sum(read_addr), sum(write_addr), sum(data)]
-            checksum = self.chksum(0xFE, pkt_length, instruction, data_packets)
-            packet = self.__packet_generator_bulk(m_ids, pkt_length, instruction, num_total_regs, read_addr, write_addr,
-                                                  data, checksum)
-        if num_read_regs == 0:
-            # If there is nothing to read:
-            self.__write_packet(packet)
-            return True
-        else:
-            # This is something to read back
-            for i in range(BULK_COMM_RETRIES):
-
-                self.ser.reset_input_buffer()
-                self.__write_packet(packet)
-
-                t_bus_init = time.time()
-                found_packet = False
-                while True:
-                    if self.ser.in_waiting > 3:
-                        found_packet = True
-                        break
-                    elif (self._bulk_timeout is not None) and (time.time() - t_bus_init > self._bulk_timeout):
-                        print("[PyBEAR | WARNING] :: BULK_COMM response timed out. Re-sending the same packet.")
-                        break
-
-                if found_packet:
-                    status_packet = []
-                    status_packet.extend(self.ser.read(4))
-                    if status_packet:
-
-                        retlen = self.ord_adapt(status_packet[3])  # length of the data in a single packet
-                        totlen = retlen + (4 + retlen) * (num_motors - 1)  # total length of all rest data coming back
-
-                        found_data = True
-                        while self.ser.in_waiting < totlen:
-                            if self._bulk_timeout is None:
-                                pass
-                            elif time.time() - t_bus_init > self._bulk_timeout:
-
-                                print("[PyBEAR | WARNING] :: BULK_COMM return packet timed out. Retrying BULK_COMM...")
-                                found_data = False
-                                break
-
-                        if found_data:
-                            # All BEARs returned
-                            status_packet.extend(self.ser.read(totlen))
-
-                            status_packet = [status_packet[j:j+retlen+4]
-                                             for j in range(0, len(status_packet), retlen+4)]
-                            bear_rtn = []
-                            err_id = []
-                            for idx, packet in enumerate(status_packet):
-                                # Check for checksum
-                                checksum = ctypes.c_ubyte(~(ctypes.c_ubyte(sum(packet[2:-1])).value))
-                                if checksum.value == packet[-1]:
-                                    bear_rtn.append([self.__hex_to_float32([self.ord_adapt(idx)
-                                                     for idx in packet[5:-1]]), packet[4]])
-                                else:
-                                    err_id.append(m_ids[idx])
-                                    bear_rtn.append([None, -99])
-                            if len(err_id):
-                                print("[PyBEAR | WARNING] :: Return data corrupted from these BEARs:", err_id)
-                                if error_mode == 1:
-                                    return None
-                            else:
-                                return bear_rtn
-
-
-        # Communication has been attempted but has failed!
-
-        if found_packet:
-            # Not all BEARs returned
-            print("[PyBEAR | ERROR] :: BULK_COMM only get partial return.")
-        #     buffer_length = self.ser.in_waiting
-        #     rtn_count = int((buffer_length+4) / (4 + retlen))
-        #     status_packet.extend(self.ser.read(rtn_count*(4 + retlen)-4))
-        #     self.ser.reset_input_buffer()
-        #     no_rtn_id = m_ids[rtn_count:]
-        #     print("[PyBEAR | ERROR] :: No reply from these BEARs:", no_rtn_id)
-        else:
-            # No return at all
-            print("[PyBEAR | ERROR] :: BULK_COMM no return.")
-        #     print("No return")
-
-        return None
-
-    def bulk_comm(self, m_ids, read_registers, write_registers, write_data, error_mode=0):
-        """
-        Read and write from multiple motors in a single shot
-        CAUTION: Will not work for: ID, Mode, Baudrate, Watchdog_timeout and Torque Enable
-
-        Parameters
-        ----------
-        m_ids
-            tuple of IDs
-        read_registers
-            tuple of regirsters to read
-        write_registers
-            tuple of regirsters to write to
-        write_data
-            tuple of data to write
-        error_mode
-            0(default): return[None, -99] for BEAR with corrupted data;
-            1: return None as long as there is any error
-        """
-        read_addr_list = []
-        write_addr_list = []
-        if len(read_registers) != 0:
-            for read_add in read_registers:
-                read_addr_list.append(STAT_REG_DIC[read_add])
-
-        if len(write_registers) != 0:
-            for write_add in write_registers:
-                write_addr_list.append(STAT_REG_DIC[write_add])
-
-        return self.__bulk_communication(m_ids, read_addr_list, write_addr_list, write_data, error_mode)
-
-    def read_cfg_data(self, m_id, address):
-        """
-        This command is to read data from the configuration registers.
-        """
-        if address not in CFG_REG.UINT_REG:
-            return self.__read_data(m_id, address, reg_type='cfg', data_type='f32')
-        else:
-            return self.__read_data(m_id, address, reg_type='cfg', data_type='u32')
-
-    def read_bulk_cfg_data(self, argv):
-        """
-        Read multiple configuration registers from a single motor in one packet.
-        """
-        m_id = argv[0]
-        addr_list = []
-        for idx in range(1, len(argv)):
-            addr_list.append(CFG_REG_DIC[argv[idx]])
-        return self.__read_bulk_data(m_id, addr_list, reg_type='cfg', data_type='f32')
-
-    def read_status_data(self, m_id, add_list):
-        """
-        This command is to read data from the status registers.
-        """
-        if add_list > 1:
-            return self.__read_data(m_id, add_list, reg_type='stat', data_type='f32')
-        else:
-            return self.__read_data(m_id, add_list, reg_type='stat', data_type='u32')
-
-    def read_bulk_status_data(self, argv):
-        """
-        Read multiple status registers from a single motor in one packet.
-        """
-        m_id = argv[0]
-        addr_list = []
-        for idx in range(1, len(argv)):
-            addr_list.append(STAT_REG_DIC[argv[idx]])
-        return self.__read_bulk_data(m_id, addr_list, reg_type='stat', data_type='f32')
-
-    def _ping(self, m_id):
-        """
-        Function used to detect a motor. Will return firmware and hardware version info.
-        Return None if pinging unsuccessful.
-        """
-        # Type of instruction
-        instruction = INSTRUCTION.PING
-
-        # Number of parameters
-        pkt_len = 2
-
-        # Create checksum
-        checksum = self.chksum(m_id, pkt_len, instruction, (0,))
-
-        # Write packet
-        self.__write_packet((0xFF, 0xFF, m_id, pkt_len, instruction, checksum))
-        start_time = time.time()
-        while self.ser.in_waiting < 1:
-            if time.time() - start_time > PING_TIMEOUT:
-                # Timeout
-                return None
-            else:
-                pass
-
-        # Read status
-        ping_status, error_code = self.__read_packet(m_id)
-
-        return ping_status, error_code
-
-    def save_config(self, m_id):
-        instruction = INSTRUCTION.SAVE_CFG
-
-        n_add = 2
-
-        checksum = self.chksum(m_id, n_add, instruction, (0,))
-
-        self.__write_packet((0xFF, 0xFF, m_id, n_add, instruction, checksum))
-
-    # ===== Utility functions
-    def __packet_generator(self, m_id, length, instruction, param_n, data, checksum):
-        # if isinstance(param_n, list) and len(param_n) > 1:
-        if isinstance(param_n, list):
-            if data is None:
-                l = tuple([0xFF, 0xFF, m_id, length, instruction] + param_n + [checksum])
-            else:
-                l = tuple([0xFF, 0xFF, m_id, length, instruction] + param_n + data + [checksum])
-        else:
-            if data is None:
-                l = (0xFF, 0xFF, m_id, length, instruction, param_n, checksum)
-            else:
-                l = (0xFF, 0xFF, m_id, length, instruction, param_n, data, checksum)
-        # TODO: Clean up the sequence below
-        return tuple((chain(*(i if isinstance(i, tuple) else (i,) for i in l))))
-        # return (0xFF, 0xFF, m_id, length, instruction, param_n, data, checksum)
-
-    def __packet_generator_bulk(self, m_ids, length, instruction, num_regs, read_addrs, write_addrs, data, checksum):
-        if data is None:
-            l = tuple(chain([0xFF, 0xFF, 0xFE, length, instruction, len(m_ids), num_regs],
-                            read_addrs, m_ids, [checksum]))
-        else:
-            l = tuple(chain([0xFF, 0xFF, 0xFE, length, instruction, len(m_ids), num_regs],
-                            read_addrs, write_addrs, data, [checksum]))
-        # return tuple((chain(*(i if isinstance(i, tuple) else (i,) for i in l))))
-        return l
-
-    def __float32_to_hex(self, val):
-        retval = hex(struct.unpack('<I', struct.pack('>f', val))[0])
-        if retval[-1] == 'L':
-            retval = retval[:-1]
-        if len(retval) < 10:
-            length = 10-len(retval)
-            retval = '0x'+length*'0'+retval[2:]
-        return retval
-
-    def __int32_to_hex(self, val):
-        retval = hex(struct.unpack('<I', struct.pack('>I', val))[0])
-        if len(retval) < 10:
-            length = 10-len(retval)
-            retval = '0x'+length*'0'+retval[2:]
-        return retval
-
-    def __hex_to_float32(self, val):
-        # if len(val) > 4:
-        #     tmpval = []
-        #     for idx in range(0, len(val), 4):
-        #         tmpval.append(struct.unpack('<f', self.sustr_loop_adapt(idx, val))[0])
-        # else:
-        #     tmpval = struct.unpack('<f', self.sustr_adapt(val))[0]
-        tmpval = []
-        for idx in range(0, len(val), 4):
-            tmpval.append(struct.unpack('<f', self.sustr_loop_adapt(idx, val))[0])
-        return tmpval
-
-    def __hex_to_int32(self, val):
-        if len(val) > 4:
-            tmpval = []
-            for idx in range(0, len(val), 4):
-                tmpval.append(val[idx]|val[idx+1]<<8|val[idx+2]<<16|val[idx+3]<<24)
-        else:
-            tmpval = val[0]|val[1]<<8|val[2]<<16|val[3]<<24
-        return tmpval
-
-    def chksum(self, m_id, length, instruction, param_n):
-        return 255 - ((m_id + length + instruction + sum(param_n)) % 256) 
-      uses: #!usr/bin/env python
-
-################################################################################
-# Copyright 2020 Westwood Robotics Corporation
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-################################################################################
-
-__author__ = "Westwood Robotics Corporation"
-__email__ = "info@westwoodrobotics.io"
-__copyright__ = "Copyright 2020 Westwood Robotics"
-__date__ = "Jan. 01, 2020"
-
-__version__ = "0.1.2"
-__status__ = "Production"
-
-TIMEOUT_DEFAULT = 0.001  # In seconds
-BULK_TIMEOUT_DEFAULT = 0.001  # In seconds
-PING_TIMEOUT = 2*TIMEOUT_DEFAULT
-BULK_COMM_RETRIES = 3  # set this number to change how many times PyBEAR will try to resend the packet
-
-#
-# TIMEOUT_MAX = 0.000125 # In seconds 
-
-          #------------------------------------------POLARIS------------------------------------------
-
-    - name: 
-################################################################################
-# Copyright 2020 Westwood Robotics Corporation
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-################################################################################ 
-      id: ################################################################################
-# Copyright 2020 Westwood Robotics Corporation
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-################################################################################ 
-      uses: # See here for image contents: https://github.com/microsoft/vscode-dev-containers/tree/v0.191.1/containers/typescript-node/.devcontainer/base.Dockerfile
-
-# [Choice] Node.js version: 16, 14, 12
-ARG VARIANT="16-buster"
-FROM mcr.microsoft.com/vscode/devcontainers/typescript-node:0-${VARIANT}
-
-# [Optional] Uncomment this section to install additional OS packages.
-RUN apt-get update \
-    && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install --no-install-recommends \
-        openjdk-11-jdk \
-        firefox-esr
-
-# Chromium and chrome-driver
-ARG CHROMIUM_DEB_URL=https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-RUN wget -qO - $CHROMIUM_DEB_URL > /tmp/chrome_linux64.deb \
-    && apt -y install /tmp/chrome_linux64.deb -f \
-    && FULL_CHROME_VERSION=$(google-chrome --product-version) \
-    && CHROME_VERSION=${FULL_CHROME_VERSION%.*} \
-    && CHROMEDRIVER_DIR="/usr/local/share/chrome_driver" \
-    && CHROMEDRIVER_BIN="$CHROMEDRIVER_DIR/chromedriver" \
-    && LATEST_CHROMEDRIVER_VERSION=$(curl -sL "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION") \
-    && CHROMEDRIVER_URL="https://chromedriver.storage.googleapis.com/$LATEST_CHROMEDRIVER_VERSION/chromedriver_linux64.zip" \
-    && wget -qO - $CHROMEDRIVER_URL > /tmp/chromedriver_linux64.zip \
-    && mkdir -p $CHROMEDRIVER_DIR \
-    && unzip -qq /tmp/chromedriver_linux64.zip -d $CHROMEDRIVER_DIR \
-    && chmod +x $CHROMEDRIVER_BIN \
-    && ln -s "$CHROMEDRIVER_BIN" /usr/bin/ \
-    && rm -rf /tmp/chrome*
-
-# [Optional] Uncomment if you want to install an additional version of node using nvm
-# ARG EXTRA_NODE_VERSION=10
-# RUN su node -c "source /usr/local/share/nvm/nvm.sh && nvm install ${EXTRA_NODE_VERSION}"
-
-# [Optional] Uncomment if you want to install more global node packages
-# RUN su node -c "npm install -g <your-package-list -here>"
-      with: // For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
-// https://github.com/microsoft/vscode-dev-containers/tree/v0.191.1/containers/typescript-node
-{
-  "name": "Node.js & TypeScript",
-  "build": {
-    "dockerfile": "Dockerfile",
-    // Update 'VARIANT' to pick a Node version: 12, 14, 16
-    "args": {
-      "VARIANT": "16"
-    }
-  },
-  // Set *default* container specific settings.json values on container create.
-  "settings": {},
-  // Add the IDs of extensions you want installed when the container is created.
-  "extensions": [
-    "dbaeumer.vscode-eslint"
-  ],
-  // Use 'forwardPorts' to make a list of ports inside the container available locally.
-  // "forwardPorts": [],
-  // Use 'postCreateCommand' to run commands after the container is created.
-  "postCreateCommand": "yarn install && yarn build",
-  // Comment out connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
-  "remoteUser": "node"
-}
-        ioServerUrl: #!/usr/bin/env bash
-set -eux
-
-DEV_BUILD_REPO_NAME="hotwired/dev-builds"
-DEV_BUILD_ORIGIN_URL="https://${1}@github.com/${DEV_BUILD_REPO_NAME}.git"
-BUILD_PATH="$HOME/publish-dev-build"
-
-mkdir "$BUILD_PATH"
-
-cd "$GITHUB_WORKSPACE"
-package_name="$(jq -r .name package.json)"
-package_files=( dist package.json )
-tag="${package_name}/${GITHUB_SHA:0:7}"
-
-name="$(git log -n 1 --format=format:%cn)"
-email="$(git log -n 1 --format=format:%ce)"
-subject="$(git log -n 1 --format=format:%s)"
-date="$(git log -n 1 --format=format:%ai)"
-url="https://github.com/${GITHUB_REPOSITORY}/tree/${GITHUB_SHA}"
-message="$tag $subject"$'\n\n'"$url"
-
-cp -R "${package_files[@]}" "$BUILD_PATH"
-
-cd "$BUILD_PATH"
-git init .
-git remote add origin "$DEV_BUILD_ORIGIN_URL"
-git symbolic-ref HEAD refs/heads/publish-dev-build
-git add "${package_files[@]}"
-
-GIT_AUTHOR_DATE="$date" GIT_COMMITTER_DATE="$date" \
-GIT_AUTHOR_NAME="$name" GIT_COMMITTER_NAME="$name" \
-GIT_AUTHOR_EMAIL="$email" GIT_COMMITTER_EMAIL="$email" \
-  git commit -m "$message"
-
-git tag "$tag"
-[ "$GITHUB_REF" != "refs/heads/main" ] || git tag -f "${package_name}/latest"
-git push -f --tags
-
-echo done
-    runs-on: name: CI
-
-on: [push, pull_request]
 
 jobs:
-  build:
-
-    runs-on: ubuntu-latest
-
+  checkout_code:
+    machine: 
+      image: default
+    working_directory: ~/TizenRT
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-node@v3
-      with:
-        node-version: '16'
-        cache: 'yarn'
-    - run: yarn install --frozen-lockfile
-    - run: yarn run playwright install --with-deps
-    - run: yarn build
+      - checkout
+      - persist_to_workspace:
+          root: ~/TizenRT
+          paths:
+            - ./
+            
+  artik055s/audio:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
 
-    - name: Set Chrome Version
-      run: |
-        CHROMEVER="$(chromedriver --version | cut -d' ' -f2)"
-        echo "Actions ChromeDriver is $CHROMEVER"
-        echo "CHROMEVER=${CHROMEVER}" >> $GITHUB_ENV
+  artik053/tc:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
 
-    - name: Lint
-      run: yarn lint
+  qemu/build_test:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
 
-    - name: Unit Test
-      run: yarn test:unit
+  esp_wrover_kit/hello_with_tash:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
 
-    - name: Chrome Test
-      run: yarn test:browser --project=chrome
+  imxrt1020-evk/loadable_elf_apps:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
 
-    - name: Firefox Test
-      run: yarn test:browser --project=firefox
+  rtl8721csm/hello:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
 
-    - uses: actions/upload-artifact@v3
-      with:
-        name: turbo-dist
-        path: dist/*
-    permissions: name: dev-builds
+  rtl8721csm/loadable_apps:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
 
-on:
-  workflow_dispatch:
+  rtl8720e/hello:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
+
+  rtl8720e/loadable_apps:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
+
+  rtl8730e/flat_apps:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
+
+  rtl8730e/loadable_apps:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
+
+  rtl8730e/flat_dev_ddr:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
+
+workflows:
+  version: 2
+  build-tizenrt:
+    jobs:
+      - checkout_code
+      - artik055s/audio:
+          requires:
+            - checkout_code
+      - artik053/tc:
+          requires:
+            - checkout_code
+      - qemu/build_test:
+          requires:
+            - checkout_code
+      - esp_wrover_kit/hello_with_tash:
+          requires:
+            - checkout_code
+      - imxrt1020-evk/loadable_elf_apps:
+          requires:
+            - checkout_code
+      - rtl8721csm/hello:
+          requires:
+            - checkout_code
+      - rtl8721csm/loadable_apps:
+          requires:
+            - checkout_code
+      - rtl8720e/hello:
+          requires:
+            - checkout_code
+      - rtl8720e/loadable_apps:
+          requires:
+            - checkout_code
+      - rtl8730e/flat_apps:
+          requires:
+            - checkout_code
+      - rtl8730e/loadable_apps:
+          requires:
+            - checkout_code
+      - rtl8730e/flat_dev_ddr:
+          requires:
+            - checkout_code 
   push:
-    branches:
-      - main
-      - 'builds/**'
+    branches: [ "main" ]
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: [ "main" ]
+  schedule:
+    - cron: '45 19 * * 1'
 
-jobs: 
-  // Use IntelliSense to learn about possible attributes.
-  // Hover to view descriptions of existing attributes.
-  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "Turbo: Debug browser tests",
-      "cwd": "${workspaceFolder}",
-      "port": 9229,
-      "outputCapture": "std",
-      "internalConsoleOptions": "openOnSessionStart",
-      "runtimeExecutable": "yarn",
-      "runtimeArgs": ["test"]
-    }
-  ]
-}
-  build: // See https://go.microsoft.com/fwlink/?LinkId=733558
-  // for the documentation about the tasks.json format
-  "version": "2.0.0",
-  "tasks": [
-    {
-      "label": "Turbo: Build dist directory",
-      "type": "shell",
-      "command": "yarn build",
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      }
-    },
-    {
-      "label": "Turbo: Run tests",
-      "type": "shell",
-      "dependsOn": "Turbo: Build dist directory",
-      "command": "yarn test",
-      "group": {
-        "kind": "test",
-        "isDefault": true
-      }
-    },
-    {
-      "label": "Turbo: Start dev server",
-      "type": "shell",
-      "dependsOn": "Turbo: Build dist directory",
-      "command": "yarn start",
-      "problemMatcher": []
-    }
-  ]
-}
-    runs-on: "Akrapovič"
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '16'
-          cache: 'yarn'
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - run: yarn install --frozen-lockfile
-      - run: yarn build
-
-      - name: Publish dev build
-        run: .github/scripts/publish-dev-build '${{ secrets.DEV_BUILD_GITHUB_TOKEN }}'
+    - name: Synopsys Intelligent Security Scan
+      id: prescription
+      uses: synopsys-sig/intelligent-security-scan@48eedfcd42bc342a294dc495ac452797b2d9ff08
+      with:
+        ioServerUrl: ${{secrets.IO_SERVER_URL}}
         ioServerToken: ${{secrets.IO_SERVER_TOKEN}}
         workflowServerUrl: ${{secrets.WORKFLOW_SERVER_URL}}
         additionalWorkflowArgs: --polaris.url=${{secrets.POLARIS_SERVER_URL}} --polaris.token=${{secrets.POLARIS_ACCESS_TOKEN}}
@@ -2221,6 +1031,7 @@ jobs:
           wget -q ${{ secrets.POLARIS_SERVER_URL}}/api/tools/polaris_cli-linux64.zip
           unzip -j polaris_cli-linux64.zip -d /tmp
           /tmp/polaris analyze -w
+
     # Please note that the ID in previous step was set to prescription
     # in order for this logic to work
     - name: Software Composition Analysis with Black Duck
@@ -2243,7 +1054,8 @@ jobs:
 
     - name: Upload SARIF file
       if: ${{steps.prescription.outputs.sastScan == 'true' }}
-      uses: github/codeql-action/upload-sarif@v2
+      uses: github/codeql-action/upload-sarif@v3
       with:
         # Path to SARIF file relative to the root of the repository
         sarif_file: workflowengine-results.sarif.json
+                                                      
