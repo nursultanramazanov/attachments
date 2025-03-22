@@ -3,56 +3,13 @@
 
 name: Maven Package
 
-on: version: 2.1
-
-executors:
-  default:
-    docker:
-      - image: cimg/node:18.18
-        user: root
-    resource_class: large
-    working_directory: ~/buie
-  cypress-executor:
-    docker:
-      - image: cypress/included:13.13.0
-        user: root
-    resource_class: large
-    working_directory: ~/buie
-
-commands:
-  yarn-install:
-    steps:
-      - run:
-          name: Installing dependencies
-          command: yarn install --non-interactive --frozen-lockfile --cache-folder /node_modules
-
-  build-locales:
-    steps:
-      - run:
-          name: Building locales
-          command: yarn --cwd /buie build:i18n
-
-  build-project:
-    steps:
-      - run:
-          name: Building project
-          command: yarn --cwd /buie build:prod:npm
-
-  restore-yarn-cache:
-    steps:
-      - restore_cache:
-          keys:
-            - yarn-cache-v5 -#Wed Apr 10 15:27:10 PDT 2013
+on: #Wed Apr 10 15:27:10 PDT 2013
 distributionBase=GRADLE_USER_HOME
 distributionPath=wrapper/dists
 zipStoreBase=GRADLE_USER_HOME
 zipStorePath=wrapper/dists
-distributionUrl=https\://services.gradle.org/distributions/gradle-2.2.1-all.zip
-
-  save-yarn-cache:
-    steps:
-      - save_cache:
-          key: yarn-cache-v5- <?xml version='1.0' encoding='utf-8'?>
+distributionUrl=https\://services.gradle.org/distributions/gradle-2.2.1-all.zip 
+  release: <?xml version='1.0' encoding='utf-8'?>
 <resources>
     <array name="qt_sources">
         <item>https://download.qt-project.org/ministro/android/qt5/qt-5.4</item>
@@ -77,117 +34,15 @@ distributionUrl=https\://services.gradle.org/distributions/gradle-2.2.1-all.zip
     </array>
 
 </resources> 
-          paths:
-            - ./node_modules
-
-  setup-workspace:
-    steps:
-      - attach_workspace:
-          at: /buie
-
-jobs:
-  setup:
-    executor: default
-    steps:
-      - checkout
-      - restore-yarn-cache
-      - yarn-install
-      - save-yarn-cache
-      - persist_to_workspace:
-          root: .
-          paths:
-            - .
-
-  lint:
-    executor: default
-    steps:
-      - checkout
-      - setup-workspace
-      - build-locales
-      - run:
-          name: Commit lint
-          command: /buie/scripts/commitlint.sh
-      - run:
-          name: Code lint
-          command: yarn --cwd /buie lint
-
-  flow:
-    executor: default
-    steps:
-      - checkout
-      - setup-workspace
-      - run:
-          name: Flow
-          command: yarn --cwd /buie flow check
-
-  build-unit-tests:
-    executor: default
-    steps:
-      - checkout
-      - setup-workspace
-      - build-locales
-      - run:
-          name: Babel build
-          command: yarn --cwd /buie build:ci:es
-      - run:
-          name: Checking locales and styles
-          command: /buie/scripts/check_generated_files.sh
-      - run:
-          name: Webpack build
-          command: yarn --cwd /buie build:ci:dist
-      - run: echo 'export TZ=America/Los_Angeles' >> $BASH_ENV
-      - run:
-          name: Unit tests
-          command: yarn --cwd /buie test --maxWorkers=3
-
-  e2e-tests:
-   executor: cypress-executor
-   steps:
-     - checkout
-     - setup-workspace
-     - run:
-         name: Cypress run
-         command: yarn --cwd /buie test:e2e
-
-  chromatic-deploy:
-    executor: default
-    steps:
-      - checkout
-      - setup-workspace
-      - build-locales
-      - build-project
-      - run:
-          name: Chromatic
-          command: yarn --cwd /buie chromatic
-
-workflows:
-  version: 2
-  lint_test_build:
-    jobs:
-      - setup
-      - lint:
-          requires:
-            - setup
-      - flow:
-          requires:
-            - setup
-      - build-unit-tests:
-          requires:
-            - setup
-      - e2e-tests:
-          requires:
-            - setup
-      - chromatic-deploy:
-          requires:
-            - setup 
-  release: <?xml version="1.0" encoding="utf-8"?>
+    types: <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Allow anything connected -->
     <usb-device />
     <usb-accessory model="android.usbaoa" manufacturer="taisync" version="1.0"/>
 </resources>
  
-    types: package com.hoho.android.usbserial.driver;
+
+jobs: package com.hoho.android.usbserial.driver;
 
 import android.hardware.usb.UsbConstants;
 import android.hardware.usb.UsbDevice;
@@ -509,8 +364,7 @@ public class CdcAcmSerialDriver extends CommonUsbSerialDriver {
     }
 
 } 
-
-jobs: /* Copyright 2013 Google Inc.
+  build: /* Copyright 2013 Google Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -682,7 +536,8 @@ abstract class CommonUsbSerialDriver implements UsbSerialDriver {
 
 }
  
-  build: package com.hoho.android.usbserial.driver;
+
+    runs-on: package com.hoho.android.usbserial.driver;
 
 import android.hardware.usb.UsbConstants;
 import android.hardware.usb.UsbDevice;
@@ -974,8 +829,7 @@ public class Cp2102SerialDriver extends CommonUsbSerialDriver {
 
 
 } 
-
-    runs-on: /* Copyright 2011 Google Inc.
+    permissions: /* Copyright 2011 Google Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -1420,7 +1274,7 @@ public class FtdiSerialDriver extends CommonUsbSerialDriver {
     }
 
 } 
-    permissions: /* This library is free software; you can redistribute it and/or
+      contents: /* This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
@@ -1440,10 +1294,10 @@ public class FtdiSerialDriver extends CommonUsbSerialDriver {
 
 /*
  * Ported to usb-serial-for-android
- * 
+ * by Felix Hädicke <felixhaedicke@web.de>
  *
  * Based on the pyprolific driver written
- * 
+ * by Emmanuel Blot <emmanuel.blot@free.fr>
  * See https://github.com/eblot/pyftdi
  */
 
@@ -1943,7 +1797,7 @@ public class ProlificSerialDriver extends CommonUsbSerialDriver {
     }
 }
  
-      contents: /* Copyright 2012 Google Inc.
+      packages: /* Copyright 2012 Google Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -1970,7 +1824,7 @@ package com.hoho.android.usbserial.driver;
  * Culled from various sources; see
  * <a href="http://www.linux-usb.org/usb.ids">usb.ids</a> for one listing.
  *
- * 
+ * @author mike wakerly (opensource@hoho.com)
  */
 public final class UsbId {
 
@@ -2031,7 +1885,8 @@ public final class UsbId {
     }
 
 } 
-      packages: /* Copyright 2011 Google Inc.
+
+    steps: /* Copyright 2011 Google Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -2269,8 +2124,7 @@ public interface UsbSerialDriver {
     public boolean purgeHwBuffers(boolean flushRX, boolean flushTX) throws IOException;
 
 } 
-
-    steps: /* Copyright 2011 Google Inc.
+    - uses: /* Copyright 2011 Google Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -2320,7 +2174,7 @@ import java.util.Map;
  * method will either return an empty list (device unknown / unsupported) or a
  * singleton list. However, multi-port drivers may return multiple instances.
  *
- * 
+ * @author mike wakerly (opensource@hoho.com)
  */
 public enum UsbSerialProber {
 
@@ -2494,7 +2348,7 @@ public enum UsbSerialProber {
         return supportedDevices.containsKey(usbDevice.getVendorId());
     }
 } 
-    - uses: /*
+    - name: /*
  * Copyright 2011 Google Inc.
  *
  * This library is free software; you can redistribute it and/or
@@ -2518,7 +2372,7 @@ package com.hoho.android.usbserial.driver;
 /**
  * Generic unchecked exception for the usbserial package.
  *
- * 
+ * @author mike wakerly (opensource@hoho.com)
  */
 @SuppressWarnings("serial")
 public class UsbSerialRuntimeException extends RuntimeException {
@@ -2540,12 +2394,12 @@ public class UsbSerialRuntimeException extends RuntimeException {
     }
 
 } 
-    - name: /*
+      uses: /*
  * Copyright (C) 2012, Collabora Ltd.
- *  
+ *   Author: 
  *
  * Copyright (C) 2015, Collabora Ltd.
- *   
+ *   Author: 
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -2600,9 +2454,9 @@ public class GstAhcCallback implements Camera.PreviewCallback,
         gst_ah_camera_on_auto_focus(success, camera, mCallback, mUserData);
     }
 } 
-      uses: /*
+      with: /*
  * Copyright (C) 2016 SurroundIO
- *   
+ *   Author: 
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -2654,9 +2508,9 @@ public class GstAhsCallback implements SensorEventListener {
           mAccuracyCallback, mUserData);
     }
 } 
-      with: /*
+        java-version: /*
  * Copyright (C) 2015, Collabora Ltd.
- *   
+ *   Author: 
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -2697,7 +2551,7 @@ public class GstAmcOnFrameAvailableListener implements OnFrameAvailableListener
 
     private native void native_onFrameAvailable (long context, SurfaceTexture surfaceTexture);
 } 
-        java-version: package org.mavlink.qgroundcontrol;
+        distribution: package org.mavlink.qgroundcontrol;
 
 /* Copyright 2013 Google Inc.
  *
@@ -2719,7 +2573,7 @@ public class GstAmcOnFrameAvailableListener implements OnFrameAvailableListener
  * Project home page: http://code.google.com/p/usb-serial-for-android/
  */
 ///////////////////////////////////////////////////////////////////////////////////////////
-//  Written by: Mike Goza April 2014
+//  Written by: April 2014
 //
 //  These routines interface with the Android USB Host devices for serial port communication.
 //  The code uses the usb-serial-for-android software library.  The QGCActivity class is the
@@ -3445,7 +3299,7 @@ public class QGCActivity extends QtActivity
     }
 }
  
-        distribution: package org.mavlink.qgroundcontrol;
+        server-id: package org.mavlink.qgroundcontrol;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -3730,8 +3584,8 @@ public class TaiSync
         settingsOutStream = null;
         mParcelFileDescriptor = null;
     }
-} 
-        server-id: package org.mavlink.qgroundcontrol;
+} # Value of the distributionManagement/repository/id field of the pom.xml
+        settings-path: package org.mavlink.qgroundcontrol;
 
 /* Copyright 2011 Google Inc.
 *
@@ -3764,8 +3618,8 @@ import android.util.Log;
 * Utility class which services a {@link UsbSerialDriver} in its {@link #run()}
 * method.
 *
-*
-* 
+* Original author mike wakerly (opensource@hoho.com)
+* Modified by 
 */
 public class UsbIoManager implements Runnable {
     private static final int READ_WAIT_MILLIS = 100;
@@ -3948,8 +3802,9 @@ public class UsbIoManager implements Runnable {
 */
     }
 }
- 
-        settings-path: -----BEGIN CERTIFICATE-----
+ # location for the settings.xml file
+
+    - name: -----BEGIN CERTIFICATE-----
 MIIDRTCCAi2gAwIBAgIGMTM2OTY5MA0GCSqGSIb3DQEBCwUAMF4xEDAOBgNVBAMT
 B1Rlc3QgQ0ExCzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9ybmlhMRYwFAYD
 VQQHEw1TYW4gRnJhbmNpc2NvMRAwDgYDVQQKEwdUZXN0IENBMB4XDTIyMDMwNTE5
@@ -3990,9 +3845,9 @@ w2zAse4o+0m6fGD99tyc5PnbIJ09M/zeHyxwPtnbW9hIvum/CdoLcylZD2jYd9d3
 9quxbjrj0oHynGRjV20esQuRqNHrqC/QlNnEVomeL62OrPIbrhRIFbG77zrteNxB
 gZTmrCIAlaVm7caGpk+e7pKPb5C7OyWWPLYeR5h9e+hNta0+ht80/jYvUS5nw5Ge
 0ZE=
------END CERTIFICATE----- # location for the settings.xml file
+-----END CERTIFICATE----- 
 
-    - name: -----BEGIN RSA PRIVATE KEY-----
+      run: -----BEGIN RSA PRIVATE KEY-----
 MIIEowIBAAKCAQEAuuZD50aer+KUqHNXHpUMtb3gFyipmrlFPk3x1lgcPzTkXnqc
 bFsQ4JfoPTfCEjK2yGQdrZ5qmglwFfxOBnIIB5YoZuTHIiWM57ERLUNKtXQNlRh4
 bV9vG/VfU3gYYhemVyKnypHJQpe8QoFAiUNCVeowkvOBiKUouAw/Vz3X43VGvX1P
@@ -4018,99 +3873,7 @@ rEn9ywEzPwhLhqgNClAk0uBhxdtcOkb2bcU8qD0PggI5nTZTSMsn1m0SXVAqhVdQ
 Uu4XSQKBgBn7UlZnQN0FOh0yGdnq6Pz8GFI9WxYaNjAu8JF+lsfSOMbPYJwTjxhb
 clrVPaB8FWy9XLat8ewSfvPIgEIbpyyYGEDL9UM4BzYnNmosQ4PN0xhvMtw4Ilp7
 NgMFbaN5R8IeVJNwZnrCXzRJXx8sycl+Fb2wzyiq3cbw/mMtfSCq
------END RSA PRIVATE KEY-----
-      run: import hashlib
-import random
-from typing import List
-import requests
-import json
-import math
-
-
-URL = "https://dc.local/token/"
-PSK = "1234"
-
-NUM_TOKENS = 200
-TOKEN_LENGTH = 32
-BATCH_SIZE = 50
-
-def getRandomToken():
-    token = ""
-    for _ in range(TOKEN_LENGTH):
-        byte = random.randint(0, 255)
-        token += f'{byte:02x}'
-    return token
-
-
-def removeDuplicates(_list):
-    _set = set(_list)
-    return list(_set)
-
-
-def sort(_list):
-    return sorted(_list)
-
-def makeRequestBody(tokens):
-    body =  '{\n'
-    body += '\t"tokens": [\n'
-    for token in tokens:
-        body += '\t\t{\n'
-        body += f'\t\t\t"toPut": "{token}"\n'
-        body += '\t\t},\n'
-    if body[-2] == ',':
-        body = body[:-2] + '\n'
-    body += '\t]\n'
-    body += '}\n'
-    return body
-
-
-def sendBatched(tokens: List[str]):
-    while len(tokens) > 0:
-        print(len(tokens))
-        data = makeRequestBody(tokens[:BATCH_SIZE])
-        tokens = tokens[BATCH_SIZE:]      
-        resp = requests.request(
-            "PUT",
-            URL,
-            headers={
-                "psk": PSK
-            },
-            data=data,
-            verify=False
-        )
-        print(f"Resp code: {resp.status_code}")
-        print(f"Resp body: {resp.content}")        
-    
-
-tokensList = [getRandomToken() for _ in range(NUM_TOKENS)]
-tokensUnique = removeDuplicates(tokensList)
-tokensSorted = sort(tokensUnique)
-
-tokensStr = ""
-for token in tokensSorted:
-    tokensStr += token
-
-hash = hashlib.sha256(tokensStr.encode());
-print(hash.hexdigest())
-
-print(f"Unique: {len(tokensUnique)}")
-
-sendBatched(tokensList)
-        
-        
-resp = requests.request(
-    "GET",
-    URL,
-    headers={
-        "psk": PSK
-    },
-    verify=False
-)
-
-dcHash = str(resp.json()['hash'])
-print(dcHash)
-print(hash.hexdigest() == dcHash)
-  
+-----END RSA PRIVATE KEY----- 
 
     - name: Publish to GitHub Packages Apache Maven
       run: mvn deploy -s $GITHUB_WORKSPACE/settings.xml
