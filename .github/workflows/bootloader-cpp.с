@@ -1,0 +1,250 @@
+name: C/C++ CI
+
+on: indent=force-tab=8
+style=linux
+indent-preprocessor
+indent-cases
+break-blocks=all
+pad-oper
+pad-header
+unpad-paren
+keep-one-line-blocks
+keep-one-line-statements
+align-pointer=name
+align-reference=name
+-n #--suffix=none
+ignore-exclude-errors-x
+lineend=linux
+exclude=EASTL
+add-brackets
+max-code-length=120 
+  push: #!/bin/sh
+
+if [ -d libopencm3 ];
+	then
+	STATUSRETVAL=$(git submodule summary | grep -A20 -i "libopencm3" | grep "<")
+	if [ -z "$STATUSRETVAL" ]; then
+		echo "Checked libopencm3 submodule, correct version found"
+	else
+		echo ""
+		echo ""
+		echo "   libopencm3 sub repo not at correct version. Try 'git submodule update'"
+		echo "   or follow instructions on http://px4.io/dev/git/submodules"
+		echo ""
+		echo "   DO NOT FORGET TO RUN 'make clean' AFTER EACH libopencm3 UPDATE!"
+		echo ""
+		echo ""
+		echo "New commits required:"
+		echo "$(git submodule summary)"
+		echo ""
+		exit 1
+	fi
+else
+	git submodule init;
+	git submodule update;
+fi
+
+exit 0 
+    branches: [ "main" ]
+  pull_request: #!/bin/bash
+
+ASTYLE_VER=`astyle --version`
+ASTYLE_VER_REQUIRED="Artistic Style Version 2.05.1"
+
+if [ "$ASTYLE_VER" != "$ASTYLE_VER_REQUIRED" ]; then
+  echo "Error: you're using 'use strict';
+
+import React from 'react';
+import ReactDOM from 'react-dom';
+import TestUtils from 'react-addons-test-utils';
+import Footer from './../../../app/components/Footer/Footer';
+
+import { assert } from 'chai';
+
+describe('<Footer /> tests of node elements', () => {
+  var component;
+
+  var wrapper = React.createClass({
+    render() {
+      return <Footer />;
+    }
+  });
+
+  beforeEach(function() {
+    component = TestUtils.renderIntoDocument(
+      React.createElement(wrapper)
+    );
+  });
+
+  it('the link of github author should be https://github.com/afonsopacifer', () => {
+    let linkElement = TestUtils.scryRenderedDOMComponentsWithTag(component, 'a');
+
+    assert.equal(linkElement.length, 1);
+    assert.equal(linkElement[0].getAttribute('href'), 'https://github.com/afonsopacifer', 'the link is incorrect');
+  });
+
+}); but PX4 requires 'use strict';
+
+import React from 'react';
+import ReactDOM from 'react-dom';
+import Pomodoro from './../../../app/components/Pomodoro/Pomodoro';
+import { mount } from 'enzyme';
+
+import { assert } from 'chai';
+
+describe('<Pomodoro /> tests of default settings', () => {
+  var component; 
+
+  beforeEach(() => {
+    component = mount(<Pomodoro />);
+  });
+
+  it('verify the default state are correctly', () => {
+    assert.isFalse(component.node.state.play);
+    assert.equal(component.node.state.time, 1500);
+    assert.equal(component.node.state.timeType, 1500);
+    assert.equal(component.node.state.title, '25:00 | Pomodoro timer');
+  });
+
+  it('the options of notification should be unchecked', () => {
+    assert.isFalse(component.node.refs.audio.checked);
+    assert.isFalse(component.node.refs.vibrate.checked);
+    assert.isFalse(component.node.refs.notification.checked);
+  });
+
+  it('should be two buttons to control the play and pause', () => {
+    let buttons = component.find('div.pomodoro div.controlsPlay button');
+
+    assert.equal(buttons.length, 2);
+
+    let playButton = buttons.find('.play').node,
+        stopButton = buttons.find('.stop').node;
+    
+    assert.isDefined(playButton);
+    assert.isDefined(stopButton);
+  });
+
+  it('should be three buttons to change pomodoro type', () => {
+    let buttons = component.find('div.pomodoro div.main div.types button');
+
+    assert.equal(buttons.length, 3);
+
+    let codeButton    = buttons.find('.code').node,
+        socialButton  = buttons.find('.social').node,
+        coffeeButton  = buttons.find('.coffee').node;
+  
+    assert.isDefined(codeButton);
+    assert.isDefined(socialButton);
+    assert.isDefined(coffeeButton);
+
+    assert.equal(codeButton.innerHTML, 'Code');
+    assert.equal(socialButton.innerHTML, 'Social');
+    assert.equal(coffeeButton.innerHTML, 'Coffee');
+  });
+});
+
+describe('<Pomodoro /> tests behavior of buttons', () => {
+  var component; 
+
+  beforeEach(() => {
+    component = mount(<Pomodoro />);
+  });
+
+  it('when click on play the state should be changed', () => {
+    let playButton = component.find('div.pomodoro div.controlsPlay button.play');
+
+    assert.isFalse(component.node.state.play);
+    playButton.simulate('click');
+    assert.isTrue(component.node.state.play);
+  });
+
+  it('when click on social type the states should be changed', () => {
+    let socialButton = component.find('div.pomodoro div.types button.social');
+
+    socialButton.simulate('click');
+
+    assert.isTrue(component.node.state.play);
+    assert.equal(component.node.state.time, 300);
+    assert.equal(component.node.state.timeType, 300);
+    assert.equal(component.node.state.title, '05:00 | Pomodoro timer');
+  });
+
+  it('when click on coffee type the states should be changed', () => {
+    let coffeeButton = component.find('div.pomodoro div.types button.coffee');
+
+    coffeeButton.simulate('click');
+
+    assert.isTrue(component.node.state.play);
+    assert.equal(component.node.state.time, 900);
+    assert.equal(component.node.state.timeType, 900);
+    assert.equal(component.node.state.title, '15:00 | Pomodoro timer');
+  });
+});
+
+describe('<Pomodoro /> check if items on localStorage should be exists', () => {
+  var component; 
+
+  beforeEach(() => {
+    component = mount(<Pomodoro />);
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  it('after checked the notification input', () => {
+    let notificationInput = component.find('div.pomodoro div.controlsCheck #notification');
+
+    let item = 'react-pomodoro-notification';
+
+    assert.isUndefined(localStorage.getItem(item));
+    notificationInput.simulate('change', { target: { checked: true } });
+    assert.equal(localStorage.getItem(item), 'true');
+  });
+
+  it('after checked the audio input', () => {
+    let audioInput = component.find('div.pomodoro div.controlsCheck #audio');
+
+    let item = 'react-pomodoro-audio';
+    
+    assert.isUndefined(localStorage.getItem(item));
+    audioInput.simulate('change', { target: { checked: true } });
+    assert.equal(localStorage.getItem(item), 'true');
+  });
+
+  it('after checked the vibrate input', () => {
+    let audioInput = component.find('div.pomodoro div.controlsCheck #vibrate');
+
+    let item = 'react-pomodoro-vibrate';
+
+    assert.isUndefined(localStorage.getItem(item));
+    audioInput.simulate('change', { target: { checked: true } });
+    assert.equal(localStorage.getItem(item), 'true');
+  });
+}); 
+  echo "You can get the correct version here: https://github.com/PX4/astyle/releases/tag/2.05.1"
+  exit 1
+fi
+
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+astyle \
+    --options=$DIR/astylerc          \
+    --preserve-date             \
+    $* 
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: configure
+      run: ./configure
+    - name: make
+      run: make
+    - name: make check
+      run: make check
+    - name: make distcheck
+      run: make distcheck
