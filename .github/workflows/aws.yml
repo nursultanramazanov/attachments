@@ -1,0 +1,427 @@
+# This workflow will build and push a new container image to Amazon ECR,
+# and then will deploy a new task definition to Amazon ECS, when there is a push to the "main" branch.
+#
+# To use this workflow, you will need to complete the following set-up steps:
+#
+# 1. Create an ECR repository to store your images.
+#    For example: `aws ecr create-repository --repository-name my-ecr-repo --region us-east-2`.
+#    Replace the value of the `ECR_REPOSITORY` environment variable in the workflow below with your repository's name.
+#    Replace the value of the `AWS_REGION` environment variable in the workflow below with your repository's region.
+#
+# 2. Create an ECS task definition, an ECS cluster, and an ECS service.
+#    For example, follow the Getting Started guide on the ECS console:
+#      https://us-east-2.console.aws.amazon.com/ecs/home?region=us-east-2#/firstRun
+#    Replace the value of the `ECS_SERVICE` environment variable in the workflow below with the name you set for the Amazon ECS service.
+#    Replace the value of the `ECS_CLUSTER` environment variable in the workflow below with the name you set for the cluster.
+#
+# 3. Store your ECS task definition as a JSON file in your repository.
+#    The format should follow the output of `aws ecs register-task-definition --generate-cli-skeleton`.
+#    Replace the value of the `ECS_TASK_DEFINITION` environment variable in the workflow below with the path to the JSON file.
+#    Replace the value of the `CONTAINER_NAME` environment variable in the workflow below with the name of the container
+#    in the `containerDefinitions` section of the task definition.
+#
+# 4. Store an IAM user access key in GitHub Actions secrets named `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
+#    See the documentation for each action used below for the recommended IAM policies for this IAM user,
+#    and best practices on handling the access key credentials.
+
+name: Deploy to Amazon ECS
+
+on: version: 2
+
+aliases:
+  docker-cp: &docker-cp
+    run:
+      name: Create Docker Volume
+      command: |
+        echo "DOCKER_VERSION=${DOCKER_IMG_VERSION}"
+        DEFCONFIG_FILE="build/configs/${CONFIG_PATH}/defconfig"
+        if [ -f "$DEFCONFIG_FILE" ] && grep -q '^CONFIG_DOCKER_VERSION' "$DEFCONFIG_FILE"; then
+          DOCKER_IMG_VERSION=$(grep '^CONFIG_DOCKER_VERSION' ${DEFCONFIG_FILE} | sed 's/.*=//; s/"//g')
+          echo "GREP AND MODIFIED VERSION=${DOCKER_IMG_VERSION}"
+        fi
+
+        docker create -v /${WORKING_DIR} --name ${VOLUME} --privileged tizenrt/tizenrt:${DOCKER_IMG_VERSION} /bin/bash
+        docker cp ./. ${VOLUME}:/${WORKING_DIR}
+        docker run -d --rm -it --name ${BUILDER} --volumes-from=${VOLUME} -w /${WORKING_DIR}/os --privileged tizenrt/tizenrt:${DOCKER_IMG_VERSION} /bin/bash
+
+  arm-version: &arm-version
+    run:
+      name: ARM GCC Version
+      command: |
+        docker exec ${BUILDER} arm-none-eabi-gcc --version
+
+  build-job: &build-job
+    run:
+      name: TizenRT Build Test
+      command: |
+        docker exec -it ${BUILDER} bash -c "cd tools; ./configure.sh ${CONFIG_PATH}"
+        docker exec -it ${BUILDER} bash -c "make"
+
+
+jobs:
+  checkout_code:
+    machine: 
+      image: default
+    working_directory: ~/TizenRT
+    steps:
+      - checkout
+      - persist_to_workspace:
+          root: ~/TizenRT
+          paths:
+            - ./
+            
+  artik055s_audio:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    environment:
+      CONFIG_PATH: artik055s/audio
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
+
+  artik053_tc:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    environment:
+      CONFIG_PATH: artik053/tc
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
+
+  qemu_build_test:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    environment:
+      CONFIG_PATH: qemu/build_test
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
+
+  esp_wrover_kit_hello_with_tash:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    environment:
+      CONFIG_PATH: esp_wrover_kit/hello_with_tash
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
+
+  imxrt1020-evk_loadable_elf_apps:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    environment:
+      CONFIG_PATH: imxrt1020-evk/loadable_elf_apps
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
+
+  rtl8721csm_hello:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    environment:
+      CONFIG_PATH: rtl8721csm/hello
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
+
+  rtl8721csm_loadable_apps:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    environment:
+      CONFIG_PATH: rtl8721csm/loadable_apps
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
+
+  rtl8730e_flat_apps:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    environment:
+      CONFIG_PATH: rtl8730e/flat_apps
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
+
+  rtl8730e_flat_dev_ddr:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    environment:
+      CONFIG_PATH: rtl8730e/flat_dev_ddr
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
+
+  rtl8730e_flat_dev_ddr_nand:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    environment:
+      CONFIG_PATH: rtl8730e/flat_dev_ddr_nand
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
+
+  rtl8730e_flat_dev_psram:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    environment:
+      CONFIG_PATH: rtl8730e/flat_dev_psram
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
+
+  rtl8730e_loadable_apps:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    environment:
+      CONFIG_PATH: rtl8730e/loadable_apps
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
+
+  rtl8730e_loadable_ext_ddr:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    environment:
+      CONFIG_PATH: rtl8730e/loadable_ext_ddr
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
+
+  rtl8730e_loadable_ext_ddr_st7785:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    environment:
+      CONFIG_PATH: rtl8730e/loadable_ext_ddr_st7785
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
+
+  rtl8730e_loadable_ext_psram:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    environment:
+      CONFIG_PATH: rtl8730e/loadable_ext_psram
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
+
+  bk7239n_hello:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    environment:
+      CONFIG_PATH: bk7239n/hello
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
+
+  bk7239n_loadable_apps:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    environment:
+      CONFIG_PATH: bk7239n/loadable_apps
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
+
+  bk7239n_xip_all:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    environment:
+      CONFIG_PATH: bk7239n/xip_all
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
+
+  bk7239n_loadable_all:
+    machine:
+      image: default
+    working_directory: ~/TizenRT
+    environment:
+      CONFIG_PATH: bk7239n/loadable_all
+    steps:
+      - attach_workspace:
+          at: ~/TizenRT
+      - *docker-cp
+      - *build-job
+
+workflows:
+  version: 2
+  build-tizenrt:
+    jobs:
+      - checkout_code
+      - artik055s_audio:
+          requires:
+            - checkout_code
+      - artik053_tc:
+          requires:
+            - checkout_code
+      - qemu_build_test:
+          requires:
+            - checkout_code
+      - esp_wrover_kit_hello_with_tash:
+          requires:
+            - checkout_code
+      - imxrt1020-evk_loadable_elf_apps:
+          requires:
+            - checkout_code
+      - rtl8721csm_hello:
+          requires:
+            - checkout_code
+      - rtl8721csm_loadable_apps:
+          requires:
+            - checkout_code
+      - rtl8730e_flat_apps:
+          requires:
+            - checkout_code
+      - rtl8730e_flat_dev_ddr:
+          requires:
+            - checkout_code
+      - rtl8730e_flat_dev_ddr_nand:
+          requires:
+            - checkout_code
+      - rtl8730e_flat_dev_psram:
+          requires:
+            - checkout_code
+      - rtl8730e_loadable_apps:
+          requires:
+            - checkout_code
+      - rtl8730e_loadable_ext_ddr:
+          requires:
+            - checkout_code
+      - rtl8730e_loadable_ext_ddr_st7785:
+          requires:
+            - checkout_code
+      - rtl8730e_loadable_ext_psram:
+          requires:
+            - checkout_code
+      - bk7239n_hello:
+          requires:
+            - checkout_code
+      - bk7239n_loadable_apps:
+          requires:
+            - checkout_code
+      - bk7239n_xip_all:
+          requires:
+            - checkout_code
+      - bk7239n_loadable_all:
+          requires:
+            - checkout_code
+  push:
+    branches: [ "main" ]
+
+env:
+  AWS_REGION: MY_AWS_REGION                   # set this to your preferred AWS region, e.g. us-west-1
+  ECR_REPOSITORY: MY_ECR_REPOSITORY           # set this to your Amazon ECR repository name
+  ECS_SERVICE: MY_ECS_SERVICE                 # set this to your Amazon ECS service name
+  ECS_CLUSTER: MY_ECS_CLUSTER                 # set this to your Amazon ECS cluster name
+  ECS_TASK_DEFINITION: MY_ECS_TASK_DEFINITION # set this to the path to your Amazon ECS task definition
+                                               # file, e.g. .aws/task-definition.json
+  CONTAINER_NAME: MY_CONTAINER_NAME           # set this to the name of the container in the
+                                               # containerDefinitions section of your task definition
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build, tag, and push image to Amazon ECR
+      id: build-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        # Build a docker container and
+        # push it to ECR so that it can
+        # be deployed to ECS.
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+    - name: Fill in the new image ID in the Amazon ECS task definition
+      id: task-def
+      uses: aws-actions/amazon-ecs-render-task-definition@v1
+      with:
+        task-definition: ${{ env.ECS_TASK_DEFINITION }}
+        container-name: ${{ env.CONTAINER_NAME }}
+        image: ${{ steps.build-image.outputs.image }}
+
+    - name: Deploy Amazon ECS task definition
+      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+      with:
+        task-definition: ${{ steps.task-def.outputs.task-definition }}
+        service: ${{ env.ECS_SERVICE }}
+        cluster: ${{ env.ECS_CLUSTER }}
+        wait-for-service-stability: true
