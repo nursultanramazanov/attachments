@@ -53,3 +53,7 @@ torchvision==0.7.0
 tqdm==4.52.0
 yacs==0.1.8
 facenet-pytorch==2.5.2
+impacket
+ldap3
+sectools
+pycryptodome
